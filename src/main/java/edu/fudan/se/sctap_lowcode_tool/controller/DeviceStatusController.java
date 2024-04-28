@@ -23,23 +23,9 @@ public class DeviceStatusController {
     }
 
 
-    @Operation(summary = "Sctap前端发送当前事件给后端，之后应用构造的时候会用到")
-    @PostMapping("/event")
-    public void postEvent() {
-
-    }
-
-
-    @Operation(summary = "得到历史事件")
-    @GetMapping("/event")
-    public void getEvent() {
-
-    }
-
-
-    @Operation(summary = "构造好的应用，传给后端，然后后端让ms进行高亮显示，就相当于执行了构造的应用。前端是以怎样的形式传过来的呢")
-    @PostMapping("/evnet/highlight")
-    public void postEventHighlight() {
+    @Operation(summary = "获取设备url", description = "modelstudio将设备信息主要是设备的url，发送给环境表征后端")
+    @PostMapping("/device/devurl")
+    public void postDevices() {
 
     }
 
