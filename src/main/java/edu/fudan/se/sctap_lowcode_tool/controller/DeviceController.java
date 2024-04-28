@@ -2,12 +2,14 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.Model.DeviceInfo;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "DeviceStatusController", description = "设备状态控制器")
-public class DeviceStatusController {
+@Tag(name = "DeviceController", description = "设备状态控制器")
+@ApiResponses
+public class DeviceController {
 
     @Operation(summary = "得到设备的状态", description = "是融合感知于sctap执行两个功能需要用到，sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
     @GetMapping("/device/status")
