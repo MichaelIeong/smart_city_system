@@ -10,21 +10,20 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "DeviceStatusController", description = "设备状态控制器")
 public class DeviceStatusController {
 
-
-    @Operation(summary = "得到设备的状态，这个应该是融合感知于sctap执行两个功能需要用到的，因为sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
+    @Operation(summary = "得到设备的状态", description = "是融合感知于sctap执行两个功能需要用到，sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
     @GetMapping("/device/status")
     public void getDeviceStatus() {
 
     }
 
-    @Operation(summary = "得到设备的能力，比如温度传感器测温，扬声器可以出声，这样前端的用户才可以根据这些功能构造应用")
+    @Operation(summary = "得到设备的能力", description = "比如温度传感器测温，扬声器可以出声，这样前端的用户才可以根据这些功能构造应用")
     @GetMapping("/device/ability")
     public void getDeviceAbility() {
 
     }
 
 
-    @Operation(summary = "Sctap前端制造一些历史事件发给后端，之后应用构造的时候会用到")
+    @Operation(summary = "Sctap前端发送当前事件给后端，之后应用构造的时候会用到")
     @PostMapping("/event")
     public void postEvent() {
 
