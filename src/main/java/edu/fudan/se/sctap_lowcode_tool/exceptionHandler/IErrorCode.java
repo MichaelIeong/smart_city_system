@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.common;
+package edu.fudan.se.sctap_lowcode_tool.exceptionHandler;
 
 /**
  * 错误状态码

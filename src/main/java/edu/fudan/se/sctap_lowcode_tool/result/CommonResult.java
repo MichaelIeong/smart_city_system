@@ -1,5 +1,6 @@
-package edu.fudan.se.sctap_lowcode_tool.common;
+package edu.fudan.se.sctap_lowcode_tool.result;
 
+import edu.fudan.se.sctap_lowcode_tool.exceptionHandler.IErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

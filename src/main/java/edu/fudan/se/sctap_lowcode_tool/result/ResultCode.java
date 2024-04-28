@@ -1,5 +1,7 @@
-package edu.fudan.se.sctap_lowcode_tool.common;
+package edu.fudan.se.sctap_lowcode_tool.result;
 
+
+import edu.fudan.se.sctap_lowcode_tool.exceptionHandler.IErrorCode;
 
 /**
  * 常用api状态码
