@@ -24,7 +24,7 @@ public class DeviceStatusController {
 
 
     @Operation(summary = "获取设备url", description = "modelstudio将设备信息主要是设备的url，发送给环境表征后端")
-    @PostMapping("/device/devurl")
+    @PostMapping("/device/url")
     public void postDevices() {
 
     }

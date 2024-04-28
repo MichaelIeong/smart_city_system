@@ -10,15 +10,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Tag(name = "EventController", description = "事件控制器")
 public class EventController {
+
     @Operation(summary = "Sctap前端发送当前事件给后端，之后应用构造的时候会用到")
-    @PostMapping("/event")
+    @PostMapping("/event/post")
     public void postEvent() {
 
     }
 
 
     @Operation(summary = "得到历史事件")
-    @GetMapping("/event")
+    @GetMapping("/event/history")
     public void getEvent() {
 
     }
