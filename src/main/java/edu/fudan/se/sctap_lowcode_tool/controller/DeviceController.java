@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.dto.ApiResponse;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
@@ -7,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/device")
@@ -50,11 +53,12 @@ public class DeviceController {
         }
     }
 
-    @Operation(summary = "返回设备的数据", description = "是融合感知于sctap执行两个功能需要用到，sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
+    @Operation(summary = "返回设备的数据(先假设是http传入)", description = "是融合感知于sctap执行两个功能需要用到，sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
     @GetMapping("/data")
-    public ApiResponse<Void> getDeviceData(@RequestParam("deviceID") int deviceID) {
+    public ApiResponse<JsonNode> getDeviceData(@RequestParam("deviceID") int deviceID) {
         try {
-            return ApiResponse.success(null);
+            JsonNode data = deviceService.getDeviceData(deviceID);
+            return ApiResponse.success(data);
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -62,13 +66,12 @@ public class DeviceController {
 
     @Operation(summary = "返回设备的能力", description = "比如温度传感器测温，扬声器可以出声，这样前端的用户才可以根据这些功能构造应用")
     @GetMapping("/capabilities")
-    public ApiResponse<Void> getDeviceCapabilities(@RequestParam("deviceID") int deviceID) {
+    public ApiResponse<ArrayList<String>> getDeviceCapabilities(@RequestParam("deviceID") int deviceID) {
         try {
-            return ApiResponse.success(null);
+            ArrayList<String> capabilities = deviceService.getDeviceCapabilities(deviceID);
+            return ApiResponse.success(capabilities);
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
     }
-
-
 }
