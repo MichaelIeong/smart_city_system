@@ -2,8 +2,10 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.dto.ApiResponse;
+import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -11,11 +13,16 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "DeviceController", description = "设备状态控制器")
 public class DeviceController {
 
+
+    @Autowired
+    private DeviceService deviceService;
+
     @Operation(summary = "发送设备的所有信息", description = "modelstudio发送设备信息，主要是设备的url, status和capabilities，发送给环境表征后端")
-    @PostMapping("/")
-    public ApiResponse<Void> postDevices(@RequestBody DeviceInfo deviceInfo) {
+    @PostMapping("/postAll")
+    public ApiResponse<DeviceInfo> postDevices(@RequestBody DeviceInfo deviceInfo) {
         try {
-            return ApiResponse.success(null);
+            DeviceInfo updatedDeviceInfo = deviceService.updateDeviceInfo(deviceInfo);
+            return ApiResponse.success(updatedDeviceInfo);
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -23,9 +30,10 @@ public class DeviceController {
 
     @Operation(summary = "返回设备的状态", description = "设备在线或离线")
     @GetMapping("/status")
-    public ApiResponse<Void> getDeviceStatus(@RequestParam("deviceID") int deviceID) {
+    public ApiResponse<String> getDeviceStatus(@RequestParam("deviceID") int deviceID) {
         try {
-            return ApiResponse.success(null);
+            String status = deviceService.getDeviceStatus(deviceID);
+            return ApiResponse.success(status);
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -33,9 +41,10 @@ public class DeviceController {
 
     @Operation(summary = "返回设备的URL", description = "供后端调用设备")
     @GetMapping("/url")
-    public ApiResponse<Void> getDeviceURL(@RequestParam("deviceID") int deviceID) {
+    public ApiResponse<String> getDeviceURL(@RequestParam("deviceID") int deviceID) {
         try {
-            return ApiResponse.success(null);
+            String url = deviceService.getDeviceURL(deviceID);
+            return ApiResponse.success(url);
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
