@@ -1,13 +1,17 @@
 //package edu.fudan.se.sctap_lowcode_tool.service.impl;
 //
+//import com.fasterxml.jackson.databind.JsonNode;
 //import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 //import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 //import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.stereotype.Service;
 //
+//import java.util.ArrayList;
+//
 //@Service
 //public class DeviceServiceImpl implements DeviceService {
+//
 //    @Autowired
 //    private DeviceRepository deviceRepository;
 //
@@ -30,13 +34,13 @@
 //    }
 //
 //    @Override
-//    public String getDeviceData(int deviceId) {
+//    public JsonNode getDeviceData(int deviceId) {
 //        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-//        return "Data for device " + deviceInfo.getDeviceId(); // 示例数据
+//        return  deviceInfo.getData(); // 示例数据
 //    }
 //
 //    @Override
-//    public String getDeviceCapabilities(int deviceId) {
+//    public ArrayList<String> getDeviceCapabilities(int deviceId) {
 //        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
 //        return deviceInfo.getCapabilities();
 //    }
