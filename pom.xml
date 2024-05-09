@@ -65,7 +65,12 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.33</version>
         </dependency>
-
+        <!--通用mapper起步依赖，0sql语句-->
+        <dependency>
+            <groupId>tk.mybatis</groupId>
+            <artifactId>mapper-spring-boot-starter</artifactId>
+            <version>2.0.4</version>
+        </dependency>
     </dependencies>
 
 
