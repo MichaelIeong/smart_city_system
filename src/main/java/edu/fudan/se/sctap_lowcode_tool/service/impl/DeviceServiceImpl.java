@@ -17,30 +17,30 @@ public class DeviceServiceImpl implements DeviceService {
         int result = deviceRepository.updateByPrimaryKey(deviceInfo);
         if(result==1) return true;
         else return false;
-
     }
 
-    @Override
-    public String getDeviceStatus(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-        return deviceInfo.getStatus();
-    }
-
-    @Override
-    public String getDeviceURL(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-        return deviceInfo.getUrl();
-    }
-
-    @Override
-    public String getDeviceData(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-        return "Data for device " + deviceInfo.getDeviceId(); // 示例数据
-    }
-
-    @Override
-    public String getDeviceCapabilities(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-        return deviceInfo.getCapabilities();
-    }
+//    @Override
+//    public String getDeviceStatus(int deviceId) {
+//        DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
+//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
+//        return deviceInfo.getStatus();
+//    }
+//
+//    @Override
+//    public String getDeviceURL(int deviceId) {
+//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
+//        return deviceInfo.getUrl();
+//    }
+//
+//    @Override
+//    public String getDeviceData(int deviceId) {
+//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
+//        return "Data for device " + deviceInfo.getDeviceId(); // 示例数据
+//    }
+//
+//    @Override
+//    public String getDeviceCapabilities(int deviceId) {
+//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
+//        return deviceInfo.getCapabilities();
+//    }
 }
