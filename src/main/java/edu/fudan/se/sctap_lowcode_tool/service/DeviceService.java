@@ -7,8 +7,9 @@ import java.util.ArrayList;
 
 public interface DeviceService {
     boolean updateDeviceInfo(DeviceInfo deviceInfo);
-//    String getDeviceStatus(int deviceId);
-//    String getDeviceURL(int deviceId);
-//    JsonNode getDeviceData(int deviceId);
-//    ArrayList<String> getDeviceCapabilities(int deviceId);
+
+    String getDeviceStatus(int deviceId);
+    String getDeviceURL(int deviceId);
+    JsonNode getDeviceData(int deviceId);
+    ArrayList<String> getDeviceCapabilities(int deviceId);
 }
