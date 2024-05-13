@@ -1,51 +1,63 @@
 package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import edu.fudan.se.sctap_lowcode_tool.model.DeviceHistory;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.repository.DeviceHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
 
+    @Autowired
+    private DeviceHistoryRepository deviceHistoryRepository;
+
     @Override
     public void updateDeviceInfo(DeviceInfo deviceInfo) {
-        deviceRepository.updateByPrimaryKey(deviceInfo);
+        deviceRepository.save(deviceInfo);
     }
 
     @Override
-    public String getDeviceStatus(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
-        //DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-        return deviceInfo.getStatus();
+    public String getDeviceStatus(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getStatus)
+                .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceURL(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
-        if (deviceInfo.getUrl() != null) return deviceInfo.getUrl();
-        else return "Device not found";
-//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-//        return deviceInfo.getUrl();
+    public String getDeviceURL(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getUrl)
+                .orElse("Device not found");
     }
 
     @Override
-    public JsonNode getDeviceData(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
-        return deviceInfo.getData();
-//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-//        return "Data for device " + deviceInfo.getDeviceId(); // 示例数据
+    public String getDeviceData(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getData)
+                .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceCapabilities(int deviceId) {
-        DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
-        return deviceInfo.getCapabilities();
-//        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
-//        return deviceInfo.getCapabilities();
+    public String getDeviceCapabilities(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getCapabilities)
+                .orElse("Device not found");
+    }
+
+    @Override
+    public Set<DeviceHistory> getDeviceHistory(int deviceID) {
+        try {
+            return new HashSet<>(deviceHistoryRepository.findAllByDeviceId(deviceID));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

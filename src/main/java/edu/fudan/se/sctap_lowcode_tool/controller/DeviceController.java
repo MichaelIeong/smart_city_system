@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import edu.fudan.se.sctap_lowcode_tool.model.DeviceHistory;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.dto.ApiResponse;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @RestController
 @RequestMapping("/device")
@@ -63,6 +66,16 @@ public class DeviceController {
     public ApiResponse<String> getDeviceCapabilities(@PathVariable int deviceID) {
         try {
             return ApiResponse.success(deviceService.getDeviceCapabilities(deviceID));
+        } catch (Exception e) {
+            return ApiResponse.failed(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")
+    @GetMapping("/{deviceID}/history")
+    public ApiResponse<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
+        try {
+            return ApiResponse.success(deviceService.getDeviceHistory(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }

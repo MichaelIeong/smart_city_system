@@ -2,9 +2,9 @@ package edu.fudan.se.sctap_lowcode_tool.repository;
 
 
 import edu.fudan.se.sctap_lowcode_tool.model.AppInfo;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import tk.mybatis.mapper.common.Mapper;
 
 @Repository
-public interface AppRepository extends Mapper<AppInfo>{
+public interface AppRepository extends JpaRepository<AppInfo, Integer> {
 }
