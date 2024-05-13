@@ -7,8 +7,6 @@ import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-
 @Service
 public class DeviceServiceImpl implements DeviceService {
     @Autowired
@@ -44,7 +42,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public ArrayList<String> getDeviceCapabilities(int deviceId) {
+    public String getDeviceCapabilities(int deviceId) {
         DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
         return deviceInfo.getCapabilities();
 //        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));

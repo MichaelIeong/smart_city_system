@@ -9,8 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-
 @RestController
 @RequestMapping("/device")
 @Tag(name = "DeviceController", description = "设备状态控制器")
@@ -21,10 +19,10 @@ public class DeviceController {
 
     @Operation(summary = "发送设备的所有信息", description = "model studio发送设备信息，主要是设备的url, status和capabilities，发送给环境表征后端")
     @PostMapping("/upload")
-    public ApiResponse<String> postDevices(@RequestBody DeviceInfo deviceInfo) {
+    public ApiResponse<Void> postDevices(@RequestBody DeviceInfo deviceInfo) {
         try {
             deviceService.updateDeviceInfo(deviceInfo);
-            return ApiResponse.success("Device info updated");
+            return ApiResponse.success("Device info updated.");
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -34,8 +32,7 @@ public class DeviceController {
     @GetMapping("/{deviceID}/status")
     public ApiResponse<String> getDeviceStatus(@PathVariable int deviceID) {
         try {
-            String status = deviceService.getDeviceStatus(deviceID);
-            return ApiResponse.success(status);
+            return ApiResponse.success(deviceService.getDeviceStatus(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -45,8 +42,7 @@ public class DeviceController {
     @GetMapping("/{deviceID}/url")
     public ApiResponse<String> getDeviceURL(@PathVariable int deviceID) {
         try {
-            String url = deviceService.getDeviceURL(deviceID);
-            return ApiResponse.success(url);
+            return ApiResponse.success(deviceService.getDeviceURL(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -56,8 +52,7 @@ public class DeviceController {
     @GetMapping("/{deviceID}/data")
     public ApiResponse<JsonNode> getDeviceData(@PathVariable int deviceID) {
         try {
-            JsonNode data = deviceService.getDeviceData(deviceID);
-            return ApiResponse.success(data);
+            return ApiResponse.success(deviceService.getDeviceData(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -65,10 +60,9 @@ public class DeviceController {
 
     @Operation(summary = "返回设备的能力", description = "比如温度传感器测温，扬声器可以出声，这样前端的用户才可以根据这些功能构造应用")
     @GetMapping("/{deviceID}/capabilities")
-    public ApiResponse<ArrayList<String>> getDeviceCapabilities(@PathVariable int deviceID) {
+    public ApiResponse<String> getDeviceCapabilities(@PathVariable int deviceID) {
         try {
-            ArrayList<String> capabilities = deviceService.getDeviceCapabilities(deviceID);
-            return ApiResponse.success(capabilities);
+            return ApiResponse.success(deviceService.getDeviceCapabilities(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }

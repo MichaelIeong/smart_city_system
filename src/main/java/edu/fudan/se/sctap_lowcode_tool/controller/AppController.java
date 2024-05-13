@@ -18,10 +18,10 @@ public class AppController {
 
     @Operation(summary = "上传新的应用信息", description = "客户端提交新构建的应用信息")
     @PostMapping("/upload")
-    public ApiResponse<String> createApp(@RequestBody AppInfo appInfo) {
+    public ApiResponse<Void> createApp(@RequestBody AppInfo appInfo) {
         try {
             appService.saveApp(appInfo);
-            return ApiResponse.success("App saved");
+            return ApiResponse.success("App saved.");
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -31,8 +31,7 @@ public class AppController {
     @PostMapping("/{deviceID}")
     public ApiResponse<AppInfo> getApp(@PathVariable int deviceID) {
         try {
-            AppInfo appInfo = appService.getInfo(deviceID);
-            return ApiResponse.success(appInfo);
+            return ApiResponse.success(appService.getInfo(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -40,10 +39,10 @@ public class AppController {
 
     @Operation(summary = "应用告知后端要在model studio显示", description = "应用执行按钮")
     @PostMapping("/{deviceID}/highlight")
-    public ApiResponse<String> postAppHighlight(@PathVariable int deviceID) {
+    public ApiResponse<Void> postAppHighlight(@PathVariable int deviceID) {
         try {
             appService.highlightApp(deviceID);
-            return ApiResponse.success();
+            return ApiResponse.success("Model Studio will highlight this app.");
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }

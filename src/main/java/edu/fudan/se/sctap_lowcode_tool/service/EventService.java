@@ -9,4 +9,6 @@ import java.util.List;
 public interface EventService {
 
     List<EventInfo> getHistory(int deviceID);
+
+    void saveEvent(EventInfo eventInfo);
 }

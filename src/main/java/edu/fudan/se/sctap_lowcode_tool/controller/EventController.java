@@ -7,10 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/event")
@@ -22,9 +19,10 @@ public class EventController {
 
     @Operation(summary = "发送当前事件给后端", description = "SCTAP以及融合感知模块也使用这个api，之后应用构造的时候会用到")
     @PostMapping("/upload")
-    public ApiResponse<EventInfo> postEvent(@RequestBody EventInfo eventInfo) {
+    public ApiResponse<Void> postEvent(@RequestBody EventInfo eventInfo) {
         try {
-            return ApiResponse.success(eventInfo);
+            eventService.saveEvent(eventInfo);
+            return ApiResponse.success("Event saved.");
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
@@ -34,8 +32,7 @@ public class EventController {
     @GetMapping("/{deviceID}/history")
     public ApiResponse<List<EventInfo>> getHistory(@PathVariable int deviceID) {
         try {
-            List<EventInfo> events = eventService.getHistory(deviceID);
-            return ApiResponse.success(events);
+            return ApiResponse.success(eventService.getHistory(deviceID));
         } catch (Exception e) {
             return ApiResponse.failed(e.getMessage());
         }
