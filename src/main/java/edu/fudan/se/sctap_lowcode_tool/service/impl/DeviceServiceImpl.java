@@ -15,11 +15,8 @@ public class DeviceServiceImpl implements DeviceService {
     private DeviceRepository deviceRepository;
 
     @Override
-    public boolean updateDeviceInfo(DeviceInfo deviceInfo) {
-        // 假设这里包含了一些业务逻辑
-        int result = deviceRepository.updateByPrimaryKey(deviceInfo);
-        if(result==1) return true;
-        else return false;
+    public void updateDeviceInfo(DeviceInfo deviceInfo) {
+        deviceRepository.updateByPrimaryKey(deviceInfo);
     }
 
     @Override
@@ -32,7 +29,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public String getDeviceURL(int deviceId) {
         DeviceInfo deviceInfo = deviceRepository.selectByPrimaryKey(deviceId);
-        if(deviceInfo.getUrl()!=null) return deviceInfo.getUrl();
+        if (deviceInfo.getUrl() != null) return deviceInfo.getUrl();
         else return "Device not found";
 //        DeviceInfo deviceInfo = deviceRepository.findById(deviceId).orElseThrow(() -> new RuntimeException("Device not found"));
 //        return deviceInfo.getUrl();
