@@ -18,9 +18,9 @@ public class DeviceController {
 
     @PostMapping("/upload")
     @Operation(summary = "上传设备信息", description = "上传新的或更新现有设备的信息。")
-    public ResponseEntity<Void> postDevices(@RequestBody DeviceInfo deviceInfo) {
-        deviceService.saveOrUpdateDevice(deviceInfo);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> postDevices(@RequestBody DeviceInfo deviceInfo) {
+
+        return deviceService.saveOrUpdateDevice(deviceInfo) ? ResponseEntity.ok().build() : ResponseEntity.badRequest().body("请先创建空间");
     }
 
     @GetMapping("/{deviceID}/status")
@@ -54,7 +54,7 @@ public class DeviceController {
     @PutMapping("/{deviceID}")
     @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
     public ResponseEntity<Void> updateDevice(@PathVariable int deviceID, @RequestBody DeviceInfo deviceInfo) {
-        deviceInfo.setDeviceId(deviceID); // 确保ID一致
+        deviceInfo.setDeviceId(deviceID);
         deviceService.saveOrUpdateDevice(deviceInfo);
         return ResponseEntity.ok().build();
     }
@@ -67,14 +67,16 @@ public class DeviceController {
                 .orElseGet(() -> ResponseEntity.notFound().build());  // 如果没有找到设备，返回404 Not Found
     }
 
+    @GetMapping("allDevices")
+    @Operation(summary = "获取所有设备", description = "获取所有设备的详细信息。")
+    public ResponseEntity<Iterable<DeviceInfo>> getAllDevices() {
+        return ResponseEntity.ok(deviceService.findAll());
+    }
+
     @DeleteMapping("/{deviceID}")
     @Operation(summary = "删除设备", description = "删除指定的设备。")
     public ResponseEntity<Void> deleteDevice(@PathVariable int deviceID) {
-        if (deviceService.deleteDevice(deviceID)) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return deviceService.deleteDevice(deviceID) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 }
 //    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")

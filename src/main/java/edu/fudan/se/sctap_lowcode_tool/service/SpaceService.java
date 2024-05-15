@@ -14,6 +14,6 @@ public interface SpaceService {
 
     void deleteSpaceInfoById(int spaceId);
 
-    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
+//    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
 }
 

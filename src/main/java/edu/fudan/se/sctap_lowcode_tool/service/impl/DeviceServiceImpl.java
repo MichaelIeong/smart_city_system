@@ -1,21 +1,30 @@
 package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Optional;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     @Override
-    public DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo) {
-        return deviceRepository.save(deviceInfo);
+    public boolean saveOrUpdateDevice(DeviceInfo deviceInfo) {
+        if (spaceRepository.findById(1).isEmpty()) return false;
+        else {
+            deviceRepository.save(deviceInfo);
+            return true;
+        }
     }
 
     @Override
@@ -58,5 +67,11 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getCapabilities)
                 .orElse("Device not found");
+    }
+
+    @Override
+    public Iterable<DeviceInfo> findAll() {
+        return Optional.of(deviceRepository.findAll())
+                .orElseGet(Collections::emptyList);
     }
 }

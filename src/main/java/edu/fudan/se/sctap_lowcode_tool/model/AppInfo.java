@@ -4,10 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "AppInfo")
+@Table(name = "app_Info")
 @Data
 public class AppInfo {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "app_id", nullable = false)
     private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 

@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface DeviceService {
-    DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo); // 保存或更新设备信息
+    boolean saveOrUpdateDevice(DeviceInfo deviceInfo); // 保存或更新设备信息
 
     boolean deleteDevice(int deviceID); // 删除设备
 
@@ -20,5 +20,8 @@ public interface DeviceService {
     String getDeviceData(int deviceID); // 获取设备的数据
 
     String getDeviceCapabilities(int deviceID); // 获取设备的能力
+
+    Iterable<DeviceInfo> findAll(); // 获取所有设备
+
 //    Set<DeviceHistory> getDeviceHistory(int deviceID);
 }
