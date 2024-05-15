@@ -71,13 +71,13 @@ public class DeviceController {
         }
     }
 
-    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")
-    @GetMapping("/{deviceID}/history")
-    public ApiResponse<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
-        try {
-            return ApiResponse.success(deviceService.getDeviceHistory(deviceID));
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
-    }
+//    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")
+//    @GetMapping("/{deviceID}/history")
+//    public ApiResponse<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
+//        try {
+//            return ApiResponse.success(deviceService.getDeviceHistory(deviceID));
+//        } catch (Exception e) {
+//            return ApiResponse.failed(e.getMessage());
+//        }
+//    }
 }

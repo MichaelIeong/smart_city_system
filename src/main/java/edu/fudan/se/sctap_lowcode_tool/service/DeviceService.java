@@ -11,5 +11,5 @@ public interface DeviceService {
     String getDeviceURL(int deviceID);
     String getDeviceData(int deviceID);
     String getDeviceCapabilities(int deviceID);
-    Set<DeviceHistory> getDeviceHistory(int deviceID);
+//    Set<DeviceHistory> getDeviceHistory(int deviceID);
 }
