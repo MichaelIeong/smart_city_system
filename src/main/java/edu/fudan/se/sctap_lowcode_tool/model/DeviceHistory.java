@@ -9,7 +9,7 @@ import lombok.Data;
 public class DeviceHistory {
     @Id
     @Column(name = "history_id", nullable = false)
-    private String historyId;   // 历史记录的唯一标识符，应有其自己的ID
+    private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
 
 //    @ManyToOne
 //    @JoinColumn(name = "device_id", nullable = false) // 这里使用JoinColumn来指定外键

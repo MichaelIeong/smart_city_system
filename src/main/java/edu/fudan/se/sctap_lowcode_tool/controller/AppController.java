@@ -1,11 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import edu.fudan.se.sctap_lowcode_tool.dto.ApiResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.AppInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,33 +18,33 @@ public class AppController {
 
     @Operation(summary = "上传新的应用信息", description = "客户端提交新构建的应用信息")
     @PostMapping("/upload")
-    public ApiResponse<Void> createApp(@RequestBody AppInfo appInfo) {
+    public ResponseEntity<Void> createApp(@RequestBody AppInfo appInfo) {
         try {
             appService.saveApp(appInfo);
-            return ApiResponse.success("App saved.");
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @Operation(summary = "根据appID获取应用信息")
     @PostMapping("/{deviceID}")
-    public ApiResponse<AppInfo> getApp(@PathVariable int deviceID) {
+    public ResponseEntity<AppInfo> getApp(@PathVariable int deviceID) {
         try {
-            return ApiResponse.success(appService.getInfo(deviceID));
+            return ResponseEntity.ok(appService.getInfo(deviceID));
         } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @Operation(summary = "应用告知后端要在model studio显示", description = "应用执行按钮")
     @PostMapping("/{deviceID}/highlight")
-    public ApiResponse<Void> postAppHighlight(@PathVariable int deviceID) {
+    public ResponseEntity<Void> postAppHighlight(@PathVariable int deviceID) {
         try {
             appService.highlightApp(deviceID);
-            return ApiResponse.success("Model Studio will highlight this app.");
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 }

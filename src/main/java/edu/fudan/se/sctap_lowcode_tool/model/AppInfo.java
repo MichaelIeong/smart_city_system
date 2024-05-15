@@ -9,7 +9,7 @@ import lombok.Data;
 public class AppInfo {
     @Id
     @Column(name = "app_id", nullable = false)
-    private Long appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
+    private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 
     @Column(name = "event_type", nullable = false)
     private String eventType; // 触发 trigger

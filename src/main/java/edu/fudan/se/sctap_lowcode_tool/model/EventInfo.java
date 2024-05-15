@@ -13,6 +13,6 @@ import lombok.Data;
 public class EventInfo {
     @Id
     @Column(name = "event_id", nullable = false)
-    private Long appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
+    private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 
 }

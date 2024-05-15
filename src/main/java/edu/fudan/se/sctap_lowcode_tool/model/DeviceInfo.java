@@ -3,7 +3,6 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Set;
 
 @Entity
 @Table(name = "DeviceInfo")
@@ -11,7 +10,7 @@ import java.util.Set;
 public class DeviceInfo {
     @Id
     @Column(name = "device_id", nullable = false)
-    private String deviceId;   // 设备的唯一标识符
+    private int deviceId;   // 设备的唯一标识符
 
     @Column(name = "url")
     private String url;   // 设备的URL，用于远程访问或控制
@@ -24,6 +23,10 @@ public class DeviceInfo {
 
     @Column(name = "data")
     private String data; // 设备的数据，例如“当前温度：25℃”
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id", nullable = false)
+    private SpaceInfo spaceInfo; // 关联的空间信息，建立多对一的关系
 
 //    // 多对一的表，一个设备对应多个设备历史记录。使用懒加载，只有在真正访问这些历史记录时，它们才会从数据库中加载。
 //    // 且持久化操作（如保存、更新、删除等）都会从 DeviceInfo 级联到其关联的 DeviceHistory

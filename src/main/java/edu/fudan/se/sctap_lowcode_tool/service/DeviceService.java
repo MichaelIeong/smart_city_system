@@ -3,13 +3,22 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceHistory;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 
+import java.util.Optional;
 import java.util.Set;
 
 public interface DeviceService {
-    void updateDeviceInfo(DeviceInfo deviceInfo);
-    String getDeviceStatus(int deviceID);
-    String getDeviceURL(int deviceID);
-    String getDeviceData(int deviceID);
-    String getDeviceCapabilities(int deviceID);
+    DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo); // 保存或更新设备信息
+
+    boolean deleteDevice(int deviceID); // 删除设备
+
+    Optional<DeviceInfo> findById(int deviceID); // 根据ID查找设备
+
+    String getDeviceStatus(int deviceID); // 获取设备状态
+
+    String getDeviceURL(int deviceID); // 获取设备的URL
+
+    String getDeviceData(int deviceID); // 获取设备的数据
+
+    String getDeviceCapabilities(int deviceID); // 获取设备的能力
 //    Set<DeviceHistory> getDeviceHistory(int deviceID);
 }

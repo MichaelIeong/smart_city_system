@@ -1,26 +1,35 @@
 package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-//import edu.fudan.se.sctap_lowcode_tool.repository.DeviceHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
 
-//    @Autowired
-//    private DeviceHistoryRepository deviceHistoryRepository;
+    @Override
+    public DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo) {
+        return deviceRepository.save(deviceInfo);
+    }
 
     @Override
-    public void updateDeviceInfo(DeviceInfo deviceInfo) {
-        deviceRepository.save(deviceInfo);
+    public boolean deleteDevice(int deviceID) {
+        if (deviceRepository.existsById(deviceID)) {
+            deviceRepository.deleteById(deviceID);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public Optional<DeviceInfo> findById(int deviceID) {
+        return deviceRepository.findById(deviceID);
     }
 
     @Override
@@ -50,13 +59,4 @@ public class DeviceServiceImpl implements DeviceService {
                 .map(DeviceInfo::getCapabilities)
                 .orElse("Device not found");
     }
-
-//    @Override
-//    public Set<DeviceHistory> getDeviceHistory(int deviceID) {
-//        try {
-//            return new HashSet<>(deviceHistoryRepository.findAllByDevice_DeviceId(deviceID));
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
 }

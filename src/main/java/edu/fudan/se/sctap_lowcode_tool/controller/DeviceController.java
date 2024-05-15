@@ -1,16 +1,12 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceHistory;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.dto.ApiResponse;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Set;
 
 @RestController
 @RequestMapping("/device")
@@ -20,64 +16,74 @@ public class DeviceController {
     @Autowired
     private DeviceService deviceService;
 
-    @Operation(summary = "发送设备的所有信息", description = "model studio发送设备信息，主要是设备的url, status和capabilities，发送给环境表征后端")
     @PostMapping("/upload")
-    public ApiResponse<Void> postDevices(@RequestBody DeviceInfo deviceInfo) {
-        try {
-            deviceService.updateDeviceInfo(deviceInfo);
-            return ApiResponse.success("Device info updated.");
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
+    @Operation(summary = "上传设备信息", description = "上传新的或更新现有设备的信息。")
+    public ResponseEntity<Void> postDevices(@RequestBody DeviceInfo deviceInfo) {
+        deviceService.saveOrUpdateDevice(deviceInfo);
+        return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "返回设备的状态", description = "设备在线或离线")
     @GetMapping("/{deviceID}/status")
-    public ApiResponse<String> getDeviceStatus(@PathVariable int deviceID) {
-        try {
-            return ApiResponse.success(deviceService.getDeviceStatus(deviceID));
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
+    @Operation(summary = "查询设备状态", description = "获取指定设备的当前状态，如在线或离线。")
+    public ResponseEntity<String> getDeviceStatus(@PathVariable int deviceID) {
+        String status = deviceService.getDeviceStatus(deviceID);
+        return status != null ? ResponseEntity.ok(status) : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "返回设备的URL", description = "供后端调用设备")
     @GetMapping("/{deviceID}/url")
-    public ApiResponse<String> getDeviceURL(@PathVariable int deviceID) {
-        try {
-            return ApiResponse.success(deviceService.getDeviceURL(deviceID));
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
+    @Operation(summary = "查询设备URL", description = "获取指定设备的URL。")
+    public ResponseEntity<String> getDeviceURL(@PathVariable int deviceID) {
+        String url = deviceService.getDeviceURL(deviceID);
+        return url != null ? ResponseEntity.ok(url) : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "返回设备的数据(先假设是http传入)", description = "是融合感知于sctap执行两个功能需要用到，sctap前端构造应用只需要设置“当温度大于35度则怎么样”，这是不需要设备状态的")
     @GetMapping("/{deviceID}/data")
-    public ApiResponse<JsonNode> getDeviceData(@PathVariable int deviceID) {
-        try {
-            return ApiResponse.success(deviceService.getDeviceData(deviceID));
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
+    @Operation(summary = "查询设备数据", description = "获取指定设备的数据。")
+    public ResponseEntity<String> getDeviceData(@PathVariable int deviceID) {
+        String data = deviceService.getDeviceData(deviceID);
+        return data != null ? ResponseEntity.ok(data) : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "返回设备的能力", description = "比如温度传感器测温，扬声器可以出声，这样前端的用户才可以根据这些功能构造应用")
     @GetMapping("/{deviceID}/capabilities")
-    public ApiResponse<String> getDeviceCapabilities(@PathVariable int deviceID) {
-        try {
-            return ApiResponse.success(deviceService.getDeviceCapabilities(deviceID));
-        } catch (Exception e) {
-            return ApiResponse.failed(e.getMessage());
-        }
+    @Operation(summary = "查询设备能力", description = "获取指定设备的功能和能力。")
+    public ResponseEntity<String> getDeviceCapabilities(@PathVariable int deviceID) {
+        String capabilities = deviceService.getDeviceCapabilities(deviceID);
+        return capabilities != null ? ResponseEntity.ok(capabilities) : ResponseEntity.notFound().build();
     }
 
+    @PutMapping("/{deviceID}")
+    @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
+    public ResponseEntity<Void> updateDevice(@PathVariable int deviceID, @RequestBody DeviceInfo deviceInfo) {
+        deviceInfo.setDeviceId(deviceID); // 确保ID一致
+        deviceService.saveOrUpdateDevice(deviceInfo);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{deviceId}")
+    @Operation(summary = "获取设备信息", description = "根据设备ID获取设备的详细信息。")
+    public ResponseEntity<DeviceInfo> getDeviceById(@PathVariable int deviceId) {
+        return deviceService.findById(deviceId)
+                .map(ResponseEntity::ok)  // 如果找到了设备，返回200 OK和设备信息
+                .orElseGet(() -> ResponseEntity.notFound().build());  // 如果没有找到设备，返回404 Not Found
+    }
+
+    @DeleteMapping("/{deviceID}")
+    @Operation(summary = "删除设备", description = "删除指定的设备。")
+    public ResponseEntity<Void> deleteDevice(@PathVariable int deviceID) {
+        if (deviceService.deleteDevice(deviceID)) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
 //    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")
 //    @GetMapping("/{deviceID}/history")
-//    public ApiResponse<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
+//    public ResponseEntity<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
 //        try {
-//            return ApiResponse.success(deviceService.getDeviceHistory(deviceID));
+//            return ResponseEntity.ok(deviceService.getDeviceHistory(deviceID));
 //        } catch (Exception e) {
-//            return ApiResponse.failed(e.getMessage());
+//            return ResponseEntity.badRequest().body(e.getMessage());
 //        }
 //    }
-}
+
