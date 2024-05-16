@@ -32,5 +32,6 @@ public class AppHandle {
     public void temperatureChange(){
         String filter = application.getDsl().getScenarioTrigger().getFilter().get(0);
         String location = filter.split(" ")[2];
+        //根据location查找这个空间中的温度数据，应该是从url直接调用
     }
 }
