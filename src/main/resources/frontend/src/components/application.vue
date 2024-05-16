@@ -55,11 +55,11 @@
 <script>
 
 import { appOptions } from './data.js'
-import triggerEditor from './components/triggerEditor.vue'
-import actionEditor from './components/actionEditor.vue'
-import historyEventEditor from './components/historyEventEditor.vue'
-import computedResultEditor from './components/computedResultEditor.vue'
-import LocationInput from './components/LocationInput.vue'
+import triggerEditor from './triggerEditor.vue'
+import actionEditor from './actionEditor.vue'
+import historyEventEditor from './historyEventEditor.vue'
+import computedResultEditor from './computedResultEditor.vue'
+import LocationInput from './LocationInput.vue'
 import { uploadDSL } from '@/api/upload'
 import bus from './bus';
 
