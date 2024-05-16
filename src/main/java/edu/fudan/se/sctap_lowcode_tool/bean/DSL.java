@@ -1,5 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.bean;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
 /**
  * @author ：sunlinyue
  * @date ：Created in 2024/5/15 21:33
@@ -8,49 +12,54 @@ package edu.fudan.se.sctap_lowcode_tool.bean;
  * @version: $
  */
 public class DSL {
-    private ScenarioTrigger Scenario_Trigger;
-    //private Scenario_Action Scenario_Action;
-    //private ScenarioDescription Scenario_Description;
+
+    @JsonProperty("Scenario_Trigger")
+    private ScenarioTrigger scenarioTrigger;
+
+    @JsonProperty("Scenario_Action")
+    private List<ScenarioAction> scenarioAction;
+
+    @JsonProperty("Scenario_Description")
+    private ScenarioDescription scenarioDescription;
 
     public DSL() {}
 
-    public DSL(ScenarioTrigger Scenario_Trigger) {
-        this.Scenario_Trigger = Scenario_Trigger;
-        //this.Scenario_Action = Scenario_Action;
-        //this.Scenario_Description = Scenario_Description;
+    public DSL(ScenarioTrigger scenarioTrigger, List<ScenarioAction> scenarioAction, ScenarioDescription scenarioDescription) {
+        this.scenarioTrigger = scenarioTrigger;
+        this.scenarioAction = scenarioAction;
+        this.scenarioDescription = scenarioDescription;
     }
 
-
-    public ScenarioTrigger getScenario_Trigger() {
-        return Scenario_Trigger;
+    public ScenarioTrigger getScenarioTrigger() {
+        return scenarioTrigger;
     }
 
-    public void setScenario_Trigger(ScenarioTrigger Scenario_Trigger) {
-        this.Scenario_Trigger = Scenario_Trigger;
+    public void setScenarioTrigger(ScenarioTrigger scenarioTrigger) {
+        this.scenarioTrigger = scenarioTrigger;
     }
 
-//    public Scenario_Action getScenario_Action() {
-//        return Scenario_Action;
-//    }
+    public List<ScenarioAction> getScenarioAction() {
+        return scenarioAction;
+    }
 
-//    public void setScenario_Action(Scenario_Action Scenario_Action) {
-//        this.Scenario_Action = Scenario_Action;
-//    }
+    public void setScenarioAction(List<ScenarioAction> scenarioAction) {
+        this.scenarioAction = scenarioAction;
+    }
 
-//    public ScenarioDescription getScenarioDescription() {
-//        return Scenario_Description;
-//    }
+    public ScenarioDescription getScenarioDescription() {
+        return scenarioDescription;
+    }
 
-//    public void setScenarioDescription(ScenarioDescription Scenario_Description) {
-//        this.Scenario_Description = Scenario_Description;
-//    }
+    public void setScenarioDescription(ScenarioDescription scenarioDescription) {
+        this.scenarioDescription = scenarioDescription;
+    }
 
     @Override
     public String toString() {
         return "DSL{" +
-                "Scenario_Trigger=" + Scenario_Trigger +
-                //", Scenario_Action=" + Scenario_Action +
-//                ", scenarioDescription=" + Scenario_Description +
+                "scenarioTrigger=" + scenarioTrigger +
+                ", scenarioAction=" + scenarioAction +
+                ", scenarioDescription=" + scenarioDescription +
                 '}';
     }
 }

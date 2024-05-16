@@ -1,0 +1,36 @@
+package edu.fudan.se.sctap_lowcode_tool.business;
+
+import edu.fudan.se.sctap_lowcode_tool.bean.AppData;
+import edu.fudan.se.sctap_lowcode_tool.bean.DSL;
+import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioAction;
+import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioTrigger;
+
+/**
+ * @author ：sunlinyue
+ * @date ：Created in 2024/5/16 16:20
+ * @description：处理application的具体执行
+ * @modified By：
+ * @version: $
+ */
+public class AppHandle {
+
+    private AppData application;
+
+    public void appExecute(AppData appData){
+        application = appData;
+        DSL dsl = application.getDsl();
+        ScenarioTrigger scenarioTrigger = dsl.getScenarioTrigger();
+        if(scenarioTrigger.getEvent_type().equals("Temperature_Change")){
+            temperatureChange();
+        }
+        ScenarioAction scenarioAction = dsl.getScenarioAction().get(0);
+        if (scenarioAction.getAction().equals("")){
+
+        }
+    }
+
+    public void temperatureChange(){
+        String filter = application.getDsl().getScenarioTrigger().getFilter().get(0);
+        String location = filter.split(" ")[2];
+    }
+}

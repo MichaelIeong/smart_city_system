@@ -2,7 +2,12 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.bean.AppData;
+import edu.fudan.se.sctap_lowcode_tool.bean.DSL;
+import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioAction;
+import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioTrigger;
+import edu.fudan.se.sctap_lowcode_tool.business.AppHandle;
 import edu.fudan.se.sctap_lowcode_tool.model.AppInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,30 +25,20 @@ public class AppController {
     @Autowired
     private AppService appService;
 
+    AppHandle appHandle;
+
     @Operation(summary = "上传新的应用信息", description = "客户端提交新构建的应用信息")
     @PostMapping("/dsl")
-    public ResponseEntity<Void> createApp(@RequestBody String js) {
-        String json = "{ \"user\": \"seer\", \"dsl\": { \"Scenario_Trigger\": { \"event_type\": [ [ \"Noisy_Detected\" ] ], \"filter\": [ \"location is DiningArea05\" ] } }, \"endTime\": \"\", \"startTime\": 1715766137691, \"app\": \"overwork\" }";
-        //ObjectMapper objectMapper = new ObjectMapper();
-
-        try{
-            //AppData appData = objectMapper.readValue(json,AppData.class);
-            System.out.println(8888);
-//            System.out.println(appData.getApp());
-//            System.out.println(appData.getDsl().getScenario_Trigger());
-            //ObjectMapper mapper = new ObjectMapper();
-            //String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(appData);
-            //System.out.println(jsonString);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-//        try {
-//            appService.saveApp(appData);
-//            return ResponseEntity.ok().build();
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().build();
-//        }
+    public ResponseEntity<Void> createApp(@RequestBody AppData appData) {
+        //step1：把这个app保存到数据库
+        AppInfo appInfo = new AppInfo();
+        appInfo.setAppJson(appData.toString());
+        appService.saveApp(appInfo);
+        //step2：处理trigger，比如需要根据location查找温度传感器，获取室内的温度。
+        appHandle.appExecute(appData);
+        //开始监测trigger
+        //step3：处理action，获取action所需的location和device，当温度大于30度，调用device
+        //step4：处理modelstudio的高亮显示
         return ResponseEntity.ok().build();
     }
 

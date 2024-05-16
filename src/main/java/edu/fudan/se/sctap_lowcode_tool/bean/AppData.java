@@ -64,4 +64,15 @@ public class AppData {
     public void setApp(String app) {
         this.app = app;
     }
+
+    @Override
+    public String toString() {
+        return "AppData{" +
+                "user='" + user + '\'' +
+                ", dsl=" + dsl +
+                ", startTime=" + startTime +
+                ", endTime='" + endTime + '\'' +
+                ", app='" + app + '\'' +
+                '}';
+    }
 }

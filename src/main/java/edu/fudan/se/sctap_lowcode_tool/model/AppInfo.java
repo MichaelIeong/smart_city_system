@@ -31,6 +31,6 @@ public class AppInfo {
 //    @Column(name = "user")
 //    private String user; // 场景计算
 
-    @Column(name = "app_json")
+    @Column(name = "app_json",length = 65536)
     private String appJson; // 将application以json的格式存到数据库
 }
