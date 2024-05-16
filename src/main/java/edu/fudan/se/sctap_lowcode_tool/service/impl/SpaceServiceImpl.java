@@ -36,12 +36,12 @@ public class SpaceServiceImpl implements SpaceService {
         spaceRepository.deleteById(spaceId);
     }
 
-    @Override
-    public Set<DeviceInfo> getAllSpaceDevices(int spaceId) {
-        SpaceInfo spaceInfo = spaceRepository.findById(spaceId).orElse(null);
-        if (spaceInfo != null) {
-            return spaceInfo.getDevices();
-        }
-        return null;
-    }
+//    @Override
+//    public Set<DeviceInfo> getAllSpaceDevices(int spaceId) {
+//        SpaceInfo spaceInfo = spaceRepository.findById(spaceId).orElse(null);
+//        if (spaceInfo != null) {
+//            return spaceInfo.getDevices();
+//        }
+//        return null;
+//    }
 }

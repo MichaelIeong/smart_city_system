@@ -4,10 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "DeviceHistory")
+@Table(name = "device_history")
 @Data
 public class DeviceHistory {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "history_id", nullable = false)
     private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
 

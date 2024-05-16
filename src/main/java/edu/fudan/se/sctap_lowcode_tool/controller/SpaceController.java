@@ -36,16 +36,16 @@ public class SpaceController {
         }
     }
 
-    @GetMapping("/{spaceId}/devices")
-    @Operation(summary = "获取空间中的所有设备", description = "检索指定空间中所有的设备。")
-    public ResponseEntity<Set<DeviceInfo>> getAllSpaceDevices(@PathVariable int spaceId) {
-        Set<DeviceInfo> devices = spaceService.getAllSpaceDevices(spaceId);
-        if (devices != null) {
-            return ResponseEntity.ok(devices);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
+//    @GetMapping("/{spaceId}/devices")
+//    @Operation(summary = "获取空间中的所有设备", description = "检索指定空间中所有的设备。")
+//    public ResponseEntity<Set<DeviceInfo>> getAllSpaceDevices(@PathVariable int spaceId) {
+//        Set<DeviceInfo> devices = spaceService.getAllSpaceDevices(spaceId);
+//        if (devices != null) {
+//            return ResponseEntity.ok(devices);
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
 
     @PutMapping("/{spaceId}")
     @Operation(summary = "更新空间信息", description = "更新一个空间的信息。")
