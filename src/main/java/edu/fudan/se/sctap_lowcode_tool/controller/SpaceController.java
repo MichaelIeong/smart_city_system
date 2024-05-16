@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/spaces")
+@RequestMapping("/api/spaces")
 @Tag(name = "SpaceController", description = "与空间操作相关的API接口")
 public class SpaceController {
 

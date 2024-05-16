@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/device")
+@RequestMapping("/api/device")
 @Tag(name = "DeviceController", description = "设备状态控制器")
 public class DeviceController {
 
@@ -18,9 +18,8 @@ public class DeviceController {
 
     @PostMapping("/upload")
     @Operation(summary = "上传设备信息", description = "上传新的或更新现有设备的信息。")
-    public ResponseEntity<String> postDevices(@RequestBody DeviceInfo deviceInfo) {
-
-        return deviceService.saveOrUpdateDevice(deviceInfo) ? ResponseEntity.ok().build() : ResponseEntity.badRequest().body("请先创建空间");
+    public ResponseEntity<DeviceInfo> postDevices(@RequestBody DeviceInfo deviceInfo) {
+        return ResponseEntity.ok(deviceService.saveOrUpdateDevice(deviceInfo));
     }
 
     @GetMapping("/{deviceID}/status")

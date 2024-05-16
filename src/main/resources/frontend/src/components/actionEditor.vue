@@ -132,9 +132,9 @@
 
 
 <script>
-import { eventTypeNameOptions, locationOptions, actionOptions, comparatorOptions, logicalOperatorOptions, LocationPropertyOptions } from './data.js'
+import { eventTypeNameOptions, locationOptions, actionOptions, comparatorOptions, logicalOperatorOptions, LocationPropertyOptions } from './util/data.js'
 import LocationInput from './LocationInput.vue'
-import bus from './bus';
+import bus from './util/bus';
 
 
 const defaultItem = {
@@ -150,7 +150,6 @@ const defaultItem = {
 export default {
   props: ['value', 'computedResultList'],
   components: {
-    LocationInput,
     LocationInput
   },
   data() {
