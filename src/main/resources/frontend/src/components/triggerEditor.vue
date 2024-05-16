@@ -95,7 +95,7 @@
 
 <script>
 
-import { eventTypeNameOptions, comparatorOptions, objectIdOptions, objectIdOperatorOptions, eventDataOptions } from '../data.js'
+import { eventTypeNameOptions, comparatorOptions, objectIdOptions, objectIdOperatorOptions, eventDataOptions } from './data.js'
 import LocationInput from './LocationInput.vue'
 
 

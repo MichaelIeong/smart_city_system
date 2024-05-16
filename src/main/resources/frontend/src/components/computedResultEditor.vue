@@ -51,7 +51,7 @@
 
 <script>
 
-import { functionOptions } from '../data.js'
+import { functionOptions } from './data.js'
 
 var resultCount = 1; // 给每个计算结果编号, func1, func2, func3...
 
