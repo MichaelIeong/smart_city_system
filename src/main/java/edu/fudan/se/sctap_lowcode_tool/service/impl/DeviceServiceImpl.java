@@ -15,16 +15,10 @@ import java.util.Optional;
 public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
-    @Autowired
-    private SpaceRepository spaceRepository;
 
     @Override
-    public boolean saveOrUpdateDevice(DeviceInfo deviceInfo) {
-        if (spaceRepository.findById(1).isEmpty()) return false;
-        else {
-            deviceRepository.save(deviceInfo);
-            return true;
-        }
+    public DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo) {
+            return deviceRepository.save(deviceInfo);
     }
 
     @Override

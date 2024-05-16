@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @CrossOrigin
-@RequestMapping("/api/upload")
+@RequestMapping("/api/app")
 @Tag(name = "AppController", description = "应用控制器")
 public class AppController {
 
