@@ -1,8 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.swagger.v3.core.util.Json;
 import jakarta.persistence.*;
 import lombok.Data;
 
