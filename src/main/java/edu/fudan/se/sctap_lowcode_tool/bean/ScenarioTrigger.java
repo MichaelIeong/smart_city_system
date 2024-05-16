@@ -13,18 +13,11 @@ public class ScenarioTrigger {
     private List<List<String>> event_type;
     private List<String> filter;
 
-    public ScenarioTrigger() {}
-
-    public ScenarioTrigger(List<List<String>> event_type, List<String> filter) {
-        this.event_type = event_type;
-        this.filter = filter;
-    }
-
-    public List<List<String>> getEventType() {
+    public List<List<String>> getEvent_type() {
         return event_type;
     }
 
-    public void setEventType(List<List<String>> event_type) {
+    public void setEvent_type(List<List<String>> event_type) {
         this.event_type = event_type;
     }
 
