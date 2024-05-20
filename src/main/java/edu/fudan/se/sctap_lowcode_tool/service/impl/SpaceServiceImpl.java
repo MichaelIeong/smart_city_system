@@ -44,13 +44,6 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public int getSpaceIdByName(String spaceName) {
-        return spaceRepository.findIdBySpaceName(spaceName)
-                .orElseThrow(() -> new EntityNotFoundException("Space not found with name: " + spaceName));
-    }
-
-
-    @Override
     public Iterable<SpaceInfo> findAllSpaces() {
         return spaceRepository.findAll();
     }

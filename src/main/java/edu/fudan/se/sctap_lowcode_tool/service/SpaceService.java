@@ -15,8 +15,6 @@ public interface SpaceService {
 
     Set<DeviceInfo> getAllSpaceDevices(int spaceId);
 
-    int getSpaceIdByName(String spaceName);
-
     Iterable<SpaceInfo> findAllSpaces();
 }
 

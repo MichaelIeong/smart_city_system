@@ -53,13 +53,6 @@ public class SpaceController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/findId/{spaceName}")
-    @Operation(summary = "通过空间名查找ID")
-    public ResponseEntity<Integer> findIdBySpaceName(@PathVariable String spaceName) {
-        int spaceId = spaceService.getSpaceIdByName(spaceName);
-        return spaceId != -1 ? ResponseEntity.ok(spaceId) : ResponseEntity.notFound().build();
-    }
-
     @GetMapping("/{spaceId}/devices")
     @Operation(summary = "获取空间中的所有设备", description = "检索指定空间中所有的设备。")
     public ResponseEntity<Set<DeviceInfo>> getAllSpaceDevices(@PathVariable int spaceId) {
