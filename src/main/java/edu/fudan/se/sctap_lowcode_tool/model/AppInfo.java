@@ -3,18 +3,15 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 @Entity
-@Table(name = "app_Info")
+@Table(name = "apps")
 @Data
 public class AppInfo {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "app_id", nullable = false)
-    private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
+    @GeneratedValue
+    @Column(nullable = false)
+    private long appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 
 //    @Column(name = "event_type", nullable = false)
 //    private String eventType; // 触发 trigger
@@ -31,6 +28,6 @@ public class AppInfo {
 //    @Column(name = "user")
 //    private String user; // 场景计算
 
-    @Column(name = "app_json",length = 65536)
+    @Column(length = 65536)
     private String appJson; // 将application以json的格式存到数据库
 }

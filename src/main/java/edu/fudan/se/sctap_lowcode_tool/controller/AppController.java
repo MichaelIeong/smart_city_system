@@ -1,12 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.bean.AppData;
-import edu.fudan.se.sctap_lowcode_tool.bean.DSL;
-import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioAction;
-import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioTrigger;
 import edu.fudan.se.sctap_lowcode_tool.business.AppHandle;
 import edu.fudan.se.sctap_lowcode_tool.model.AppInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppService;
@@ -38,7 +33,7 @@ public class AppController {
         appHandle.appExecute(appData);
         //开始监测trigger
         //step3：处理action，获取action所需的location和device，当温度大于30度，调用device
-        //step4：处理modelstudio的高亮显示
+        //step4：处理model Studio的高亮显示
         return ResponseEntity.ok().build();
     }
 

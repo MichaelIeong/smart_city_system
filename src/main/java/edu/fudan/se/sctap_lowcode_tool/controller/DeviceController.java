@@ -78,13 +78,3 @@ public class DeviceController {
         return deviceService.deleteDevice(deviceID) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 }
-//    @Operation(summary = "返回设备的历史记录", description = "包括以往的状态、数据、event等信息")
-//    @GetMapping("/{deviceID}/history")
-//    public ResponseEntity<Set<DeviceHistory>> getDeviceHistory(@PathVariable int deviceID) {
-//        try {
-//            return ResponseEntity.ok(deviceService.getDeviceHistory(deviceID));
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().body(e.getMessage());
-//        }
-//    }
-
