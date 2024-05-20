@@ -3,17 +3,20 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 
+import java.util.Optional;
 import java.util.Set;
 
 public interface SpaceService {
-    SpaceInfo saveSpaceInfo(SpaceInfo spaceInfo);
+    SpaceInfo saveOrUpdateSpace(SpaceInfo spaceInfo);
 
-    SpaceInfo getSpaceInfoById(int spaceId);
+    boolean deleteSpace(int spaceId);
 
-    SpaceInfo updateSpaceInfo(SpaceInfo spaceInfo);
+    Optional<SpaceInfo> findSpaceById(int spaceId);
 
-    void deleteSpaceInfoById(int spaceId);
+    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
 
-//    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
+    int getSpaceIdByName(String spaceName);
+
+    Iterable<SpaceInfo> findAllSpaces();
 }
 

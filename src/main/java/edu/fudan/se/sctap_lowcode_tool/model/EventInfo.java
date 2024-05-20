@@ -11,6 +11,6 @@ public class EventInfo {
     @Id
     @GeneratedValue
     @Column
-    private long eventId; // 主键字段，假设每个AppInfo都有一个唯一的ID
+    private int eventId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 
 }

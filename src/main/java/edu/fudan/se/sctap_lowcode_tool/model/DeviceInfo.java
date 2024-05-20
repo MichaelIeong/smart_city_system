@@ -11,10 +11,10 @@ public class DeviceInfo {
     @Id
     @GeneratedValue
     @Column
-    private long deviceId;   // 设备的唯一标识符
+    private int deviceId;   // 设备的唯一标识符
 
     @Column(nullable = false)
-    private long spaceId; // 设备所在空间的ID
+    private int spaceId; // 设备所在空间的ID
 
     @Column(nullable = false)
     private String deviceName;   // 设备的名称

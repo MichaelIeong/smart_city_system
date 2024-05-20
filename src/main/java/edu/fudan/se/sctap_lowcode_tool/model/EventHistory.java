@@ -11,6 +11,6 @@ public class EventHistory {
     @Id
     @GeneratedValue
     @Column(nullable = false)
-    private long historyId;   // 历史记录的唯一标识符，应有其自己的ID
+    private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
 
 }

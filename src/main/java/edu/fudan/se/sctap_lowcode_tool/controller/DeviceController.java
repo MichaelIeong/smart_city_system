@@ -22,6 +22,20 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.saveOrUpdateDevice(deviceInfo));
     }
 
+    @DeleteMapping("/{deviceID}")
+    @Operation(summary = "删除设备", description = "删除指定的设备。")
+    public ResponseEntity<Void> deleteDevice(@PathVariable int deviceID) {
+        return deviceService.deleteDevice(deviceID) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
+    @PutMapping("/{deviceID}")
+    @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
+    public ResponseEntity<Void> updateDevice(@PathVariable int deviceID, @RequestBody DeviceInfo deviceInfo) {
+        deviceInfo.setDeviceId(deviceID);
+        deviceService.saveOrUpdateDevice(deviceInfo);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{deviceID}/status")
     @Operation(summary = "查询设备状态", description = "获取指定设备的当前状态，如在线或离线。")
     public ResponseEntity<String> getDeviceStatus(@PathVariable int deviceID) {
@@ -50,13 +64,6 @@ public class DeviceController {
         return capabilities != null ? ResponseEntity.ok(capabilities) : ResponseEntity.notFound().build();
     }
 
-    @PutMapping("/{deviceID}")
-    @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
-    public ResponseEntity<Void> updateDevice(@PathVariable int deviceID, @RequestBody DeviceInfo deviceInfo) {
-        deviceInfo.setDeviceId(deviceID);
-        deviceService.saveOrUpdateDevice(deviceInfo);
-        return ResponseEntity.ok().build();
-    }
 
     @GetMapping("/{deviceId}")
     @Operation(summary = "获取设备信息", description = "根据设备ID获取设备的详细信息。")
@@ -72,9 +79,5 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.findAll());
     }
 
-    @DeleteMapping("/{deviceID}")
-    @Operation(summary = "删除设备", description = "删除指定的设备。")
-    public ResponseEntity<Void> deleteDevice(@PathVariable int deviceID) {
-        return deviceService.deleteDevice(deviceID) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
-    }
+
 }

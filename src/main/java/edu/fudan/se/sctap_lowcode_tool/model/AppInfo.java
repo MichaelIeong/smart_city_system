@@ -11,7 +11,7 @@ public class AppInfo {
     @Id
     @GeneratedValue
     @Column(nullable = false)
-    private long appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
+    private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 
 //    @Column(name = "event_type", nullable = false)
 //    private String eventType; // 触发 trigger
