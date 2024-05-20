@@ -4,7 +4,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 
-public class openAPI {
+public class SpringDoc {
     @Bean
     public OpenAPI springShopOpenAPI() {
         return new OpenAPI()
@@ -12,6 +12,4 @@ public class openAPI {
                         .description("SCTAP Low-code Tool")
                         .version("v0.0.1"));
     }
-
-
 }
