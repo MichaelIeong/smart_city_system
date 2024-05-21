@@ -16,6 +16,8 @@ public class DeviceInfo {
     @Column(nullable = false)
     private int spaceId; // 设备所在空间的ID
 
+    private String spaceName; // 设备所在空间的名称
+
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
 
@@ -30,4 +32,5 @@ public class DeviceInfo {
 
     @Column
     private String data; // 设备的数据，例如“当前温度：25℃”
+
 }

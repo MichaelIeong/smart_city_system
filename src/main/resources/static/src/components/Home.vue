@@ -4,6 +4,7 @@
     <div class="button-container">
       <button class="nav-button" @click="goToSctap">sctap</button>
       <button class="nav-button" @click="goToDeviceAccess">设备接入</button>
+      <button class="nav-button" @click="goToSpaceInit">空间初始化</button>
     </div>
   </div>
 </template>
@@ -12,10 +13,13 @@
 export default {
   methods: {
     goToSctap() {
-      this.$router.push({ name: 'application' });
+      this.$router.push({name: 'application'});
     },
     goToDeviceAccess() {
-      this.$router.push({ name: 'DeviceAccess' });
+      this.$router.push({name: 'DeviceAccess'});
+    },
+    goToSpaceInit() {
+      this.$router.push({name: 'SpaceInitialization'});
     },
   },
 };

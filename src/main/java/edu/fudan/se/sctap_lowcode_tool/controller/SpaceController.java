@@ -19,7 +19,7 @@ public class SpaceController {
     @Autowired
     private SpaceService spaceService;
 
-    @PostMapping
+    @PostMapping("/create")
     @Operation(summary = "创建新空间", description = "创建一个新的空间并返回它。")
     public ResponseEntity<SpaceInfo> createSpaceInfo(@RequestBody SpaceInfo spaceInfo) {
         return ResponseEntity.ok(spaceService.saveOrUpdateSpace(spaceInfo));

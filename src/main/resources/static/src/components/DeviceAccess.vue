@@ -2,11 +2,18 @@
   <div class="container">
     <el-form :model="deviceInfo" ref="deviceForm" label-width="120px" class="device-form">
       <el-button icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
-      <el-form-item label="Space Id" prop="spaceId">
-        <el-input v-model="deviceInfo.spaceId"></el-input>
+      <el-form-item label="Space Name" prop="spaceName">
+        <el-select v-model="deviceInfo.spaceName" placeholder="Select a space">
+          <el-option
+              v-for="space in spaces"
+              :key="space.spaceName"
+              :label="space.spaceName"
+              :value="space.spaceName">
+          </el-option>
+        </el-select>
       </el-form-item>
-      <el-form-item label="Name" prop="name">
-        <el-input v-model="deviceInfo.name"></el-input>
+      <el-form-item label="Device Name" prop="name">
+        <el-input v-model="deviceInfo.deviceName"></el-input>
       </el-form-item>
       <el-form-item label="URL" prop="url">
         <el-input v-model="deviceInfo.url"></el-input>
@@ -30,36 +37,48 @@
 
 <script>
 import axios from 'axios';
-import { Message } from 'element-ui';  // 修改这里
+import {Message} from 'element-ui';
 
 export default {
   data() {
     return {
       deviceInfo: {
-        spaceId: '',
-        name: '',
+        spaceName: '',
+        deviceName: '',
         url: '',
         status: '',
         capabilities: '',
         data: ''
-      }
+      },
+      spaces: []  // 存储从后端获取的空间数据
     };
   },
+  mounted() {
+    this.fetchSpaces();  // 获取空间数据
+  },
   methods: {
+    fetchSpaces() {
+      axios.get('/api/spaces/allSpaces')
+          .then(response => {
+            this.spaces = response.data;  // 存储空间数据到spaces数组
+          })
+          .catch(error => {
+            console.error('Error fetching spaces:', error);
+          });
+    },
     submitForm() {
+      console.log("Submitting with deviceInfo:", this.deviceInfo);  // 打印提交的数据
       this.$refs.deviceForm.validate((valid) => {
         if (valid) {
           axios.post('/api/device/upload', this.deviceInfo)
-            .then(response => {
-              Message.success('Form submitted successfully!');
-              console.log('Form submitted successfully:', response.data);
-              // Handle successful response here
-            })
-            .catch(error => {
-              Message.error('Error submitting form: ' + error);
-              console.error('Error submitting form:', error);
-              // Handle error response here
-            });
+              .then(response => {
+                Message.success('Form submitted successfully!');
+                console.log('Form submitted successfully:', response.data);
+              })
+              .catch(error => {
+                Message.error('Error submitting form: ' + error);
+                console.error('Error submitting form:', error);
+              });
         } else {
           console.log('Validation failed');
           return false;
@@ -70,8 +89,7 @@ export default {
       this.$refs.deviceForm.resetFields();
     },
     goToHomePage() {
-      // Logic to navigate to the home page
-      this.$router.push({ path: '/' });
+      this.$router.push({path: '/'});
     }
   }
 };

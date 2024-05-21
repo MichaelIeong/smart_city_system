@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,9 +15,14 @@ public class DeviceServiceImpl implements DeviceService {
     @Autowired
     private DeviceRepository deviceRepository;
 
+    @Autowired
+    private SpaceRepository spaceRepository;
+
     @Override
     public DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo) {
-            return deviceRepository.save(deviceInfo);
+        int spaceId = spaceRepository.findBySpaceName(deviceInfo.getSpaceName()).get().getSpaceId();
+        deviceInfo.setSpaceId(spaceId);
+        return deviceRepository.save(deviceInfo);
     }
 
     @Override
