@@ -1,8 +1,11 @@
 <template>
   <div class="container">
     <el-form :model="deviceInfo" ref="deviceForm" label-width="120px" class="device-form">
-      <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
-      <el-form-item label="设备名称" prop="name">
+      <div class="header">
+        <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
+        <h2 class="form-title">设备接入</h2>
+      </div>
+      <el-form-item label="设备名称" prop="deviceName">
         <el-input v-model="deviceInfo.deviceName"></el-input>
       </el-form-item>
       <el-form-item label="所属空间" prop="spaceName">
@@ -27,10 +30,8 @@
       <el-form-item label="数据" prop="data">
         <el-input v-model="deviceInfo.data"></el-input>
       </el-form-item>
-      <el-form-item class="form-buttons">
-        <el-button type="primary" @click="submitForm">提交</el-button>
-        <el-button @click="resetForm">重置</el-button>
-      </el-form-item>
+      <el-button class="button" type="primary" @click="submitForm">提交</el-button>
+      <el-button class="button" @click="resetForm">重置</el-button>
     </el-form>
   </div>
 </template>
@@ -70,7 +71,7 @@ export default {
       console.log("提交数据:", this.deviceInfo); // 打印提交的数据
       this.$refs.deviceForm.validate((valid) => {
         if (valid) {
-          axios.post('/api/device/upload', this.deviceInfo)
+          axios.post('/api/devices/upload', this.deviceInfo)
               .then(response => {
                 Message.success('表单提交成功!');
                 console.log('表单提交成功:', response.data);
@@ -98,14 +99,26 @@ export default {
 <style scoped>
 .container {
   display: flex;
-  flex-direction: column;
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
+  height: 100vh; /* 视口高度 */
+  width: 100vw; /* 视口宽度 */
+  margin: 0; /* 去掉默认的 margin */
+}
+
+.return-button {
+  font-size: 30px;
+}
+
+.header {
+  display: flex;
   align-items: center;
-  margin-top: 100px;
-  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .device-form {
-  max-width: 700px;
+  max-width: 600px;
   width: 100%;
   padding: 20px;
   background: #f9f9f9;
@@ -113,12 +126,13 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.return-button {
+.form-title {
   display: flex;
-  top: 5px; /* 调整这个值以适应按钮在表单中的位置 */
-  left: 10px;
-  bottom: 50px;
-  font-size: 30px;
+  margin-left: 38%;
+  flex-grow: 1;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .el-form-item {
@@ -130,9 +144,14 @@ export default {
   width: 100%;
 }
 
-.form-buttons {
-  display: flex;
-  justify-content: center;
+.el-select .el-input .el-input__inner {
+  text-align: center;
 }
 
+.button {
+  align-items: center;
+  width: 100px;
+  margin-right: 20px;
+  margin-left: 20px;
+}
 </style>

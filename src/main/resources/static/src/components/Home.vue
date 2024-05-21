@@ -5,6 +5,8 @@
       <button class="nav-button" @click="goToSctap">sctap</button>
       <button class="nav-button" @click="goToDeviceAccess">设备接入</button>
       <button class="nav-button" @click="goToSpaceInit">空间初始化</button>
+      <button class="nav-button" @click="goToDevices">所有设备</button>
+      <button class="nav-button" @click="goToSpaces">所有空间</button>
     </div>
   </div>
 </template>
@@ -20,6 +22,12 @@ export default {
     },
     goToSpaceInit() {
       this.$router.push({name: 'SpaceInitialization'});
+    },
+    goToDevices() {
+      this.$router.push({name: 'Devices'});
+    },
+    goToSpaces() {
+      this.$router.push({name: 'Spaces'});
     },
   },
 };

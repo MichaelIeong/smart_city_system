@@ -1,20 +1,23 @@
 <template>
   <div class="container">
     <el-form :model="spaceInfo" ref="spaceForm" label-width="120px" class="space-form">
-      <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
-      <el-form-item label="Space Name" prop="spaceName">
+      <div class="header">
+        <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
+        <h2 class="form-title">空间初始化</h2>
+      </div>
+      <el-form-item label="空间名称" prop="spaceName">
         <el-input v-model="spaceInfo.spaceName"></el-input>
       </el-form-item>
-      <el-form-item label="Type" prop="type">
+      <el-form-item label="空间类型" prop="type">
         <el-input v-model="spaceInfo.type"></el-input>
       </el-form-item>
-      <el-form-item label="Description" prop="description">
+      <el-form-item label="空间描述" prop="description">
         <el-input v-model="spaceInfo.description"></el-input>
       </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="submitForm">Submit</el-button>
-        <el-button @click="resetForm">Reset</el-button>
-      </el-form-item>
+      <div>
+        <el-button class="button" type="primary" @click="submitForm">提交</el-button>
+        <el-button class="button" @click="resetForm">重置</el-button>
+      </div>
     </el-form>
   </div>
 </template>
@@ -39,15 +42,15 @@ export default {
         if (valid) {
           axios.post('/api/spaces/create', this.spaceInfo)
               .then(response => {
-                Message.success('Space created successfully!');
-                console.log('Space created successfully:', response.data);
+                Message.success('空间创建成功!');
+                console.log('空间创建成功:', response.data);
               })
               .catch(error => {
-                Message.error('Error creating space: ' + error);
-                console.error('Error creating space:', error);
+                Message.error('创建空间时出错: ' + error);
+                console.error('创建空间时出错:', error);
               });
         } else {
-          console.log('Validation failed');
+          console.log('验证失败');
           return false;
         }
       });
@@ -62,13 +65,26 @@ export default {
 };
 </script>
 
+
 <style scoped>
 .container {
   display: flex;
-  flex-direction: column;
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
+  height: 100vh; /* 视口高度 */
+  width: 100vw; /* 视口宽度 */
+  margin: 0; /* 去掉默认的 margin */
+}
+
+.return-button {
+  font-size: 30px;
+}
+
+.header {
+  display: flex;
   align-items: center;
-  margin-top: 50px;
-  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .space-form {
@@ -80,18 +96,24 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.el-form-item {
-  margin-bottom: 16px;
+.form-title {
+  display: flex;
+  margin-left: 35%;
+  flex-grow: 1;
   text-align: center;
+  font-size: 24px;
+  font-weight: bold;
 }
 
-.el-button {
-  margin-right: 10px;
+.el-form-item {
+  width: 95%;
+  top: 10px;
 }
 
-.return-button {
-  position: absolute;
-  top: -20px;
-  left: 10px;
+.button {
+  align-items: center;
+  width: 100px;
+  margin-right: 20px;
+  margin-left: 20px;
 }
 </style>

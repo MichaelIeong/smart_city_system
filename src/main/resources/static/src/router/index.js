@@ -1,10 +1,11 @@
-// src/router/index.js
 import Vue from 'vue';
 import Router from 'vue-router';
 import Home from '@/components/Home.vue';
 import application from '@/components/application.vue';
 import DeviceAccess from '@/components/DeviceAccess.vue';
 import SpaceInitialization from "@/components/SpaceInitialization.vue";
+import Devices from "@/components/Devices.vue";
+import Spaces from "@/components/Spaces.vue";
 
 Vue.use(Router);
 
@@ -29,6 +30,16 @@ export default new Router({
             path: '/space-init',
             name: 'SpaceInitialization',
             component: SpaceInitialization,
+        },
+        {
+            path: '/devices',
+            name: 'Devices',
+            component: Devices,
+        },
+        {
+            path: '/spaces',
+            name: 'Spaces',
+            component: Spaces,
         },
     ],
 });
