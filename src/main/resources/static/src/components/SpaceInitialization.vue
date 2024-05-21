@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <el-form :model="spaceInfo" ref="spaceForm" label-width="120px" class="space-form">
-      <el-button icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
+      <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
       <el-form-item label="Space Name" prop="spaceName">
         <el-input v-model="spaceInfo.spaceName"></el-input>
       </el-form-item>
@@ -21,7 +21,7 @@
 
 <script>
 import axios from 'axios';
-import { Message } from 'element-ui';
+import {Message} from 'element-ui';
 
 export default {
   data() {
@@ -38,14 +38,14 @@ export default {
       this.$refs.spaceForm.validate((valid) => {
         if (valid) {
           axios.post('/api/spaces/create', this.spaceInfo)
-            .then(response => {
-              Message.success('Space created successfully!');
-              console.log('Space created successfully:', response.data);
-            })
-            .catch(error => {
-              Message.error('Error creating space: ' + error);
-              console.error('Error creating space:', error);
-            });
+              .then(response => {
+                Message.success('Space created successfully!');
+                console.log('Space created successfully:', response.data);
+              })
+              .catch(error => {
+                Message.error('Error creating space: ' + error);
+                console.error('Error creating space:', error);
+              });
         } else {
           console.log('Validation failed');
           return false;
@@ -56,7 +56,7 @@ export default {
       this.$refs.spaceForm.resetFields();
     },
     goToHomePage() {
-      this.$router.push({ path: '/' });
+      this.$router.push({path: '/'});
     }
   }
 };
