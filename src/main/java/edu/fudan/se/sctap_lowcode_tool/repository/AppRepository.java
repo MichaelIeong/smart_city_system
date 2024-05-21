@@ -7,4 +7,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AppRepository extends JpaRepository<AppInfo, Integer> {
+    void deleteByAppName(String appName);
+    AppInfo findByAppName(String appName);
+
 }

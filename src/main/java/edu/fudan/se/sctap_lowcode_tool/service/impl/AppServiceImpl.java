@@ -6,6 +6,8 @@ import edu.fudan.se.sctap_lowcode_tool.service.AppService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AppServiceImpl implements AppService {
 
@@ -20,6 +22,17 @@ public class AppServiceImpl implements AppService {
     @Override
     public AppInfo getInfo(int deviceID) {
         return null;
+    }
+
+    @Override
+    public List<AppInfo> findAllApplication(){
+        return appRepository.findAll();
+    }
+
+    @Override
+    public void deleteAppByName(String appName){
+        AppInfo appInfo = appRepository.find
+        appRepository.delete();
     }
 
     @Override

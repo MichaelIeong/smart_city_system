@@ -31,6 +31,33 @@ public class AppInfo {
 //    @Column(name = "user")
 //    private String user; // 场景计算
 
+    @Column(name = "app_name")
+    private String appName; // app的名字
+
     @Column(name = "app_json",length = 65536)
     private String appJson; // 将application以json的格式存到数据库
+
+    public int getAppId() {
+        return appId;
+    }
+
+    public void setAppId(int appId) {
+        this.appId = appId;
+    }
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
+    }
+
+    public String getAppJson() {
+        return appJson;
+    }
+
+    public void setAppJson(String appJson) {
+        this.appJson = appJson;
+    }
 }

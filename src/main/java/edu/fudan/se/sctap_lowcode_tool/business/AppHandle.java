@@ -16,6 +16,10 @@ public class AppHandle {
 
     private AppData application;
 
+    /**
+     * app执行
+     * @param appData
+     */
     public void appExecute(AppData appData){
         application = appData;
         DSL dsl = application.getDsl();
@@ -29,9 +33,16 @@ public class AppHandle {
         }
     }
 
+    /**
+     * 温度获取
+     */
     public void temperatureChange(){
         String filter = application.getDsl().getScenarioTrigger().getFilter().get(0);
         String location = filter.split(" ")[2];
         //根据location查找这个空间中的温度数据，应该是从url直接调用
     }
+
+    /**
+     * SDK调用
+     */
 }
