@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/device")
+@RequestMapping("/api/devices")
 @Tag(name = "DeviceController", description = "设备状态控制器")
 public class DeviceController {
 
