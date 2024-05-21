@@ -31,8 +31,7 @@ public class AppServiceImpl implements AppService {
 
     @Override
     public void deleteAppByName(String appName){
-        AppInfo appInfo = appRepository.find
-        appRepository.delete();
+        appRepository.deleteByAppName(appName);
     }
 
     @Override
