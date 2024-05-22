@@ -4,8 +4,7 @@
     "Scenario_Trigger" : {
       "event_type" : [ [ "Noisy_Detected" ] ],
       "filter" : [ "location is DiningArea05" ]
-    },
-
+    }
   },
   "endTime" : "",
   "startTime" : 1715766137691,
