@@ -1,28 +1,37 @@
 <template>
   <div class="container">
-    <div class="header">
-      <el-button type="text" icon="el-icon-arrow-left" @click="goToHomePage" class="return-button"></el-button>
-      <h2 class="form-title">所有设备</h2>
+    <h2 class="form-title">所有设备</h2>
+    <div class="button-container">
+      <el-button type="primary" class="init-button" @click="dialogVisible = true">新增设备</el-button>
     </div>
-    <el-table :data="devices" style="width: 100%">
-      <el-table-column prop="deviceName" label="设备名称" width="180"></el-table-column>
-      <el-table-column prop="spaceName" label="所属空间" width="180"></el-table-column>
-      <el-table-column prop="url" label="设备URL" width="200"></el-table-column>
-      <el-table-column prop="status" label="状态" width="100"></el-table-column>
-      <el-table-column prop="capabilities" label="功能" width="200"></el-table-column>
-      <el-table-column prop="data" label="数据" width="200"></el-table-column>
+    <el-table :data="devices" stripe style="width: 80%; margin: 0 auto;">
+      <el-table-column prop="deviceName" label="设备名称" align="center"></el-table-column>
+      <el-table-column prop="spaceName" label="所属空间" align="center"></el-table-column>
+      <el-table-column prop="url" label="设备URL" align="center"></el-table-column>
+      <el-table-column prop="status" label="状态" align="center"></el-table-column>
+      <el-table-column prop="capabilities" label="功能" align="center"></el-table-column>
+      <el-table-column prop="data" label="数据" align="center"></el-table-column>
     </el-table>
+
+    <el-dialog :visible.sync="dialogVisible" title="新增设备" width="50%" custom-class="custom-dialog">
+      <DeviceAccess @formSubmitted="fetchDevices" @dialogClosed="dialogVisible = false"/>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
-import {Message} from 'element-ui';
+import { Message } from 'element-ui';
+import DeviceAccess from './DeviceAccess.vue'; // Import the DeviceAccess component
 
 export default {
+  components: {
+    DeviceAccess
+  },
   data() {
     return {
-      devices: [] // Array to store device data fetched from the backend
+      devices: [], // Array to store device data fetched from the backend
+      dialogVisible: false
     };
   },
   mounted() {
@@ -31,16 +40,16 @@ export default {
   methods: {
     fetchDevices() {
       axios.get('/api/devices/allDevices') // Adjust URL as needed
-        .then(response => {
-          this.devices = response.data;
-        })
-        .catch(error => {
-          Message.error('获取设备列表失败: ' + error.message);
-          console.error('Error fetching devices:', error);
-        });
+          .then(response => {
+            this.devices = response.data;
+          })
+          .catch(error => {
+            Message.error('获取设备列表失败: ' + error.message);
+            console.error('Error fetching devices:', error);
+          });
     },
     goToHomePage() {
-      this.$router.push({ path: '/' });
+      this.$router.push({path: '/'});
     }
   }
 };
@@ -51,37 +60,44 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh; /* Full viewport height */
+  padding: 20px;
   width: 100vw; /* Full viewport width */
   margin: 0;
 }
 
-.return-button {
-  margin-right: 10px;
-  font-size: 30px;
+.form-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-.header {
+.button-container {
+  width: 80%;
   display: flex;
-  align-items: center;
-  justify-content: space-between; /* Ensures the title and button are spaced apart */
-  width: 100%;
+  justify-content: flex-end;
   margin-bottom: 20px;
 }
 
-.form-title {
-  flex-grow: 1;
-  text-align: center;
-  font-size: 24px;
-  font-weight: bold;
+.init-button {
+  margin-left: auto;
 }
 
-.device-form {
-  max-width: 800px;
-  width: 100%;
-  background: #f9f9f9;
-  border-radius: 8px;
+.el-table {
+  background: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-table th, .el-table td {
+  text-align: center;
+}
+
+/* Add custom styles for the dialog */
+.custom-dialog .el-dialog__header,
+.custom-dialog .el-dialog__body,
+.custom-dialog .el-dialog__footer {
+  border-radius: 8px;
 }
 </style>
