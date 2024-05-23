@@ -14,7 +14,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - VUE_APP_API_BASE_URL=http://springboot:8080 # 指定后端API的URL
+      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
     networks:
       - app-network
 
