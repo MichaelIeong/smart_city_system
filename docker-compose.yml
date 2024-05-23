@@ -18,6 +18,24 @@ services:
     networks:
       - app-network
 
+  vue2:
+    build: ./sctapparent
+    ports:
+      - "3000:3000"
+    environment:
+      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
+    networks:
+      - app-network
+
+  vue3:
+    build: ./sdk-demo-v4-v2
+    ports:
+      - "5173:5173"
+    environment:
+      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
