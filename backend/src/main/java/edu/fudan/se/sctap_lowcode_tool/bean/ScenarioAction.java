@@ -8,9 +8,11 @@ package edu.fudan.se.sctap_lowcode_tool.bean;
  * @version: $
  */
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
 import java.util.List;
 
+@Data
 public class ScenarioAction {
 
     @JsonProperty("history_condition")
@@ -28,39 +30,6 @@ public class ScenarioAction {
         this.history_condition = history_condition;
         this.current_condition = current_condition;
         this.action = action;
-    }
-
-    public String getHistory_condition() {
-        return history_condition;
-    }
-
-    public void setHistory_condition(String history_condition) {
-        this.history_condition = history_condition;
-    }
-
-    public String getcurrent_condition() {
-        return current_condition;
-    }
-
-    public void setcurrent_condition(String current_condition) {
-        this.current_condition = current_condition;
-    }
-
-    public Action getAction() {
-        return action;
-    }
-
-    public void setAction(Action action) {
-        this.action = action;
-    }
-
-    @Override
-    public String toString() {
-        return "ScenarioAction{" +
-                "history_condition='" + history_condition + '\'' +
-                ", current_condition='" + current_condition + '\'' +
-                ", action=" + action +
-                '}';
     }
 }
 

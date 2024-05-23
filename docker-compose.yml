@@ -1,4 +1,3 @@
-version: '3'
 services:
   springboot:
     build: ./backend
