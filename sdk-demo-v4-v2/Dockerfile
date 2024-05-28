@@ -8,15 +8,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm install three@0.160.1
 RUN npm install
-RUN npm install @tslfe/dt-engine
 
 # 复制应用程序的其余代码
 COPY . .
 
-# 构建应用程序
-RUN npm run build
+## 构建应用程序
+#RUN npm run build
 
 # 安装serve包来提供静态文件服务
 RUN npm install -g serve
