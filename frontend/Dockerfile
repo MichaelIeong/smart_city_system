@@ -20,7 +20,7 @@ RUN npm run build
 RUN npm install -g serve
 
 # 暴露端口
-EXPOSE 8081
+EXPOSE 8082
 
 # 启动应用
-CMD ["serve", "-s", "dist","-l", "8081"]
+CMD ["serve", "-s", "dist","-l", "8082"]

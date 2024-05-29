@@ -13,14 +13,16 @@ RUN npm install
 # 复制应用程序的其余代码
 COPY . .
 
-## 构建应用程序
-#RUN npm run build
+# 构建应用程序
+RUN npm install
+RUN npm install three@0.160.1
+RUN npm install @tslfe/dt-engine
 
 # 安装serve包来提供静态文件服务
 RUN npm install -g serve
 
 # 暴露端口
-EXPOSE 5173
+EXPOSE 8083
 
 # 启动应用
-CMD ["serve", "-s", "dist","-l", "5173"]
+CMD ["serve", "-s", "dist","-l", "8083"]

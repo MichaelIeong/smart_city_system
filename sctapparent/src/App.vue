@@ -1,11 +1,11 @@
 <template>
   <div id="app">
     <div class="frame-container" ref="frameContainer">
-      <iframe src="http://localhost:8081" class="project-frame" ref="leftFrame"></iframe>
+      <iframe src="http://localhost:8082" class="project-frame" ref="leftFrame"></iframe>
       <div class="divider" ref="divider">
         <div class="drag-button" ref="dragButton">⇔</div>
       </div>
-      <iframe src="http://localhost:5173" class="project-frame" ref="rightFrame"></iframe>
+      <iframe src="http://localhost:8083" class="project-frame" ref="rightFrame"></iframe>
     </div>
   </div>
 </template>

@@ -7,7 +7,7 @@ import vue from '@vitejs/plugin-vue'
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
-    port: 3000, // 将端口设置为3000，或任何其他未被占用的端口
+    port: 8081,
   },
   plugins: [
     vue(),
