@@ -9,7 +9,6 @@
     </div>
   </div>
 </template>
-
 <script>
 export default {
   name: 'App',
@@ -51,7 +50,6 @@ export default {
   },
 };
 </script>
-
 <style>
 * {
   margin: 0;
@@ -63,12 +61,14 @@ html, body, #app {
   height: 100%;
   width: 100%;
   margin: 0;
+  padding: 0;
 }
 
 #app {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  height: 100vh;
 }
 
 .frame-container {
@@ -81,7 +81,6 @@ html, body, #app {
 .project-frame {
   height: 100%;
   border: none;
-  width: 50%; /* 默认宽度为50% */
 }
 
 .divider {
