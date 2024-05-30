@@ -4,7 +4,7 @@
     <div class="button-container">
       <el-button type="primary" class="init-button" @click="dialogVisible = true">新增设备</el-button>
     </div>
-    <el-table :data="devices" stripe style="width: 80%; margin: 0 auto;">
+    <el-table :data="devices" stripe class="custom-table">
       <el-table-column prop="deviceName" label="设备名称" align="center"></el-table-column>
       <el-table-column prop="spaceName" label="所属空间" align="center"></el-table-column>
       <el-table-column prop="url" label="设备URL" align="center"></el-table-column>
@@ -13,7 +13,7 @@
       <el-table-column prop="data" label="数据" align="center"></el-table-column>
     </el-table>
 
-    <el-dialog :visible.sync="dialogVisible" title="新增设备" width="50%" custom-class="custom-dialog">
+    <el-dialog :visible.sync="dialogVisible" title="新增设备" width="70%" custom-class="custom-dialog">
       <DeviceAccess @formSubmitted="fetchDevices" @dialogClosed="dialogVisible = false"/>
     </el-dialog>
   </div>
@@ -21,7 +21,7 @@
 
 <script>
 import axios from 'axios';
-import { Message } from 'element-ui';
+import {Message} from 'element-ui';
 import DeviceAccess from './DeviceAccess.vue'; // Import the DeviceAccess component
 
 export default {
@@ -57,12 +57,13 @@ export default {
 
 <style scoped>
 .container {
+  width: 90%;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  width: 100vw; /* Full viewport width */
-  margin: 0;
+  max-width: 1000px; /* Set a narrower max-width for the container */
+  margin: 0 auto; /* Center the container */
 }
 
 .form-title {
@@ -73,7 +74,7 @@ export default {
 }
 
 .button-container {
-  width: 80%;
+  width: 100%;
   display: flex;
   justify-content: flex-end;
   margin-bottom: 20px;
@@ -83,7 +84,8 @@ export default {
   margin-left: auto;
 }
 
-.el-table {
+.custom-table {
+  margin: 0 10px; /* 左右各添加 10px 的外边距 */
   background: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
@@ -98,6 +100,6 @@ export default {
 .custom-dialog .el-dialog__header,
 .custom-dialog .el-dialog__body,
 .custom-dialog .el-dialog__footer {
-  border-radius: 8px;
+  border-radius: 10px;
 }
 </style>

@@ -31,6 +31,7 @@ export default defineConfig({
    }
   },
   server: {
+    port: 8083,
     proxy: {
       "/masterApi": {
         target: "http://183.192.162.17"

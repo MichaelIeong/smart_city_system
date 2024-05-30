@@ -11,9 +11,10 @@
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.27.22",
+    "@tslfe/dt-engine": "^4.2.1-6",
     "@tslfe/tacos-sdk": "^2.0.3",
     "@tweenjs/tween.js": "^21.0.0",
-    "three": "0.163.0",
+    "three": "^0.160.1",
     "three-loader-3dtiles": "^1.2.2",
     "tweenjs": "^1.0.2",
     "vue": "^3.3.4",

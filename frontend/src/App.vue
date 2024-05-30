@@ -28,14 +28,17 @@ export default {
       console.log(key, keyPath);
     },
     goToSctap() {
-      this.$router.push({name: 'application'});
+      this.$router.push({ name: 'application' });
     },
     goToDevices() {
-      this.$router.push({name: 'Devices'});
+      this.$router.push({ name: 'Devices' });
     },
     goToSpaces() {
-      this.$router.push({name: 'Spaces'});
+      this.$router.push({ name: 'Spaces' });
     },
+  },
+  mounted() {
+    this.goToSctap();
   },
 };
 </script>

@@ -1,5 +1,5 @@
 <template>
-    <el-form :model="spaceInfo" ref="spaceForm" label-width="100px">
+    <el-form :model="spaceInfo" ref="spaceForm" label-width="70px">
       <el-form-item label="空间名称" prop="spaceName">
         <el-input v-model="spaceInfo.spaceName"></el-input>
       </el-form-item>
@@ -11,7 +11,6 @@
       </el-form-item>
       <div>
         <el-button class="button" type="primary" @click="submitForm">提交</el-button>
-        <el-button class="button" @click="resetForm">重置</el-button>
       </div>
     </el-form>
 </template>

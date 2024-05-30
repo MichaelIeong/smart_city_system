@@ -18,7 +18,6 @@ public class AppHandle {
 
     /**
      * app执行
-     * @param appData
      */
     public void appExecute(AppData appData){
         application = appData;

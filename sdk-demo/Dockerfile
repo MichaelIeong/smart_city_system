@@ -1,5 +1,5 @@
 # 使用Node.js的官方镜像
-FROM node
+FROM node:14
 
 # 设置工作目录
 WORKDIR /app
@@ -13,14 +13,14 @@ RUN npm install
 # 复制应用程序的其余代码
 COPY . .
 
-# 构建应用程序
+# 构建应用（如果需要）
 RUN npm run build
 
 # 安装serve包来提供静态文件服务
 RUN npm install -g serve
 
 # 暴露端口
-EXPOSE 8082
+EXPOSE 8083
 
 # 启动应用
-CMD ["serve", "-s", "dist", "-l", "8082"]
+CMD ["serve", "-s", "build", "-l", "8083"]
