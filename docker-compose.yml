@@ -1,11 +1,30 @@
-version: '3'
+version: "3.8"
+
 services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    volumes:
+      - mysql-data:/var/lib/mysql
+
   springboot:
     build: ./backend
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_HOST=host.docker.internal
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_USER=root
+      - DATABASE_PASSWORD=123456
+      - DATABASE_NAME=sctap
+    depends_on:
+      - mysql
     networks:
       - app-network
 
@@ -14,24 +33,27 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
+      - VUE_APP_API_BASE_URL=http://springboot:8080 # 指定后端API的URL
     networks:
       - app-network
 
   parent:
-    build: ./sctapparent
+    build: ./parent
     ports:
       - "8081:8081"
     networks:
       - app-network
 
-  sdk:
-    build: ./sdk-demo-v4-v2
-    ports:
-      - "8083:8083"
-    networks:
-      - app-network
+#  sdk:
+#    build: ./sdk-demo-v4-v2
+#    ports:
+#      - "8083:8083"
+#    networks:
+#      - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  mysql-data:

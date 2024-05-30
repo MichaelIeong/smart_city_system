@@ -1,5 +1,5 @@
 # 使用Node.js的官方镜像
-FROM node:18-alpine
+FROM node:14
 
 # 设置工作目录
 WORKDIR /app
@@ -13,10 +13,8 @@ RUN npm install
 # 复制应用程序的其余代码
 COPY . .
 
-# 构建应用程序
-RUN npm install
-RUN npm install three@0.160.1
-RUN npm install @tslfe/dt-engine
+# 构建应用（如果需要）
+RUN npm run build
 
 # 安装serve包来提供静态文件服务
 RUN npm install -g serve
@@ -25,4 +23,4 @@ RUN npm install -g serve
 EXPOSE 8083
 
 # 启动应用
-CMD ["serve", "-s", "dist","-l", "8083"]
+CMD ["serve", "-s", "build", "-l", "8083"]

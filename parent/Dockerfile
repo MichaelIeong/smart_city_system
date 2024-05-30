@@ -1,5 +1,5 @@
 # 使用Node.js的官方镜像
-FROM node:18-alpine
+FROM node
 
 # 设置工作目录
 WORKDIR /app
@@ -23,4 +23,4 @@ RUN npm install -g serve
 EXPOSE 8081
 
 # 启动应用
-CMD ["serve", "-s", "dist","-l", "8081"]
+CMD ["serve", "-s", "dist", "-l", "8081"]
