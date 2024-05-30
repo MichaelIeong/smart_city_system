@@ -4,10 +4,10 @@
     <div class="button-container">
       <el-button type="primary" class="init-button" @click="dialogVisible = true">新增设备</el-button>
     </div>
-    <el-table :data="spaces" stripe style="width: 80%; margin: 0 auto;">
-      <el-table-column prop="spaceName" label="空间名称" align="center" width="180"></el-table-column>
-      <el-table-column prop="type" label="空间类型" align="center" width="100"></el-table-column>
-      <el-table-column prop="description" label="空间描述" align="center" width="200"></el-table-column>
+    <el-table :data="spaces" stripe class="custom-table">
+      <el-table-column prop="spaceName" label="空间名称" align="center"></el-table-column>
+      <el-table-column prop="type" label="空间类型" align="center"></el-table-column>
+      <el-table-column prop="description" label="空间描述" align="center"></el-table-column>
       <el-table-column label="设备列表" align="center">
         <template slot-scope="scope">
           <div class="device-list">
@@ -20,7 +20,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog :visible.sync="dialogVisible" title="空间初始化" width="50%">
+    <el-dialog :visible.sync="dialogVisible" title="空间初始化" width="70%" custom-class="custom-dialog">
       <SpaceInitialization @formSubmitted="fetchSpaces" @dialogClosed="dialogVisible = false"/>
     </el-dialog>
   </div>
@@ -61,24 +61,24 @@ export default {
 
 <style scoped>
 .container {
-  position: relative;
+  width: 90%;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  width: 100vw; /* Full viewport width */
-  margin: 0;
+  max-width: 1000px; /* Set a narrower max-width for the container */
+  margin: 0 auto; /* Center the container */
 }
 
 .form-title {
   font-size: 24px;
   font-weight: bold;
-  text-align: center;
   margin-bottom: 10px;
+  text-align: center;
 }
 
 .button-container {
-  width: 80%;
+  width: 100%;
   display: flex;
   justify-content: flex-end;
   margin-bottom: 20px;
@@ -88,55 +88,52 @@ export default {
   margin-left: auto;
 }
 
-.el-table {
+.custom-table {
+  margin: 0 10px; /* 左右各添加 10px 的外边距 */
   background: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
-  margin-top: 60px; /* To ensure table is below the button */
 }
 
 .el-table th, .el-table td {
   text-align: center;
 }
 
-/* 新增的设备卡片样式 */
-.device-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
+/* 设备卡片样式调整 */
 .device-card {
   background: #f9f9f9;
   border: 1px solid #ebeef5;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   margin: 10px;
-  padding: 20px;
-  width: 150px;
+  padding: 10px; /* 减小内边距 */
+  width: 120px; /* 减小卡片宽度 */
   text-align: center;
 }
 
 .device-name {
-  font-size: 16px;
+  font-size: 14px; /* 调整字体大小 */
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 5px; /* 调整下边距 */
 }
 
 .device-status {
-  font-size: 14px;
+  font-size: 12px; /* 调整字体大小 */
   color: #409EFF;
 }
 
-.space-form {
-  width: 100%;
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 8px;
+/* 卡片列表的布局调整，使其更紧凑 */
+.device-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start; /* 调整对齐方式，使卡片靠左对齐 */
 }
 
-.button {
-  margin-right: 10px;
+/* Add custom styles for the dialog */
+.custom-dialog .el-dialog__header,
+.custom-dialog .el-dialog__body,
+.custom-dialog .el-dialog__footer {
+  border-radius: 10px;
 }
 </style>
