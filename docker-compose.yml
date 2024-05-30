@@ -45,7 +45,7 @@ services:
       - app-network
 
 #  sdk:
-#    build: ./sdk-demo-v4-v2
+#    build: ./sdk-demo
 #    ports:
 #      - "8083:8083"
 #    networks:

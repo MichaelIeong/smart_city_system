@@ -1,55 +1,60 @@
 <template>
   <div id="app">
-    <div class="frame-container" ref="frameContainer">
-      <iframe src="http://localhost:8082" class="project-frame" ref="leftFrame"></iframe>
-      <div class="divider" ref="divider">
-        <div class="drag-button" ref="dragButton">⇔</div>
+    <div class="frame-container">
+      <div class="frame-wrapper" v-show="!isRightFullScreen">
+        <iframe src="http://localhost:8082" class="project-frame"></iframe>
+        <el-button class="toggle-button" @click="toggleFullScreen('left')" plain circle>
+          <el-icon :size="20">
+            <component :is="isLeftFullScreen ? closeIcon : fullScreenIcon" />
+          </el-icon>
+        </el-button>
       </div>
-      <iframe src="http://localhost:8083" class="project-frame" ref="rightFrame"></iframe>
+      <div class="frame-wrapper" v-show="!isLeftFullScreen">
+        <iframe src="http://localhost:8083" class="project-frame"></iframe>
+        <el-button class="toggle-button" @click="toggleFullScreen('right')" plain circle>
+          <el-icon :size="20">
+            <component :is="isRightFullScreen ? closeIcon : fullScreenIcon" />
+          </el-icon>
+        </el-button>
+      </div>
     </div>
   </div>
 </template>
+
 <script>
+import { ElButton, ElIcon } from 'element-plus'; // 引入 Element Plus 的按钮和图标组件
+import { Close, FullScreen } from '@element-plus/icons-vue'; // 引入需要的图标
+
 export default {
   name: 'App',
-  mounted() {
-    const dragButton = this.$refs.dragButton;
-    const frameContainer = this.$refs.frameContainer;
-    const leftFrame = this.$refs.leftFrame;
-    const rightFrame = this.$refs.rightFrame;
-
-    let isDragging = false;
-
-    const onMouseMove = (e) => {
-      if (!isDragging) return;
-
-      const containerRect = frameContainer.getBoundingClientRect();
-      const totalWidth = containerRect.width;
-      const leftWidth = e.clientX - containerRect.left;
-
-      // 确保左侧宽度和右侧宽度有最小值，以避免过小
-      const minWidthPercentage = 10; // 10% 最小宽度
-      const leftWidthPercentage = Math.max((leftWidth / totalWidth) * 100, minWidthPercentage);
-      const rightWidthPercentage = Math.max(100 - leftWidthPercentage, minWidthPercentage);
-
-      leftFrame.style.width = `${leftWidthPercentage}%`;
-      rightFrame.style.width = `${rightWidthPercentage}%`;
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    dragButton.addEventListener('mousedown', () => {
-      isDragging = true;
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-    });
+  components: {
+    ElButton, // 注册组件
+    ElIcon,
+    Close,
+    FullScreen
   },
+  data() {
+    return {
+      isLeftFullScreen: false,
+      isRightFullScreen: false,
+      closeIcon: 'Close',
+      fullScreenIcon: 'FullScreen'
+    };
+  },
+  methods: {
+    toggleFullScreen(side) {
+      if (side === 'left') {
+        this.isLeftFullScreen = !this.isLeftFullScreen;
+        this.isRightFullScreen = false;
+      } else if (side === 'right') {
+        this.isRightFullScreen = !this.isRightFullScreen;
+        this.isLeftFullScreen = false;
+      }
+    }
+  }
 };
 </script>
+
 <style>
 * {
   margin: 0;
@@ -64,13 +69,6 @@ html, body, #app {
   padding: 0;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-}
-
 .frame-container {
   display: flex;
   flex: 1;
@@ -78,27 +76,24 @@ html, body, #app {
   height: 100%;
 }
 
+.frame-wrapper {
+  position: relative;
+  flex: 1;
+  transition: flex 0.3s ease;
+}
+
 .project-frame {
+  width: 100%;
   height: 100%;
   border: none;
 }
 
-.divider {
-  width: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #000;
-  position: relative;
-  z-index: 1;
-}
-
-.drag-button {
-  width: 20px;
-  height: 20px;
-  background-color: #fff;
-  border: 1px solid #000;
-  cursor: ew-resize;
+.toggle-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
