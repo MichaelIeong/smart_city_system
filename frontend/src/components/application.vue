@@ -54,14 +54,14 @@
 
 <script>
 
-import { appOptions } from './util/data.js'
+import { appOptions } from './utils/data.js'
 import triggerEditor from './triggerEditor.vue'
 import actionEditor from './actionEditor.vue'
 import historyEventEditor from './historyEventEditor.vue'
 import computedResultEditor from './computedResultEditor.vue'
 import LocationInput from './LocationInput.vue'
 import { uploadDSL } from '@/api/upload'
-import bus from './util/bus';
+import bus from './utils/bus';
 
 export default {
   name: 'application',

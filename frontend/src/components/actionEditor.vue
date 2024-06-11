@@ -132,9 +132,9 @@
 
 
 <script>
-import { eventTypeNameOptions, locationOptions, actionOptions, comparatorOptions, logicalOperatorOptions, LocationPropertyOptions } from './util/data.js'
+import { eventTypeNameOptions, locationOptions, actionOptions, comparatorOptions, logicalOperatorOptions, LocationPropertyOptions } from './utils/data.js'
 import LocationInput from './LocationInput.vue'
-import bus from './util/bus';
+import bus from './utils/bus';
 
 
 const defaultItem = {

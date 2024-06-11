@@ -13,7 +13,7 @@
   
 <script>
 
-import { locationOptions, locationPrepositionOptions } from './util/data.js'
+import { locationOptions, locationPrepositionOptions } from './utils/data.js'
 
 export default {
   props: ['value'],
