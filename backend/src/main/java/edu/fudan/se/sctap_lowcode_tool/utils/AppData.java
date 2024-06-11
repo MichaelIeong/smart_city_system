@@ -1,12 +1,5 @@
-package edu.fudan.se.sctap_lowcode_tool.bean;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
-/**
- * @author ：sunlinyue
- * @date ：Created in 2024/5/15 21:31
- * @description：
- * @modified By：
- * @version: $
- */
 public class AppData {
     private String user;
     private DSL dsl;

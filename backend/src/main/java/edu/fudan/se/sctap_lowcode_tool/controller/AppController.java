@@ -1,7 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.google.gson.Gson;
-import edu.fudan.se.sctap_lowcode_tool.bean.AppData;
+import edu.fudan.se.sctap_lowcode_tool.utils.AppData;
 import edu.fudan.se.sctap_lowcode_tool.business.AppHandle;
 import edu.fudan.se.sctap_lowcode_tool.model.AppInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppService;

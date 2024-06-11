@@ -1,9 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.business;
 
-import edu.fudan.se.sctap_lowcode_tool.bean.AppData;
-import edu.fudan.se.sctap_lowcode_tool.bean.DSL;
-import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioAction;
-import edu.fudan.se.sctap_lowcode_tool.bean.ScenarioTrigger;
+import edu.fudan.se.sctap_lowcode_tool.utils.AppData;
+import edu.fudan.se.sctap_lowcode_tool.utils.DSL;
+import edu.fudan.se.sctap_lowcode_tool.utils.ScenarioAction;
+import edu.fudan.se.sctap_lowcode_tool.utils.ScenarioTrigger;
 
 /**
  * @author ：sunlinyue

@@ -16,5 +16,9 @@ public interface SpaceService {
     Set<DeviceInfo> getAllSpaceDevices(int spaceId);
 
     Iterable<SpaceInfo> findAllSpaces();
+
+    boolean importSpaces(String json);
+
+    Optional<String> exportSpaces();
 }
 

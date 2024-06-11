@@ -58,4 +58,19 @@ public class SpaceController {
     public ResponseEntity<Set<DeviceInfo>> getAllSpaceDevices(@PathVariable int spaceId) {
         return ResponseEntity.ok(spaceService.getAllSpaceDevices(spaceId));
     }
+
+    @PostMapping("/import")
+    @Operation(summary = "导入空间信息", description = "从JSON文件导入空间信息。")
+    public ResponseEntity<Void> importSpaces(@RequestBody String json) {
+        boolean isSuccess = spaceService.importSpaces(json);
+        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "导出空间信息", description = "导出所有空间信息为JSON文件。")
+    public ResponseEntity<String> exportSpaces() {
+        return spaceService.exportSpaces()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(500).body("Error generating JSON"));
+    }
 }

@@ -4,10 +4,12 @@ import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
+import edu.fudan.se.sctap_lowcode_tool.utils.JsonUtil;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -16,6 +18,8 @@ public class SpaceServiceImpl implements SpaceService {
 
     @Autowired
     private SpaceRepository spaceRepository;
+    @Autowired
+    private JsonUtil jsonUtil;
 
     @Override
     public SpaceInfo saveOrUpdateSpace(SpaceInfo spaceInfo) {
@@ -46,5 +50,22 @@ public class SpaceServiceImpl implements SpaceService {
     @Override
     public Iterable<SpaceInfo> findAllSpaces() {
         return spaceRepository.findAll();
+    }
+
+    @Override
+    public boolean importSpaces(String json) {
+        return Optional.ofNullable(json)
+                .map(j -> jsonUtil.parseJsonToList(j, SpaceInfo.class))
+                .map(spaces -> {
+                    spaces.forEach(this::saveOrUpdateSpace);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Override
+    public Optional<String> exportSpaces() {
+        return Optional.ofNullable(findAllSpaces())
+                .map(spaces -> jsonUtil.convertListToJson((List<SpaceInfo>) spaces));
     }
 }

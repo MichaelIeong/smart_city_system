@@ -1,16 +1,9 @@
-package edu.fudan.se.sctap_lowcode_tool.bean;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-/**
- * @author ：sunlinyue
- * @date ：Created in 2024/5/15 21:33
- * @description：
- * @modified By：
- * @version: $
- */
 public class DSL {
 
     @JsonProperty("Scenario_Trigger")

@@ -21,4 +21,7 @@ public interface DeviceService {
 
     Iterable<DeviceInfo> findAll(); // 获取所有设备
 
+    public boolean importDevices(String json);
+
+    public Optional<String> exportDevices();
 }

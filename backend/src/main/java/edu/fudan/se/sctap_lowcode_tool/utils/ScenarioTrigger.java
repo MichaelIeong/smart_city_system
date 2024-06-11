@@ -1,12 +1,6 @@
-package edu.fudan.se.sctap_lowcode_tool.bean;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
-/**
- * @author ：sunlinyue
- * @date ：Created in 2024/5/15 21:35
- * @description：
- * @modified By：
- * @version: $
- */
+
 import java.util.List;
 
 public class ScenarioTrigger {
