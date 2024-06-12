@@ -2,7 +2,7 @@
   <div class="container">
     <div class="button-container">
       <div class="left-buttons">
-        <el-button type="primary" plain @click="dialogVisible = true">
+        <el-button type="primary" plain @click="openCreateDialog">
           新增空间
           <el-icon class="el-icon-plus"></el-icon>
         </el-button>
@@ -33,15 +33,16 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" :width="100">
+      <el-table-column label="操作" align="center" :width="150">
         <template slot-scope="scope">
+          <el-button type="success" plain size="mini" @click="editSpace(scope.row)">修改</el-button>
           <el-button type="danger" plain size="mini" @click="confirmDeleteSpace(scope.row.spaceId)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog :visible.sync="dialogVisible" title="空间初始化" width="70%" custom-class="custom-dialog">
-      <SpaceInitialization @formSubmitted="fetchSpaces" @dialogClosed="dialogVisible = false"/>
+    <el-dialog :visible.sync="dialogVisible" :title="dialogTitle" width="70%" custom-class="custom-dialog">
+      <SpaceInitialization :space="spaceToEdit" @formSubmitted="fetchSpaces" @dialogClosed="dialogVisible = false"/>
     </el-dialog>
 
     <el-dialog :visible.sync="confirmDialogVisible" title="确认删除" width="30%" custom-class="custom-dialog">
@@ -53,20 +54,22 @@
 
 <script>
 import axios from 'axios';
-import { Message, Loading } from 'element-ui';
+import {Message, Loading} from 'element-ui';
 import SpaceInitialization from './SpaceInitialization.vue'; // Import the SpaceInitialization component
 import jsonUtil from './utils/jsonUtil'; // Import the JSON utility
 
 export default {
   components: {
-    SpaceInitialization
+    SpaceInitialization,
   },
   data() {
     return {
       spaces: [], // Array to store space data fetched from the backend
       dialogVisible: false,
+      dialogTitle: '',
       confirmDialogVisible: false,
       spaceToDelete: null,
+      spaceToEdit: null, // 要编辑的空间
       jsonString: '',
       loadingInstance: null // Loading instance
     };
@@ -91,7 +94,7 @@ export default {
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        this.loadingInstance = Loading.service({ text: '正在导入...' }); // Show loading
+        this.loadingInstance = Loading.service({text: '正在导入...'}); // Show loading
         jsonUtil.readFileAsJson(file)
             .then(json => {
               this.jsonString = JSON.stringify(json);
@@ -142,6 +145,16 @@ export default {
             Message.error('删除失败: ' + error.message);
             console.error('Error deleting space:', error);
           });
+    },
+    openCreateDialog() {
+      this.spaceToEdit = {spaceName: '', type: '', description: ''};
+      this.dialogTitle = '新增空间';
+      this.dialogVisible = true;
+    },
+    editSpace(space) {
+      this.spaceToEdit = {...space};
+      this.dialogTitle = '修改空间';
+      this.dialogVisible = true;
     }
   }
 };
@@ -188,7 +201,8 @@ export default {
 }
 
 .device-name {
-  font-size: 14px; /* 调整字体大小 */
+  font-size: 14px;
+  /* 调整字体大小 */
   font-weight: bold;
   margin-bottom: 5px; /* 调整下边距 */
 }
@@ -216,7 +230,7 @@ export default {
 /* Add custom styles for the dialog */
 .custom-dialog .el-dialog__header,
 .custom-dialog .el-dialog__body,
-.custom-dialog .el-dialog__footer {
+.custom-dialog__footer {
   border-radius: 10px;
 }
 </style>

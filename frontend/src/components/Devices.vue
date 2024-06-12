@@ -2,7 +2,7 @@
   <div class="container">
     <div class="button-container">
       <div class="left-buttons">
-        <el-button type="primary" plain @click="dialogVisible = true">
+        <el-button type="primary" plain @click="openCreateDialog">
           新增设备
           <el-icon class="el-icon-plus"></el-icon>
         </el-button>
@@ -27,16 +27,17 @@
         <el-table-column prop="capabilities" label="功能" align="center" :width="150"></el-table-column>
         <el-table-column prop="url" label="设备URL" align="center" :width="200" show-overflow-tooltip></el-table-column>
         <el-table-column prop="data" label="数据" align="center" :width="200" show-overflow-tooltip></el-table-column>
-        <el-table-column label="操作" align="center" :width="100">
+        <el-table-column label="操作" align="center" :width="150">
           <template slot-scope="scope">
+            <el-button type="success" plain size="mini" @click="editDevice(scope.row)">修改</el-button>
             <el-button type="danger" plain size="mini" @click="confirmDeleteDevice(scope.row.deviceId)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
 
-    <el-dialog :visible.sync="dialogVisible" title="新增设备" width="70%" custom-class="custom-dialog">
-      <DeviceAccess @formSubmitted="fetchDevices" @dialogClosed="dialogVisible = false"/>
+    <el-dialog :visible.sync="dialogVisible" :title="dialogTitle" width="70%" custom-class="custom-dialog">
+      <DeviceAccess :device="deviceToEdit" @formSubmitted="fetchDevices" @dialogClosed="dialogVisible = false"/>
     </el-dialog>
 
     <el-dialog :visible.sync="confirmDialogVisible" title="确认删除" width="30%" custom-class="custom-dialog">
@@ -48,8 +49,8 @@
 
 <script>
 import axios from 'axios';
-import { Message, Loading } from 'element-ui';
-import DeviceAccess from './DeviceAccess.vue';
+import {Message, Loading} from 'element-ui';
+import DeviceAccess from './DeviceAccess.vue'; // Import the DeviceAccess component
 import jsonUtil from './utils/jsonUtil'; // Import the JSON utility
 
 export default {
@@ -60,8 +61,10 @@ export default {
     return {
       devices: [],
       dialogVisible: false,
+      dialogTitle: '',
       confirmDialogVisible: false,
       deviceToDelete: null,
+      deviceToEdit: null, // 要编辑的设备
       jsonString: '',
       loadingInstance: null // Loading instance
     };
@@ -71,7 +74,7 @@ export default {
   },
   methods: {
     fetchDevices() {
-      axios.get('/api/devices/allDevices')
+      axios.get('/api/devices/allDevices') // Adjust URL as needed
           .then(response => {
             this.devices = response.data;
           })
@@ -86,7 +89,7 @@ export default {
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        this.loadingInstance = Loading.service({ text: '正在导入...' }); // Show loading
+        this.loadingInstance = Loading.service({text: '正在导入...'}); // Show loading
         jsonUtil.readFileAsJson(file)
             .then(json => {
               this.jsonString = JSON.stringify(json);
@@ -137,6 +140,16 @@ export default {
             Message.error('删除失败: ' + error.message);
             console.error('Error deleting device:', error);
           });
+    },
+    openCreateDialog() {
+      this.deviceToEdit = {deviceName: '', spaceName: '', url: '', status: '', capabilities: '', data: ''};
+      this.dialogTitle = '新增设备';
+      this.dialogVisible = true;
+    },
+    editDevice(device) {
+      this.deviceToEdit = {...device};
+      this.dialogTitle = '修改设备';
+      this.dialogVisible = true;
     }
   }
 };
