@@ -90,7 +90,7 @@
 
 <script>
 
-import { locationOptions, objectIdOptions, eventTypeNameOptions } from './util/data.js'
+import { locationOptions, objectIdOptions, eventTypeNameOptions } from './utils/data.js'
 import LocationInput from './LocationInput.vue'
 
 

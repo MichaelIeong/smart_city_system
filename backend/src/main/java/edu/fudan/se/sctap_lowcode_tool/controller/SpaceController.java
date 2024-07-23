@@ -56,6 +56,36 @@ public class SpaceController {
     @GetMapping("/{spaceId}/devices")
     @Operation(summary = "获取空间中的所有设备", description = "检索指定空间中所有的设备。")
     public ResponseEntity<Set<DeviceInfo>> getAllSpaceDevices(@PathVariable int spaceId) {
-        return ResponseEntity.ok(spaceService.getAllSpaceDevices(spaceId));
+        Set<DeviceInfo> devices = spaceService.getAllSpaceDevices(spaceId);
+        return devices != null ? ResponseEntity.ok(devices) : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{spaceId}/devices")
+    @Operation(summary = "向空间添加设备", description = "向指定空间添加设备。")
+    public ResponseEntity<Void> addDeviceToSpace(@PathVariable int spaceId, @RequestBody DeviceInfo deviceInfo) {
+        boolean isSuccess = spaceService.addDeviceToSpace(spaceId, deviceInfo);
+        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{spaceId}/devices/{deviceId}")
+    @Operation(summary = "从空间中移除设备", description = "从指定空间中移除设备。")
+    public ResponseEntity<Void> removeDeviceFromSpace(@PathVariable int spaceId, @PathVariable int deviceId) {
+        boolean isSuccess = spaceService.removeDeviceFromSpace(spaceId, deviceId);
+        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/import")
+    @Operation(summary = "导入空间信息", description = "从JSON文件导入空间信息。")
+    public ResponseEntity<Void> importSpaces(@RequestBody String json) {
+        boolean isSuccess = spaceService.importSpaces(json);
+        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "导出空间信息", description = "导出所有空间信息为JSON文件。")
+    public ResponseEntity<String> exportSpaces() {
+        return spaceService.exportSpaces()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(500).body("Error generating JSON"));
     }
 }

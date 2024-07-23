@@ -14,11 +14,6 @@ public class DeviceInfo {
     private int deviceId;   // 设备的唯一标识符
 
     @Column(nullable = false)
-    private int spaceId; // 设备所在空间的ID
-
-    private String spaceName; // 设备所在空间的名称
-
-    @Column(nullable = false)
     private String deviceName;   // 设备的名称
 
     @Column(nullable = false)

@@ -1,4 +1,5 @@
-package edu.fudan.se.sctap_lowcode_tool.bean;
+package edu.fudan.se.sctap_lowcode_tool.utils;
+
 
 import java.util.List;
 import lombok.Data;

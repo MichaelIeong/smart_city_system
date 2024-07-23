@@ -23,8 +23,12 @@ public class SpaceInfo {
     @Column
     private String description;   // 空间的描述，例如“卧室1”
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "spaceId")
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinTable(
+        name = "space_device",
+        joinColumns = @JoinColumn(name = "spaceId"),
+        inverseJoinColumns = @JoinColumn(name = "deviceId")
+    )
     private Set<DeviceInfo> spaceDevices;
 
 }

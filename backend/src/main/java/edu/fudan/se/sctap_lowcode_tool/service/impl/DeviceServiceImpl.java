@@ -2,12 +2,13 @@ package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
+import edu.fudan.se.sctap_lowcode_tool.utils.JsonUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -16,12 +17,10 @@ public class DeviceServiceImpl implements DeviceService {
     private DeviceRepository deviceRepository;
 
     @Autowired
-    private SpaceRepository spaceRepository;
+    private JsonUtil jsonUtil;
 
     @Override
     public DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo) {
-        int spaceId = spaceRepository.findBySpaceName(deviceInfo.getSpaceName()).get().getSpaceId();
-        deviceInfo.setSpaceId(spaceId);
         return deviceRepository.save(deviceInfo);
     }
 
@@ -71,5 +70,22 @@ public class DeviceServiceImpl implements DeviceService {
     public Iterable<DeviceInfo> findAll() {
         return Optional.of(deviceRepository.findAll())
                 .orElseGet(Collections::emptyList);
+    }
+
+    @Override
+    public boolean importDevices(String json) {
+        return Optional.ofNullable(json)
+                .map(j -> jsonUtil.parseJsonToList(j, DeviceInfo.class))
+                .map(devices -> {
+                    devices.forEach(this::saveOrUpdateDevice);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Override
+    public Optional<String> exportDevices() {
+        return Optional.ofNullable(findAll())
+                .map(devices -> jsonUtil.convertListToJson((List<DeviceInfo>) devices));
     }
 }

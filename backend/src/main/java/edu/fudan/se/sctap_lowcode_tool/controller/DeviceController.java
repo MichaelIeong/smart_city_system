@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -7,6 +8,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -79,5 +82,18 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.findAll());
     }
 
+    @PostMapping("/import")
+    @Operation(summary = "导入设备信息", description = "从JSON文件导入设备信息。")
+    public ResponseEntity<Void> importDevices(@RequestBody String json) {
+        boolean isSuccess = deviceService.importDevices(json);
+        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
+    }
 
+    @GetMapping("/export")
+    @Operation(summary = "导出设备信息", description = "导出所有设备信息为JSON文件。")
+    public ResponseEntity<String> exportDevices() {
+        return deviceService.exportDevices()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(500).body("Error generating JSON"));
+    }
 }
