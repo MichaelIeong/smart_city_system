@@ -1,17 +1,17 @@
 version: "3.8"
 
 services:
-#  mysql:
-#    image: mysql:latest
-#    container_name: mysql
-#    environment:
-#      MYSQL_ROOT_PASSWORD: 123456
-#    ports:
-#      - "3306:3306"
-#    networks:
-#      - app-network
-#    volumes:
-#      - mysql-data:/var/lib/mysql
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    volumes:
+      - mysql-data:/var/lib/mysql
 
   springboot:
     build: ./backend
@@ -44,12 +44,12 @@ services:
     networks:
       - app-network
 
-#  sdk:
-#    build: ./sdk-demo
-#    ports:
-#      - "8083:8083"
-#    networks:
-#      - app-network
+  sdk:
+    build: ./sdk-demo
+    ports:
+      - "8083:8083"
+    networks:
+      - app-network
 
 networks:
   app-network:

@@ -8,5 +8,4 @@ import java.util.List;
 
 @Repository
 public interface DeviceRepository extends JpaRepository<DeviceInfo, Integer> {
-    List<DeviceInfo> findBySpaceId(int spaceId);  // 新增方法通过spaceId查找设备
 }

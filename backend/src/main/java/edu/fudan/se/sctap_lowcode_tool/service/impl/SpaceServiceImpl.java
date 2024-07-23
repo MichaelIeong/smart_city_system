@@ -34,11 +34,6 @@ public class SpaceServiceImpl implements SpaceService {
     @Override
     public boolean deleteSpace(int spaceId) {
         if (spaceRepository.existsById(spaceId)) {
-            // 删除与该空间关联的所有设备
-            List<DeviceInfo> devices = deviceRepository.findBySpaceId(spaceId);
-            deviceRepository.deleteAll(devices);
-
-            // 删除空间
             spaceRepository.deleteById(spaceId);
             return true;
         }
@@ -77,5 +72,33 @@ public class SpaceServiceImpl implements SpaceService {
     public Optional<String> exportSpaces() {
         return Optional.ofNullable(findAllSpaces())
                 .map(spaces -> jsonUtil.convertListToJson((List<SpaceInfo>) spaces));
+    }
+
+    @Override
+    public boolean addDeviceToSpace(int spaceId, DeviceInfo deviceInfo) {
+        Optional<SpaceInfo> spaceOpt = spaceRepository.findById(spaceId);
+        if (spaceOpt.isPresent()) {
+            SpaceInfo space = spaceOpt.get();
+            space.getSpaceDevices().add(deviceInfo);
+            deviceRepository.save(deviceInfo);
+            spaceRepository.save(space);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeDeviceFromSpace(int spaceId, int deviceId) {
+        Optional<SpaceInfo> spaceOpt = spaceRepository.findById(spaceId);
+        if (spaceOpt.isPresent()) {
+            SpaceInfo space = spaceOpt.get();
+            Optional<DeviceInfo> deviceOpt = deviceRepository.findById(deviceId);
+            if (deviceOpt.isPresent()) {
+                space.getSpaceDevices().remove(deviceOpt.get());
+                spaceRepository.save(space);
+                return true;
+            }
+        }
+        return false;
     }
 }

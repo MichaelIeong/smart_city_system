@@ -20,5 +20,8 @@ public interface SpaceService {
     boolean importSpaces(String json);
 
     Optional<String> exportSpaces();
-}
 
+    boolean addDeviceToSpace(int spaceId, DeviceInfo deviceInfo);
+
+    boolean removeDeviceFromSpace(int spaceId, int deviceId);
+}
