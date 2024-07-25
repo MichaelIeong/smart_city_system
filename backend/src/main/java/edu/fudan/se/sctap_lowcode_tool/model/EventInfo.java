@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class EventInfo {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     @Column
     private int eventId; // 主键字段，假设每个EventInfo都有一个唯一的ID
 

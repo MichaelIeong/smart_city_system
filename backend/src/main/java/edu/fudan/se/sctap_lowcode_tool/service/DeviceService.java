@@ -17,11 +17,15 @@ public interface DeviceService {
 
     String getDeviceData(int deviceID); // 获取设备的数据
 
+    String getDeviceType(int deviceID); // 获取设备的类型
+
+    Boolean getDeviceIsSensor(int deviceID); // 获取设备是否为传感器
+
     String getDeviceCapabilities(int deviceID); // 获取设备的能力
 
     Iterable<DeviceInfo> findAll(); // 获取所有设备
 
-    public boolean importDevices(String json);
+    boolean importDevices(String json);
 
-    public Optional<String> exportDevices();
+    Optional<String> exportDevices();
 }
