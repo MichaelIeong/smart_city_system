@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,8 +7,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -25,51 +22,65 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.saveOrUpdateDevice(deviceInfo));
     }
 
-    @DeleteMapping("/{deviceID}")
+    @DeleteMapping("/{deviceId}")
     @Operation(summary = "删除设备", description = "删除指定的设备。")
-    public ResponseEntity<Void> deleteDevice(@PathVariable int deviceID) {
-        return deviceService.deleteDevice(deviceID) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<Void> deleteDevice(@PathVariable int deviceId) {
+        return deviceService.deleteDevice(deviceId) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
-    @PutMapping("/{deviceID}")
+    @PutMapping("/{deviceId}")
     @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
-    public ResponseEntity<Void> updateDevice(@PathVariable int deviceID, @RequestBody DeviceInfo deviceInfo) {
-        deviceInfo.setDeviceId(deviceID);
+    public ResponseEntity<Void> updateDevice(@PathVariable int deviceId, @RequestBody DeviceInfo deviceInfo) {
+        deviceInfo.setDeviceId(deviceId);
         deviceService.saveOrUpdateDevice(deviceInfo);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{deviceID}/status")
+    @GetMapping("/{deviceId}/status")
     @Operation(summary = "查询设备状态", description = "获取指定设备的当前状态，如在线或离线。")
-    public ResponseEntity<String> getDeviceStatus(@PathVariable int deviceID) {
-        String status = deviceService.getDeviceStatus(deviceID);
+    public ResponseEntity<String> getDeviceStatus(@PathVariable int deviceId) {
+        String status = deviceService.getDeviceStatus(deviceId);
         return status != null ? ResponseEntity.ok(status) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{deviceID}/url")
+    @GetMapping("/{deviceId}/url")
     @Operation(summary = "查询设备URL", description = "获取指定设备的URL。")
-    public ResponseEntity<String> getDeviceURL(@PathVariable int deviceID) {
-        String url = deviceService.getDeviceURL(deviceID);
+    public ResponseEntity<String> getDeviceURL(@PathVariable int deviceId) {
+        String url = deviceService.getDeviceURL(deviceId);
         return url != null ? ResponseEntity.ok(url) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{deviceID}/data")
+    @GetMapping("/{deviceId}/data")
     @Operation(summary = "查询设备数据", description = "获取指定设备的数据。")
-    public ResponseEntity<String> getDeviceData(@PathVariable int deviceID) {
-        String data = deviceService.getDeviceData(deviceID);
+    public ResponseEntity<String> getDeviceData(@PathVariable int deviceId) {
+        String data = deviceService.getDeviceData(deviceId);
         return data != null ? ResponseEntity.ok(data) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{deviceID}/capabilities")
+    @GetMapping("/{deviceId}/isSensor")
+    @Operation(summary = "查询设备是否为传感器", description = "查询当前设备是否为传感器。")
+    public ResponseEntity<Boolean> getDeviceIsSensor(@PathVariable int deviceId) {
+        Boolean isSensor = deviceService.getDeviceIsSensor(deviceId);
+        return isSensor != null ? ResponseEntity.ok(isSensor) : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{deviceId}/capabilities")
     @Operation(summary = "查询设备能力", description = "获取指定设备的功能和能力。")
-    public ResponseEntity<String> getDeviceCapabilities(@PathVariable int deviceID) {
-        String capabilities = deviceService.getDeviceCapabilities(deviceID);
+    public ResponseEntity<String> getDeviceCapabilities(@PathVariable int deviceId) {
+        String capabilities = deviceService.getDeviceCapabilities(deviceId);
         return capabilities != null ? ResponseEntity.ok(capabilities) : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{deviceId}/type")
+    @Operation(summary = "查询设备类型", description = "查询当前设备是否sensor/可操作设备。")
+    public ResponseEntity<String> getDeviceType(@PathVariable int deviceId) {
+        String type = deviceService.getDeviceType(deviceId);
+        return type != null ? ResponseEntity.ok(type) : ResponseEntity.notFound().build();
     }
 
 
     @GetMapping("/{deviceId}")
-    @Operation(summary = "获取设备信息", description = "根据设备ID获取设备的详细信息。")
+    @Operation(summary = "获取设备信息", description = "根据设备Id获取设备的详细信息。")
     public ResponseEntity<DeviceInfo> getDeviceById(@PathVariable int deviceId) {
         return deviceService.findById(deviceId)
                 .map(ResponseEntity::ok)  // 如果找到了设备，返回200 OK和设备信息

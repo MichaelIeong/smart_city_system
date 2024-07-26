@@ -23,9 +23,20 @@ public class DeviceInfo {
     private String status;  // 设备的当前状态，例如“在线”、“离线”
 
     @Column
-    private String capabilities; // 设备的能力描述，例如“温度测量”，“音频输出”
+    private String type;    // 设备的类型，例如“温度传感器”、“灯”
+
+    @Column
+    private Boolean isSensor;  // 设备是否为传感器
+
+    @Column
+    private String capabilities; // 设备的能力描述，表示能返回什么data，例如“温度float(sensor)”，“音频输出(device)”
 
     @Column
     private String data; // 设备的数据，例如“当前温度：25℃”
 
+    @Column
+    private float coordinateX; // 设备的横坐标
+
+    @Column
+    private float coordinateY; // 设备的纵坐标
 }

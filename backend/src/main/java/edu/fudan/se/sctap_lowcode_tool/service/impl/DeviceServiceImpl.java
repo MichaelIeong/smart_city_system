@@ -60,6 +60,20 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    public String getDeviceType(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getType)
+                .orElse("Device not found");
+    }
+
+    @Override
+    public Boolean getDeviceIsSensor(int deviceID) {
+        return deviceRepository.findById(deviceID)
+                .map(DeviceInfo::getIsSensor)
+                .orElse(false);
+    }
+
+    @Override
     public String getDeviceCapabilities(int deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getCapabilities)

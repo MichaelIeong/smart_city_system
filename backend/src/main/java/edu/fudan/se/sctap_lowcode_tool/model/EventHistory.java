@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 // TODO: 将DeviceHistory改为EventHistory，新增应用执行的历史记录
 public class EventHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(nullable = false)
+    @GeneratedValue
+    @Column
     private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
 
     @Column(nullable = false)
