@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.bean;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
