@@ -12,7 +12,7 @@ public class SpaceInfo {
     @Id
     @GeneratedValue
     @Column
-    private int spaceId;   // 空间的唯一标识符
+    private String spaceId;   // 空间的唯一标识符
 
     @Column(nullable = false)
     private String spaceName;   // 空间的名称

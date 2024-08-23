@@ -30,7 +30,7 @@ public class DeviceController {
 
     @PutMapping("/{deviceId}")
     @Operation(summary = "更新设备信息", description = "更新指定设备的详细信息。")
-    public ResponseEntity<Void> updateDevice(@PathVariable int deviceId, @RequestBody DeviceInfo deviceInfo) {
+    public ResponseEntity<Void> updateDevice(@PathVariable String deviceId, @RequestBody DeviceInfo deviceInfo) {
         deviceInfo.setDeviceId(deviceId);
         deviceService.saveOrUpdateDevice(deviceInfo);
         return ResponseEntity.ok().build();

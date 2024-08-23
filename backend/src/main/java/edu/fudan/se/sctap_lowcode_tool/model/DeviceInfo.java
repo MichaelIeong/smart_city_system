@@ -11,12 +11,12 @@ public class DeviceInfo {
     @Id
     @GeneratedValue
     @Column
-    private int deviceId;   // 设备的唯一标识符
+    private String deviceId;   // 设备的唯一标识符
 
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
 
-    @Column(nullable = false)
+    @Column//(nullable = false)
     private String url;   // 设备的URL，用于远程访问或控制
 
     @Column
@@ -39,4 +39,7 @@ public class DeviceInfo {
 
     @Column
     private float coordinateY; // 设备的纵坐标
+
+    @Column
+    private float coordinateZ; // 设备的Z轴坐标
 }

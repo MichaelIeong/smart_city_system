@@ -11,7 +11,7 @@ public class EventInfo {
     @Id
     @GeneratedValue
     @Column
-    private int eventId; // 主键字段，假设每个EventInfo都有一个唯一的ID
+    private String eventId; // 主键字段，假设每个EventInfo都有一个唯一的ID
 
     @Column(nullable = false)
     private String eventType; // 事件类型
@@ -20,7 +20,7 @@ public class EventInfo {
     private String location; // 事件发生的位置
 
     @Column(nullable = false)
-    private int objectId; // 事件相关对象的ID
+    private String objectId; // 事件相关对象的ID
 
     @Column
     private String eventData; // 事件数据
@@ -31,7 +31,8 @@ public class EventInfo {
     @Column
     private String state; // 状态
 
-    @Column(nullable = false)
+    //@Column(nullable = false)
+    @Column
     private LocalDateTime timestamp; // 事件发生的时间
 
     @Column

@@ -33,7 +33,7 @@ public class SpaceController {
 
     @PutMapping("/{spaceId}")
     @Operation(summary = "更新空间信息", description = "更新一个空间的信息。")
-    public ResponseEntity<SpaceInfo> updateSpaceInfo(@PathVariable int spaceId, @RequestBody SpaceInfo spaceInfo) {
+    public ResponseEntity<SpaceInfo> updateSpaceInfo(@PathVariable String spaceId, @RequestBody SpaceInfo spaceInfo) {
         spaceInfo.setSpaceId(spaceId);
         spaceService.saveOrUpdateSpace(spaceInfo);
         return ResponseEntity.ok().build();
