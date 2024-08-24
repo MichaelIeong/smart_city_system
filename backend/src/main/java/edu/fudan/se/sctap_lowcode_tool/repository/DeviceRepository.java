@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface DeviceRepository extends JpaRepository<DeviceInfo, Integer> {
+public interface DeviceRepository extends JpaRepository<DeviceInfo, String> {
 }

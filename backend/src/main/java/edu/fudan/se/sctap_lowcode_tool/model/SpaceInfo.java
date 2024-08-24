@@ -12,7 +12,6 @@ import java.util.Set;
 @Data
 public class SpaceInfo {
     @Id
-    @GeneratedValue
     @Column
     private String spaceId;   // 空间的唯一标识符
 
