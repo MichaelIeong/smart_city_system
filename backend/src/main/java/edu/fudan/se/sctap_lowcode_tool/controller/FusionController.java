@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
 import edu.fudan.se.sctap_lowcode_tool.model.RuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.service.FusionService;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,7 +20,7 @@ import java.util.Map;
 public class FusionController {
 
     @Autowired
-    //private FusionService fusionService;
+    private FusionService fusionService;
 
     Gson gson = new Gson();
 
@@ -32,21 +33,19 @@ public class FusionController {
     @Operation(summary = "上传新的规则", description = "用户在node-red构建好规则，传给后端，加入到数据库")
     @PostMapping("/uploadrule")
     public ResponseEntity<Void> saveRule(@RequestBody Map<String, JsonNode> msg){
-        System.out.println(msg.get("ruleJson"));
-        System.out.println(msg.get("flowJson"));
         JsonNode ruleJson = msg.get("ruleJson");
-        JsonNode flowJson = msg.get("ruleJson");
+        JsonNode flowJson = msg.get("flowJson");
         RuleInfo ruleInfo = new RuleInfo();
-        ruleInfo.setFlowJson(flowJson.toPrettyString());
+        ruleInfo.setFlowJson(flowJson.toString());
         ruleInfo.setRuleJson(ruleJson.toString());
-        ruleInfo.setRuleName(ruleJson.get("rulename").toPrettyString());
+        ruleInfo.setRuleName(ruleJson.get("rulename").toString());
         ruleInfo.setProjectName(projectName);
         ruleInfo.setRuleStatus(ruleStatus);
         ruleInfo.setCallCount(callCount);
-        System.out.println(flowJson.toPrettyString());
+        System.out.println(flowJson.toString());
         System.out.println(ruleJson.toString());
         System.out.println(ruleJson.get("rulename").toPrettyString());
-        //fusionService.add(ruleInfo);
+        fusionService.addNewRule(ruleInfo);
         return ResponseEntity.ok().build();
 
     }
