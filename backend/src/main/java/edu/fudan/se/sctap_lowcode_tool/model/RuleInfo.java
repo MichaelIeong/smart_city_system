@@ -12,7 +12,8 @@ import java.util.Set;
 @Data
 public class RuleInfo {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //@GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "rule_id", nullable = false)
     private int ruleId; // 主键字段，假设每个RuleInfo都有一个唯一的ID
 
@@ -26,7 +27,7 @@ public class RuleInfo {
     @Column(name = "rule_json",length = 65536)
     private String ruleJson; // 将rule以json的格式存到数据库
 
-    @Column(name = "flow_json",length = 65536)
+    @Column(name = "flow_json",length = 65536,columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String flowJson; // 将flow信息以json的格式存到数据库
 
     @Column(name = "rule_status")
