@@ -1,0 +1,156 @@
+<script type="text/html" data-template-name="sensor">
+
+    <div class="form-row">
+        <label for="node-input-location"><i class="fa fa-map-marker"></i> Location</label>
+        <select id="node-input-location">
+            <option value="" disabled selected>Select Location</option>
+            <option value="all room">All Room</option>
+            <option value="南京路">南京路</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <button type="button" id="node-input-switch-to-type" class="btn btn-secondary">Switch to Device Type</button>
+    </div>
+
+    <div class="form-row" id="device-name-row">
+        <label for="node-input-device-name"><i class="fa fa-mobile"></i> Device Name</label>
+        <select id="node-input-device-name">
+            <option value="" disabled selected>Select Device Name</option>
+            <option value="路口摄像头">路口摄像头</option>
+        </select>
+    </div>
+
+    <div class="form-row" id="deviceType-row" style="display: none;">
+        <label for="node-input-deviceType"><i class="fa fa-window-restore"></i> Device Type</label>
+        <select id="node-input-deviceType">
+            <option value="" disabled selected>Select Device Type</option>
+            <option value="摄像头">摄像头</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-query"><i class="fa fa-search"></i> Query</label>
+        <select id="node-input-query">
+            <option value="" disabled selected>Select an ability of this sensor</option>
+            <option value="video stream">video stream</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('sensor', {
+        category: 'fusion',
+        color: "#f89f9f",
+        defaults: {
+            name: {value: ""},
+            location: {value: ""},
+            deviceName: {value: ""},
+            deviceType: {value: ""},
+            query: {value: ""}
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "bridge.svg",
+        label: function () {
+            if (this.deviceName) {
+                return "sensor : " + this.deviceName;
+            } else if (this.deviceType) {
+                return "sensor : " + this.deviceType;
+            } else {
+                return "sensor : ";
+            }
+        },
+        oneditprepare: function () {
+            var node = this;
+
+            // 预填充Location下拉框
+            $.getJSON("/project/spacelist", function (data) {
+                var locationSelect = $("#node-input-location");
+                data.forEach(function (space) {
+                    locationSelect.append($("<option></option>").attr("value", space.id).text(space.name));
+                });
+                locationSelect.val(node.location);
+            });
+
+            // 初始化Device Name下拉框
+            $.getJSON("/project/device", function (data) {
+                var deviceNameSelect = $("#node-input-device-name");
+                data.forEach(function (device) {
+                    deviceNameSelect.append($("<option></option>").attr("value", device.id).text(device.name));
+                });
+                // 确保在下拉框填充完毕后设置选中的值
+                deviceNameSelect.val(node.deviceName);
+            });
+
+            // 初始化Device Type下拉框
+            $.getJSON("/project/deviceType", function (data) {
+                var deviceTypeSelect = $("#node-input-deviceType");
+                data.forEach(function (type) {
+                    deviceTypeSelect.append($("<option></option>").attr("value", type.id).text(type.name));
+                });
+                // 确保在下拉框填充完毕后设置选中的值
+                deviceTypeSelect.val(node.deviceType);
+            });
+
+            // 初始视图设定
+            function initView() {
+                if (node.deviceName && node.deviceName !== "") {
+                    $("#device-name-row").show();
+                    $("#deviceType-row").hide();
+                    $("#node-input-switch-to-type").text("Switch to Device Type");
+                } else if (node.deviceType && node.deviceType !== "") {
+                    $("#device-name-row").hide();
+                    $("#deviceType-row").show();
+                    $("#node-input-switch-to-type").text("Switch to Device Name");
+                }
+            }
+
+            initView(); // 在准备编辑时设置初始视图
+
+            // 按钮点击事件，切换显示设备类型
+            $("#node-input-switch-to-type").click(function () {
+                var isDeviceNameVisible = $("#device-name-row").is(":visible");
+                if (isDeviceNameVisible) {
+                    $("#device-name-row").hide();
+                    $("#deviceType-row").show();
+                    $("#node-input-switch-to-type").text("Switch to Device Name");
+                } else {
+                    $("#device-name-row").show();
+                    $("#deviceType-row").hide();
+                    $("#node-input-switch-to-type").text("Switch to Device Type");
+                }
+            });
+        },
+        oneditsave: function () {
+            this.name = $("#node-input-name").val();
+            this.location = $("#node-input-location").val();
+            this.deviceName = $("#node-input-device-name").val();
+            this.device = $("#node-input-device").val();
+            this.deviceType = $("#node-input-deviceType").val();
+            this.query = $("#node-input-query").val();
+        }
+    });
+</script>
+<style>
+    /* 设置所有输入框和下拉框宽度一致 */
+    .form-row input[type="text"],
+    .form-row select {
+        width: calc(100% - 150px); /* 留出空间给标签 */
+        box-sizing: border-box; /* 确保padding和border包含在宽度内 */
+    }
+
+    /* 按钮样式调整 */
+    .form-row button {
+        margin-left: 150px; /* 与label宽度一致 */
+        padding: 10px 20px;
+        background-color: rgba(255, 255, 255, 0.71); /* 按钮背景颜色 */
+        border: 1px solid #b8b8b8; /* 按钮边框 */
+        border-radius: 5px; /* 圆角按钮 */
+        color: #000000; /* 按钮文字颜色 */
+        font-size: 14px; /* 字体大小 */
+        cursor: pointer;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+</style>
