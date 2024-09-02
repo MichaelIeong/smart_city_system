@@ -1,22 +1,27 @@
+
 services:
-  springboot:
-    build: ./backend
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    depends_on:
+      - db
     environment:
-      - DATABASE_HOST=host.docker.internal
-    networks:
-      - app-network
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/sctap
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
 
-  vue:
-    build: ./frontend
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: sctap
     ports:
-      - "8081:8081"
-    environment:
-      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
-    networks:
-      - app-network
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
 
-networks:
-  app-network:
-    driver: bridge
+volumes:
+  db_data:

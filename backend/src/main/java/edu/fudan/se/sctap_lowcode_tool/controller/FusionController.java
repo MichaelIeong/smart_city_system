@@ -33,6 +33,7 @@ public class FusionController {
     @Operation(summary = "上传新的规则", description = "用户在node-red构建好规则，传给后端，加入到数据库")
     @PostMapping("/uploadrule")
     public ResponseEntity<Void> saveRule(@RequestBody Map<String, JsonNode> msg){
+        System.out.println(999999);
         JsonNode ruleJson = msg.get("ruleJson");
         JsonNode flowJson = msg.get("flowJson");
         RuleInfo ruleInfo = new RuleInfo();
