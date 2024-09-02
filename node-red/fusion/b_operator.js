@@ -1,0 +1,56 @@
+module.exports = function (RED) {
+    "use strict";
+
+    function OperatorNode(n) {
+        RED.nodes.createNode(this, n);
+        var node = this;
+        this.name = n.name;
+        this.input = n.input;
+        this.operator = n.operator;
+        this.output = n.output;
+
+        var newMsg = {};
+        newMsg.steps = parseInt(0);
+        var isadd = false;
+        var linkcount = this.wires.length;
+        var count = 0;
+        // RED.nodes.eachLink(function(link) {
+        //     console.log(666);
+        //     // if(link.target.id===node.id){
+        //     //     console.log(888);
+        //     //     linkcount++;
+        //     // }
+        // }
+        this.on("input", function (msg, send, done) {
+            count++;
+            newMsg.steps = parseInt(Math.max(newMsg.steps, msg.steps + 1));
+            //console.log(newMsg.steps);
+
+            if (!isadd) {
+                var new_msg = {};
+                new_msg.name = node.name;
+                new_msg.type = node.type;
+                new_msg.step = parseInt(newMsg.steps);
+                new_msg.input = node.input;
+                new_msg.operator = node.operator;
+                new_msg.output = node.output;
+                var nodeName = node.name;
+                newMsg[nodeName] = new_msg;
+                isadd = true;
+            }
+            delete msg.steps;
+
+            Object.assign(newMsg, msg);
+            //console.log(newMsg);
+            if(count===linkcount){
+                send(newMsg);
+                done();
+            }
+            // send(newMsg);
+            // done();
+
+        });
+    }
+
+    RED.nodes.registerType("operator", OperatorNode);
+}
