@@ -12,6 +12,15 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
 
+#  vue:
+#    build: ./frontend
+#    ports:
+#      - "8082:8082"
+#    environment:
+#      - VUE_APP_API_BASE_URL=http://localhost:8080 # 指定后端API的URL
+#    networks:
+#      - app-network
+
   db:
     image: mysql:8.0
     environment:
