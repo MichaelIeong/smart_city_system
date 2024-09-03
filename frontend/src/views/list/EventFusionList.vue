@@ -121,7 +121,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getRoleList, getServiceList } from '@/api/manage'
+import { getRoleList, getRuleList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -210,7 +210,7 @@ export default {
         // 获取规则列表，调用api里的manage.js里的getServiceList，它会将请求发送到后端，但是被mock拦截，所以会显示js生成的数据
         // 发送给后端的参数应该包括userid ，projectid
         // 在完成登陆功能前先用模拟数据
-        return getServiceList(requestParameters)
+        return getRuleList()
           .then(res => {
             console.log(res.result)
             // 应该是list，包含很多条规则，每一条有规则编号，规则名称，规则data等
@@ -229,6 +229,9 @@ export default {
       return statusMap[type].status
     }
   },
+  // created () {
+  //   getRoleList({ t: new Date() })
+  // },
   created () {
     getRoleList({ t: new Date() })
   },
