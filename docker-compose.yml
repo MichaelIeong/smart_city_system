@@ -1,7 +1,7 @@
 services:
   web:
     build:
-      context: ./backend
+      context: ./back-end
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
@@ -11,6 +11,25 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/sctap
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
+
+  vue:
+    build: ./front-end
+    ports:
+      - "8000:80"
+    #    environment:
+    #      - VUE_APP_API_BASE_URL=http://localhost:8000 # 指定后端API的URL
+    networks:
+      - app-network
+
+  node-red:
+    build: ./node-red
+    container_name: custom-node-red
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./data:/data
+    networks:
+      - app-network
 
   db:
     image: mysql:8.0
@@ -24,3 +43,7 @@ services:
 
 volumes:
   db_data:
+
+networks:
+  app-network:
+    driver: bridge
