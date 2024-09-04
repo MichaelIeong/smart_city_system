@@ -205,16 +205,16 @@ export default {
       queryParam: {},
       // 加载数据方法 必须为 Promise 对象
       loadData: parameter => {
-        const requestParameters = Object.assign({}, parameter, this.queryParam)
-        console.log('loadData request parameters:', requestParameters)
+        // const requestParameters = Object.assign({}, parameter, this.queryParam)
+        console.log('准备规则列表')
         // 获取规则列表，调用api里的manage.js里的getServiceList，它会将请求发送到后端，但是被mock拦截，所以会显示js生成的数据
         // 发送给后端的参数应该包括userid ，projectid
         // 在完成登陆功能前先用模拟数据
         return getRuleList()
           .then(res => {
-            console.log(res.result)
+            console.log(res)
             // 应该是list，包含很多条规则，每一条有规则编号，规则名称，规则data等
-            return res.result
+            return res
           })
       },
       selectedRowKeys: [],
@@ -229,9 +229,6 @@ export default {
       return statusMap[type].status
     }
   },
-  // created () {
-  //   getRoleList({ t: new Date() })
-  // },
   created () {
     getRoleList({ t: new Date() })
   },
