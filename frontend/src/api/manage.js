@@ -2,6 +2,7 @@ import request from '@/utils/request'
 
 const api = {
   user: '/user',
+  rule: '/127.0.0.1:8080/fusion/getRuleList',
   role: '/role',
   service: '/service',
   permission: '/permission',
@@ -24,6 +25,14 @@ export function getRoleList (parameter) {
     url: api.role,
     method: 'get',
     params: parameter
+  })
+}
+
+export function getRuleList () {
+  return request({
+    url: api.rule,
+    method: 'get'
+    // params: parameter
   })
 }
 
