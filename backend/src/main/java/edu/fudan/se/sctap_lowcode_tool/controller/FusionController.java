@@ -49,6 +49,7 @@ public class FusionController {
         System.out.println(flowJson.toString());
         System.out.println(ruleJson.toString());
         System.out.println(ruleJson.get("rulename").toPrettyString());
+        //如果name一样就更新
         fusionService.addNewRule(ruleInfo);
         return ResponseEntity.ok().build();
 
