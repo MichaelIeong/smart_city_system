@@ -211,8 +211,7 @@ export default {
       })
     },
     handleAdd () {
-      this.mdl = null
-      this.visible = true
+      window.open('http://127.0.0.1:1880/', '_blank')
     },
     handleEdit (record) {
       let flowJson
