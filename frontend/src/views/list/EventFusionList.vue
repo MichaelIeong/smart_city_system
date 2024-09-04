@@ -229,6 +229,9 @@ export default {
       return statusMap[type].status
     }
   },
+  // created () {
+  //   getRoleList({ t: new Date() })
+  // },
   created () {
     getRoleList({ t: new Date() })
   },
