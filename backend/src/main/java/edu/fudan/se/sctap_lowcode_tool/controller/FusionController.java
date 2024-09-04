@@ -54,7 +54,7 @@ public class FusionController {
     }
 
     @Operation(summary = "获取规则列表", description = "将规则list传给前端")
-    @PostMapping("/getRulelist")
+    @GetMapping("/getRuleList")
     public ResponseEntity<List<RuleInfo>> getRuleList(){
         System.out.println("获取规则列表");
         List<RuleInfo> ruleInfoList = new ArrayList<>();
