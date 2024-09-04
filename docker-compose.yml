@@ -11,6 +11,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/sctap
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
+    networks:
+      - app-network
 
   vue:
     environment:
@@ -20,6 +22,8 @@ services:
       - web
     ports:
       - "8000:80"
+    networks:
+      - app-network
     #    environment:
     #      - VUE_APP_API_BASE_URL=http://localhost:8000 # 指定后端API的URL
 
@@ -28,6 +32,8 @@ services:
     container_name: custom-node-red
     ports:
       - "1880:1880"
+    networks:
+      - app-network
 
   db:
     image: mysql:8.0
@@ -38,6 +44,8 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - app-network
 
 volumes:
   db_data:
