@@ -16,6 +16,8 @@ services:
     environment:
       - NODE_ENV=production
     build: ./frontend
+    depends_on:
+      - web
     ports:
       - "8000:80"
     #    environment:
