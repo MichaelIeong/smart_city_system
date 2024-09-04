@@ -6,9 +6,9 @@ import edu.fudan.se.sctap_lowcode_tool.model.RuleInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+
 @Repository
 public interface FusionRepository extends JpaRepository<RuleInfo, Integer> {
 
-//    @Override
-//    <S extends RuleInfo> S save(S entity);
+    RuleInfo findByRuleName(String ruleName);
 }

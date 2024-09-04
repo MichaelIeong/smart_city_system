@@ -20,6 +20,7 @@ services:
     build: ./frontend
     depends_on:
       - web
+      - node-red
     ports:
       - "8000:80"
     networks:

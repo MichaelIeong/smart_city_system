@@ -38,6 +38,7 @@ public class FusionController {
         System.out.println("上传新规则/更新规则");
         JsonNode ruleJson = msg.get("ruleJson");
         JsonNode flowJson = msg.get("flowJson");
+        System.out.println(flowJson);
         RuleInfo ruleInfo = new RuleInfo();
         ruleInfo.setFlowJson(flowJson.toString());
         ruleInfo.setRuleJson(ruleJson.toString());
@@ -48,6 +49,7 @@ public class FusionController {
         System.out.println(flowJson.toString());
         System.out.println(ruleJson.toString());
         System.out.println(ruleJson.get("rulename").toPrettyString());
+        //如果name一样就更新
         fusionService.addNewRule(ruleInfo);
         return ResponseEntity.ok().build();
 

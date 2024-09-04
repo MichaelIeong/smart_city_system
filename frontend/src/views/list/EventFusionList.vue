@@ -6,12 +6,12 @@
           <a-row :gutter="48">
             <a-col :md="8" :sm="24">
               <a-form-item label="规则编号">
-                <a-input v-model="queryParam.id" placeholder=""/>
+                <a-input v-model="queryParam.ruleId" placeholder=""/>
               </a-form-item>
             </a-col>
             <a-col :md="8" :sm="24">
               <a-form-item label="使用状态">
-                <a-select v-model="queryParam.status" placeholder="请选择" default-value="0">
+                <a-select v-model="queryParam.ruleStatus" placeholder="请选择" default-value="0">
                   <a-select-option value="0">全部</a-select-option>
                   <a-select-option value="1">关闭</a-select-option>
                   <a-select-option value="2">运行中</a-select-option>
@@ -21,7 +21,7 @@
             <template v-if="advanced">
               <a-col :md="8" :sm="24">
                 <a-form-item label="调用次数">
-                  <a-input-number v-model="queryParam.callNo" style="width: 100%"/>
+                  <a-input-number v-model="queryParam.callCount" style="width: 100%"/>
                 </a-form-item>
               </a-col>
               <a-col :md="8" :sm="24">
@@ -29,29 +29,11 @@
                   <a-date-picker v-model="queryParam.date" style="width: 100%" placeholder="请输入更新日期"/>
                 </a-form-item>
               </a-col>
-              <a-col :md="8" :sm="24">
-                <a-form-item label="使用状态">
-                  <a-select v-model="queryParam.useStatus" placeholder="请选择" default-value="0">
-                    <a-select-option value="0">全部</a-select-option>
-                    <a-select-option value="1">关闭</a-select-option>
-                    <a-select-option value="2">运行中</a-select-option>
-                  </a-select>
-                </a-form-item>
-              </a-col>
-              <a-col :md="8" :sm="24">
-                <a-form-item label="使用状态">
-                  <a-select placeholder="请选择" default-value="0">
-                    <a-select-option value="0">全部</a-select-option>
-                    <a-select-option value="1">关闭</a-select-option>
-                    <a-select-option value="2">运行中</a-select-option>
-                  </a-select>
-                </a-form-item>
-              </a-col>
             </template>
             <a-col :md="!advanced && 8 || 24" :sm="24">
               <span class="table-page-search-submitButtons" :style="advanced && { float: 'right', overflow: 'hidden' } || {} ">
-                <a-button type="primary" @click="$refs.table.refresh(true)">查询</a-button>
-                <a-button style="margin-left: 8px" @click="() => this.queryParam = {}">重置</a-button>
+                <a-button type="primary" @click="refreshTable">查询</a-button>
+                <a-button style="margin-left: 8px" @click="resetSearchForm">重置</a-button>
                 <a @click="toggleAdvanced" style="margin-left: 8px">
                   {{ advanced ? '收起' : '展开' }}
                   <a-icon :type="advanced ? 'up' : 'down'"/>
@@ -67,7 +49,6 @@
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">
             <a-menu-item key="1"><a-icon type="delete" />删除</a-menu-item>
-            <!-- lock | unlock -->
             <a-menu-item key="2"><a-icon type="lock" />锁定</a-menu-item>
           </a-menu>
           <a-button style="margin-left: 8px">
@@ -76,25 +57,21 @@
         </a-dropdown>
       </div>
 
-      <s-table
+      <a-table
         ref="table"
         size="default"
-        rowKey="key"
+        rowKey="ruleId"
         :columns="columns"
-        :data="loadData"
-        :alert="true"
+        :dataSource="data"
         :rowSelection="rowSelection"
-        showPagination="auto"
+        :pagination="pagination"
       >
-        <span slot="serial" slot-scope="text, record, index">
-          {{ index + 1 }}
-        </span>
-        <span slot="status" slot-scope="text">
+        <span slot="ruleStatus" slot-scope="text">
           <a-badge :status="text | statusTypeFilter" :text="text | statusFilter" />
         </span>
-        <span slot="description" slot-scope="text">
-          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>
-        </span>
+<!--        <span slot="description" slot-scope="text">-->
+<!--          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>-->
+<!--        </span>-->
 
         <span slot="action" slot-scope="text, record">
           <template>
@@ -103,7 +80,7 @@
             <a @click="handleSub(record)">订阅报警</a>
           </template>
         </span>
-      </s-table>
+      </a-table>
 
       <create-form
         ref="createModal"
@@ -127,34 +104,30 @@ import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
 
 const columns = [
-  // {
-  //   title: '#',
-  //   scopedSlots: { customRender: 'serial' }
-  // },
   {
     title: '规则编号',
-    dataIndex: 'no'
+    dataIndex: 'ruleId'
   },
   {
     title: '规则名称',
-    dataIndex: 'description',
-    scopedSlots: { customRender: 'description' }
+    dataIndex: 'ruleName',
+    scopedSlots: { customRender: 'ruleName' }
   },
   {
     title: '服务调用次数',
-    dataIndex: 'callNo',
+    dataIndex: 'callCount',
     sorter: true,
     needTotal: true,
     customRender: (text) => text + ' 次'
   },
   {
     title: '状态',
-    dataIndex: 'status',
-    scopedSlots: { customRender: 'status' }
+    dataIndex: 'ruleStatus',
+    scopedSlots: { customRender: 'ruleStatus' }
   },
   {
     title: '更新时间',
-    dataIndex: 'updatedAt',
+    dataIndex: 'projectName',
     sorter: true
   },
   {
@@ -167,19 +140,19 @@ const columns = [
 
 const statusMap = {
   0: {
-    status: 'default',
+    ruleStatus: 'default',
     text: '关闭'
   },
   1: {
-    status: 'processing',
+    ruleStatus: 'processing',
     text: '运行中'
   },
   2: {
-    status: 'success',
+    ruleStatus: 'success',
     text: '已上线'
   },
   3: {
-    status: 'error',
+    ruleStatus: 'error',
     text: '异常'
   }
 }
@@ -193,32 +166,21 @@ export default {
     StepByStepModal
   },
   data () {
-    this.columns = columns
     return {
-      // create model
+      columns: columns,
+      data: [], // 初始化 data 为一个空数组
       visible: false,
       confirmLoading: false,
       mdl: null,
-      // 高级搜索 展开/关闭
       advanced: false,
-      // 查询参数
       queryParam: {},
-      // 加载数据方法 必须为 Promise 对象
-      loadData: parameter => {
-        // const requestParameters = Object.assign({}, parameter, this.queryParam)
-        console.log('准备规则列表')
-        // 获取规则列表，调用api里的manage.js里的getServiceList，它会将请求发送到后端，但是被mock拦截，所以会显示js生成的数据
-        // 发送给后端的参数应该包括userid ，projectid
-        // 在完成登陆功能前先用模拟数据
-        return getRuleList()
-          .then(res => {
-            console.log(res)
-            // 应该是list，包含很多条规则，每一条有规则编号，规则名称，规则data等
-            return res
-          })
-      },
       selectedRowKeys: [],
-      selectedRows: []
+      selectedRows: [],
+      pagination: {
+        current: 1,
+        pageSize: 10,
+        total: 0
+      }
     }
   },
   filters: {
@@ -226,14 +188,12 @@ export default {
       return statusMap[type].text
     },
     statusTypeFilter (type) {
-      return statusMap[type].status
+      return statusMap[type].ruleStatus
     }
   },
-  // created () {
-  //   getRoleList({ t: new Date() })
-  // },
   created () {
     getRoleList({ t: new Date() })
+    this.refreshTable()
   },
   computed: {
     rowSelection () {
@@ -244,56 +204,69 @@ export default {
     }
   },
   methods: {
+    refreshTable () {
+      this.loadData().then(data => {
+        this.data = data
+        this.pagination.total = data.length // 设置总记录数
+      })
+    },
     handleAdd () {
-      this.mdl = null
-      this.visible = true
+      window.open('http://127.0.0.1:1880/', '_blank')
     },
     handleEdit (record) {
-      // record应该是规则data
-      const params = new URLSearchParams(record).toString()
-      console.log(params)
+      let flowJson
+      try {
+        flowJson = JSON.parse(record.flowJson)
+        // flowJson = `'${flowJson}'`
+      } catch (e) {
+        console.error('解析 flowJson 时出错:', e)
+        return
+      }
 
-      // 打开新标签页并附带参数
-      window.open(`http://127.0.0.1:1880/?${params}`, '_blank')
-      // this.visible = true
-      // this.mdl = { ...record }
+      console.log(flowJson)
+      fetch('http://127.0.0.1:1880/flows ', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: flowJson
+      })
+        .finally(() => {
+          // 发送数据后，无论成功与否，都打开新窗口
+          window.open('http://127.0.0.1:1880/', '_blank')
+        })
+        .catch(error => {
+          console.error('网络错误:', error)
+        })
     },
+
     handleOk () {
       const form = this.$refs.createModal.form
       this.confirmLoading = true
       form.validateFields((errors, values) => {
         if (!errors) {
-          console.log('values', values)
           if (values.id > 0) {
-            // 修改 e.g.
             new Promise((resolve, reject) => {
               setTimeout(() => {
                 resolve()
               }, 1000)
-            }).then(res => {
+            }).then(() => {
               this.visible = false
               this.confirmLoading = false
-              // 重置表单数据
               form.resetFields()
-              // 刷新表格
-              this.$refs.table.refresh()
-
+              this.refreshTable()
               this.$message.info('修改成功')
             })
           } else {
-            // 新增
             new Promise((resolve, reject) => {
               setTimeout(() => {
                 resolve()
               }, 1000)
-            }).then(res => {
+            }).then(() => {
               this.visible = false
               this.confirmLoading = false
-              // 重置表单数据
               form.resetFields()
-              // 刷新表格
-              this.$refs.table.refresh()
-
+              this.refreshTable()
               this.$message.info('新增成功')
             })
           }
@@ -304,15 +277,14 @@ export default {
     },
     handleCancel () {
       this.visible = false
-
       const form = this.$refs.createModal.form
-      form.resetFields() // 清理表单数据（可不做）
+      form.resetFields()
     },
     handleSub (record) {
-      if (record.status !== 0) {
-        this.$message.info(`${record.no} 订阅成功`)
+      if (record.ruleStatus !== 0) {
+        this.$message.info(`${record.ruleId} 订阅成功`)
       } else {
-        this.$message.error(`${record.no} 订阅失败，规则已关闭`)
+        this.$message.error(`${record.ruleId} 订阅失败，规则已关闭`)
       }
     },
     onSelectChange (selectedRowKeys, selectedRows) {
@@ -326,6 +298,14 @@ export default {
       this.queryParam = {
         date: moment(new Date())
       }
+    },
+    loadData () {
+      // const requestParameters = Object.assign({}, this.queryParam)
+      return getRuleList()
+        .then(res => {
+          console.log('Data received:', res)
+          return res // 确保数据格式是数组
+        })
     }
   }
 }
