@@ -19,7 +19,7 @@ RUN yarn build
 # 使用 nginx 作为 web 服务器
 FROM nginx:alpine
 
-#COPY nginx.conf /etc/nginx/nginx.conf
+COPY deploy/nginx.conf /etc/nginx/nginx.conf
 
 # 复制构建输出到 nginx 的默认静态文件目录
 COPY --from=0 /app/dist /usr/share/nginx/html
