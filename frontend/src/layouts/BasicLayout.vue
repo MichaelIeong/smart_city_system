@@ -21,7 +21,7 @@
     -->
     <template v-slot:menuHeaderRender>
       <div>
-        <img src="@/assets/logo.png" />
+        <img src="@/assets/Fudan_University_Logo.svg" />
         <h1>{{ title }}</h1>
       </div>
     </template>
@@ -29,16 +29,6 @@
           增加 Header 左侧内容区自定义
     -->
     <template v-slot:headerContentRender>
-      <div>
-        <a-tooltip title="刷新页面">
-          <a-icon type="reload" style="font-size: 18px;cursor: pointer;" @click="() => { $message.info('只是一个DEMO') }" />
-        </a-tooltip>
-      </div>
-<!--      <div>-->
-<!--        <a-tooltip title="aaaa">-->
-<!--          <a-icon type="reload" style="font-size: 18px;cursor: pointer;" @click="() => { $message.info('只是一个DEMO') }" />-->
-<!--        </a-tooltip>-->
-<!--      </div>-->
     </template>
 
     <setting-drawer v-if="isDev" :settings="settings" @change="handleSettingChange">
