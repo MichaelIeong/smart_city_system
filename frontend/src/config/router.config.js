@@ -47,20 +47,24 @@ export const asyncRouterMap = [
       },
       // spacesence场景展示
       {
-        path: '/spacesence',
-        redirect: '/spacesence/spacesence-list',
-        component: RouteView,
-        meta: { title: 'menu.spacescene', keepAlive: true, icon: bxAnaalyse, permission: ['dashboard'] },
-        children: [
-          {
-            // 场景列表
-            path: '/spacesence/spacesence-list/',
-            name: 'SpaceSenceList',
-            hideChildrenInMenu: true,
-            component: () => import('@/views/list/TableList'),
-            meta: { title: 'menu.spacesence.list', keepAlive: true, permission: ['table'] }
-          }
-        ]
+        path: '/spacesence/spacesence-list/',
+        name: 'SpaceSenceList',
+        hideChildrenInMenu: true,
+        component: () => import('@/views/list/TableList'),
+        // path: '/spacesence',
+        // redirect: '/spacesence/spacesence-list',
+        // component: RouteView,
+        meta: { title: 'menu.spacescene', keepAlive: true, icon: bxAnaalyse, permission: ['dashboard'] }
+        // children: [
+        //   {
+        //     // 场景列表
+        //     path: '/spacesence/spacesence-list/',
+        //     name: 'SpaceSenceList',
+        //     hideChildrenInMenu: true,
+        //     component: () => import('@/views/list/TableList'),
+        //     meta: { title: 'menu.spacesence.list', keepAlive: true, permission: ['table'] }
+        //   }
+        // ]
       },
       // eventfusion事件融合
       {
