@@ -18,12 +18,5 @@ export default {
   'app.setting.loading': 'Loading theme',
   'app.setting.copyinfo': 'copy success，please replace defaultSettings in src/config/defaultSettings.js',
   'app.setting.production.hint': 'Setting panel shows in development environment only, please manually modify',
-  'app.setting.themecolor.daybreak': 'Daybreak Blue',
-  'app.setting.themecolor.dust': 'Dust Red',
-  'app.setting.themecolor.volcano': 'Volcano',
-  'app.setting.themecolor.sunset': 'Sunset Orange',
-  'app.setting.themecolor.cyan': 'Cyan',
-  'app.setting.themecolor.green': 'Polar Green',
-  'app.setting.themecolor.geekblue': 'Geek Blue',
-  'app.setting.themecolor.purple': 'Golden Purple'
+  'app.setting.themecolor.daybreak': 'Daybreak Blue'
 }
