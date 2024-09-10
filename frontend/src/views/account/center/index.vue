@@ -25,41 +25,41 @@
           </div>
           <a-divider/>
 
-          <div class="account-center-tags">
-            <div class="tagsTitle">标签</div>
-            <div>
-              <template v-for="(tag, index) in tags">
-                <a-tooltip v-if="tag.length > 20" :key="tag" :title="tag">
-                  <a-tag
-                    :key="tag"
-                    :closable="index !== 0"
-                    :close="() => handleTagClose(tag)"
-                  >{{ `${tag.slice(0, 20)}...` }}</a-tag>
-                </a-tooltip>
-                <a-tag
-                  v-else
-                  :key="tag"
-                  :closable="index !== 0"
-                  :close="() => handleTagClose(tag)"
-                >{{ tag }}</a-tag>
-              </template>
-              <a-input
-                v-if="tagInputVisible"
-                ref="tagInput"
-                type="text"
-                size="small"
-                :style="{ width: '78px' }"
-                :value="tagInputValue"
-                @change="handleInputChange"
-                @blur="handleTagInputConfirm"
-                @keyup.enter="handleTagInputConfirm"
-              />
-              <a-tag v-else @click="showTagInput" style="background: #fff; borderStyle: dashed;">
-                <a-icon type="plus"/>New Tag
-              </a-tag>
-            </div>
-          </div>
-          <a-divider :dashed="true"/>
+          <!--          <div class="account-center-tags">-->
+          <!--            <div class="tagsTitle">标签</div>-->
+          <!--            <div>-->
+          <!--              <template v-for="(tag, index) in tags">-->
+          <!--                <a-tooltip v-if="tag.length > 20" :key="tag" :title="tag">-->
+          <!--                  <a-tag-->
+          <!--                    :key="tag"-->
+          <!--                    :closable="index !== 0"-->
+          <!--                    :close="() => handleTagClose(tag)"-->
+          <!--                  >{{ `${tag.slice(0, 20)}...` }}</a-tag>-->
+          <!--                </a-tooltip>-->
+          <!--                <a-tag-->
+          <!--                  v-else-->
+          <!--                  :key="tag"-->
+          <!--                  :closable="index !== 0"-->
+          <!--                  :close="() => handleTagClose(tag)"-->
+          <!--                >{{ tag }}</a-tag>-->
+          <!--              </template>-->
+          <!--              <a-input-->
+          <!--                v-if="tagInputVisible"-->
+          <!--                ref="tagInput"-->
+          <!--                type="text"-->
+          <!--                size="small"-->
+          <!--                :style="{ width: '78px' }"-->
+          <!--                :value="tagInputValue"-->
+          <!--                @change="handleInputChange"-->
+          <!--                @blur="handleTagInputConfirm"-->
+          <!--                @keyup.enter="handleTagInputConfirm"-->
+          <!--              />-->
+          <!--              <a-tag v-else @click="showTagInput" style="background: #fff; borderStyle: dashed;">-->
+          <!--                <a-icon type="plus"/>New Tag-->
+          <!--              </a-tag>-->
+          <!--            </div>-->
+          <!--          </div>-->
+          <!--          <a-divider :dashed="true"/>-->
 
           <div class="account-center-team">
             <div class="teamTitle">团队</div>
@@ -111,7 +111,6 @@ export default {
   },
   data () {
     return {
-      tags: ['很有想法的', '专注设计', '辣~', '大长腿', '川妹子', '海纳百川'],
 
       tagInputVisible: false,
       tagInputValue: '',
