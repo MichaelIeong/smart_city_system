@@ -9,7 +9,7 @@
         <div class="top">
           <div class="header">
             <a href="/">
-              <img src="~@/assets/logo.png" class="logo" alt="logo">
+              <img src="~@/assets/Fudan_University_Logo.svg" width="200" height="200" class="logo" alt="logo">
               <span class="title">IoT Platform</span>
             </a>
           </div>
@@ -22,13 +22,8 @@
         <router-view />
 
         <div class="footer">
-          <!-- <div class="links">
-            <a href="_self">帮助</a>
-            <a href="_self">隐私</a>
-            <a href="_self">条款</a>
-          </div> -->
           <div class="copyright">
-            Copyright &copy; 2024 IoT
+            Copyright &copy; 2024 Fudan University
           </div>
         </div>
       </div>

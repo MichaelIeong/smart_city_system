@@ -31,7 +31,9 @@
               </a-col>
             </template>
             <a-col :md="!advanced && 8 || 24" :sm="24">
-              <span class="table-page-search-submitButtons" :style="advanced && { float: 'right', overflow: 'hidden' } || {} ">
+              <span
+                class="table-page-search-submitButtons"
+                :style="advanced && { float: 'right', overflow: 'hidden' } || {} ">
                 <a-button type="primary" @click="refreshTable">查询</a-button>
                 <a-button style="margin-left: 8px" @click="resetSearchForm">重置</a-button>
                 <a @click="toggleAdvanced" style="margin-left: 8px">
@@ -48,11 +50,18 @@
         <a-button type="primary" icon="plus" @click="handleAdd">新建</a-button>
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">
-            <a-menu-item key="1"><a-icon type="delete" />删除</a-menu-item>
-            <a-menu-item key="2"><a-icon type="lock" />锁定</a-menu-item>
+            <a-menu-item key="1">
+              <a-icon type="delete"/>
+              删除
+            </a-menu-item>
+            <a-menu-item key="2">
+              <a-icon type="lock"/>
+              锁定
+            </a-menu-item>
           </a-menu>
           <a-button style="margin-left: 8px">
-            批量操作 <a-icon type="down" />
+            批量操作
+            <a-icon type="down"/>
           </a-button>
         </a-dropdown>
       </div>
@@ -67,16 +76,16 @@
         :pagination="pagination"
       >
         <span slot="ruleStatus" slot-scope="text">
-          <a-badge :status="text | statusTypeFilter" :text="text | statusFilter" />
+          <a-badge :status="text | statusTypeFilter" :text="text | statusFilter"/>
         </span>
-<!--        <span slot="description" slot-scope="text">-->
-<!--          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>-->
-<!--        </span>-->
+        <!--        <span slot="description" slot-scope="text">-->
+        <!--          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>-->
+        <!--        </span>-->
 
         <span slot="action" slot-scope="text, record">
           <template>
             <a @click="handleEdit(record)">配置</a>
-            <a-divider type="vertical" />
+            <a-divider type="vertical"/>
             <a @click="handleSub(record)">订阅报警</a>
           </template>
         </span>
@@ -231,13 +240,13 @@ export default {
         },
         body: flowJson
       })
-        .finally(() => {
-          // 发送数据后，无论成功与否，都打开新窗口
-          window.open('http://127.0.0.1:1880/', '_blank')
-        })
-        .catch(error => {
-          console.error('网络错误:', error)
-        })
+          .finally(() => {
+            // 发送数据后，无论成功与否，都打开新窗口
+            window.open('http://127.0.0.1:1880/', '_blank')
+          })
+          .catch(error => {
+            console.error('网络错误:', error)
+          })
     },
 
     handleOk () {
@@ -302,10 +311,10 @@ export default {
     loadData () {
       // const requestParameters = Object.assign({}, this.queryParam)
       return getRuleList()
-        .then(res => {
-          console.log('Data received:', res)
-          return res // 确保数据格式是数组
-        })
+          .then(res => {
+            console.log('Data received:', res)
+            return res // 确保数据格式是数组
+          })
     }
   }
 }
