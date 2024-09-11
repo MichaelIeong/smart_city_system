@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface SpaceRepository extends JpaRepository<SpaceInfo, Integer> {
+public interface SpaceRepository extends JpaRepository<SpaceInfo, String> {
     Optional<SpaceInfo> findBySpaceName(String name);
 }

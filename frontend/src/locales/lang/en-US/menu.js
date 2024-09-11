@@ -35,5 +35,12 @@ export default {
     'menu.account.center': 'Account Center',
     'menu.account.settings': 'Account Settings',
     'menu.account.trigger': 'Trigger Error',
-    'menu.account.logout': 'Logout'
+    'menu.account.logout': 'Logout',
+    'menu.resource': 'Resource Management',
+    'menu.resource.physical-resource': 'Physical Resource',
+    'menu.resource.cyber-resource': 'Information Resource',
+    'menu.resource.social-resource': 'Social Resource',
+    'menu.space-scene': 'Scene Display',
+    'menu.event-fusion': 'Event Fusion',
+    'menu.service-group': 'Service Group'
 }
