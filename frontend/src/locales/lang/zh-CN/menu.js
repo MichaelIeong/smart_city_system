@@ -3,6 +3,7 @@ export default {
     'menu.home': '主页',
     'menu.resource': '资源管理',
     'menu.resource.physical-resource': '物理资源',
+    'menu.projectSelection': '项目选择',
     'menu.resource.cyber-resource': '信息资源',
     'menu.resource.social-resource': '社会资源',
     'menu.space-scene': '场景展示',
