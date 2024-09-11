@@ -29,18 +29,19 @@ export const asyncRouterMap = [{
                 // 物理资源
                 path: '/resource/physical-resource/:pageNo([1-9]\\d*)?',
                 name: 'PhysicalResource',
-                component: () => import('@/views/dashboard/Analysis'),
+                component: () => import('@/views/dashboard/PhysicalResource'),
                 meta: { title: 'menu.resource.physical-resource', keepAlive: false, permission: ['dashboard'] }
             }, // 信息资源
                 {
                     path: '/resource/cyber-resource',
                     name: 'CyberResource',
-                    meta: { title: 'menu.resource.cyber-resource' }
+                    component: () => import('@/views/dashboard/CyberResource'),
+                    meta: { title: 'menu.resource.cyber-resource', keepAlive: true, permission: ['dashboard'] }
                 }, // 社会资源
                 {
                     path: '/resource/social-resource',
                     name: 'SocialResource',
-                    component: () => import('@/views/dashboard/Workplace'),
+                    component: () => import('@/views/dashboard/SocialResource'),
                     meta: { title: 'menu.resource.social-resource', keepAlive: true, permission: ['dashboard'] }
                 }]
         }, // 场景展示
