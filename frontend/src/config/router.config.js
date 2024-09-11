@@ -10,9 +10,19 @@ export const asyncRouterMap = [{
     name: 'index',
     component: BasicLayout,
     meta: { title: 'menu.home' },
-    redirect: '/resource/physical-resource',
+    redirect: '/project-selection',
 
-    children: [// resource management资源管理
+    children: [
+        // 项目选择
+        {
+            path: '/project-selection',
+            name: 'projectSelection',
+            hidden: true,
+            component: () => import('@/views/user/ProjectSelection'),
+            meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
+        },
+
+        // 资源管理
         {
             path: '/resource',
             name: 'resource',
@@ -183,9 +193,15 @@ export const asyncRouterMap = [{
                 meta: { title: 'menu.exception.server-error', permission: ['exception'] }
             }]
         }]
-}, {
-    path: '*', redirect: '/404', hidden: true
-}]
+},
+    {
+        path: '*',
+redirect:
+            '/404',
+hidden:
+            true
+    }
+]
 
 /**
  * 基础路由
