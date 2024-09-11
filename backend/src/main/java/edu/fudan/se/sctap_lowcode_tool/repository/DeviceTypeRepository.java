@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DeviceTypeRepository extends JpaRepository<DeviceTypeInfo, Integer> {
+    boolean existsByDeviceTypeName(String deviceTypeName);
 }

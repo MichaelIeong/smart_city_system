@@ -7,21 +7,21 @@ import java.util.Optional;
 public interface DeviceService {
     DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo); // 保存或更新设备信息
 
-    boolean deleteDevice(int deviceID); // 删除设备
+    boolean deleteDevice(String deviceID); // 删除设备
 
-    Optional<DeviceInfo> findById(int deviceID); // 根据ID查找设备
+    Optional<DeviceInfo> findById(String deviceID); // 根据ID查找设备
 
-    String getDeviceStatus(int deviceID); // 获取设备状态
+    String getDeviceStatus(String deviceID); // 获取设备状态
 
-    String getDeviceURL(int deviceID); // 获取设备的URL
+    String getDeviceURL(String deviceID); // 获取设备的URL
 
-    String getDeviceData(int deviceID); // 获取设备的数据
+    String getDeviceData(String deviceID); // 获取设备的数据
 
-    String getDeviceType(int deviceID); // 获取设备的类型
+    String getDeviceType(String deviceID); // 获取设备的类型
 
-    Boolean getDeviceIsSensor(int deviceID); // 获取设备是否为传感器
+    Boolean getDeviceIsSensor(String deviceID); // 获取设备是否为传感器
 
-    String getDeviceCapabilities(int deviceID); // 获取设备的能力
+    String getDeviceCapabilities(String deviceID); // 获取设备的能力
 
     Iterable<DeviceInfo> findAll(); // 获取所有设备
 
