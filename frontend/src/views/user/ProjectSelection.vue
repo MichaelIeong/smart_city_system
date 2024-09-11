@@ -1,6 +1,8 @@
 <template>
   <div class="app">
-    <h2>'menu.projectSelection'</h2>
+    <!-- 使用 $t() 函數來引用多語言鍵值 -->
+    <h2>{{ $t('menu.projectSelection') }}</h2>
+
     <!-- 項目列表 -->
     <div class="project-grid">
       <div
@@ -10,7 +12,7 @@
         @click="selectProject(project.id)"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
-        <div class="item-name">{{ project.name }}</div>
+        <div class="item-name">{{ project.name }}</div> <!-- 項目名稱可以直接展示，假設項目名稱不需要多語言處理 -->
       </div>
     </div>
   </div>
