@@ -9,7 +9,6 @@ import lombok.Data;
 @Data
 public class DeviceInfo {
     @Id
-    @GeneratedValue
     @Column
     private String deviceId;   // 设备的唯一标识符
 

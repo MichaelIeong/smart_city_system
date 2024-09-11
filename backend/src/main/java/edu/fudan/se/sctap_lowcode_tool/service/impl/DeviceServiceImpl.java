@@ -25,7 +25,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public boolean deleteDevice(int deviceID) {
+    public boolean deleteDevice(String deviceID) {
         if (deviceRepository.existsById(deviceID)) {
             deviceRepository.deleteById(deviceID);
             return true;
@@ -34,47 +34,47 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public Optional<DeviceInfo> findById(int deviceID) {
+    public Optional<DeviceInfo> findById(String deviceID) {
         return deviceRepository.findById(deviceID);
     }
 
     @Override
-    public String getDeviceStatus(int deviceID) {
+    public String getDeviceStatus(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getStatus)
                 .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceURL(int deviceID) {
+    public String getDeviceURL(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getUrl)
                 .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceData(int deviceID) {
+    public String getDeviceData(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getData)
                 .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceType(int deviceID) {
+    public String getDeviceType(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getType)
                 .orElse("Device not found");
     }
 
     @Override
-    public Boolean getDeviceIsSensor(int deviceID) {
+    public Boolean getDeviceIsSensor(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getIsSensor)
                 .orElse(false);
     }
 
     @Override
-    public String getDeviceCapabilities(int deviceID) {
+    public String getDeviceCapabilities(String deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getCapabilities)
                 .orElse("Device not found");

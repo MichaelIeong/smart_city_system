@@ -32,7 +32,7 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public boolean deleteSpace(int spaceId) {
+    public boolean deleteSpace(String spaceId) {
         if (spaceRepository.existsById(spaceId)) {
             spaceRepository.deleteById(spaceId);
             return true;
@@ -41,12 +41,12 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public Optional<SpaceInfo> findSpaceById(int spaceId) {
+    public Optional<SpaceInfo> findSpaceById(String spaceId) {
         return spaceRepository.findById(spaceId);
     }
 
     @Override
-    public Set<DeviceInfo> getAllSpaceDevices(int spaceId) {
+    public Set<DeviceInfo> getAllSpaceDevices(String spaceId) {
         return spaceRepository.findById(spaceId)
                 .map(SpaceInfo::getSpaceDevices)
                 .orElseThrow(() -> new EntityNotFoundException("No any devices in space with id: " + spaceId));
@@ -75,7 +75,7 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public boolean addDeviceToSpace(int spaceId, DeviceInfo deviceInfo) {
+    public boolean addDeviceToSpace(String spaceId, DeviceInfo deviceInfo) {
         Optional<SpaceInfo> spaceOpt = spaceRepository.findById(spaceId);
         if (spaceOpt.isPresent()) {
             SpaceInfo space = spaceOpt.get();
@@ -88,7 +88,7 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public boolean removeDeviceFromSpace(int spaceId, int deviceId) {
+    public boolean removeDeviceFromSpace(String spaceId, String deviceId) {
         Optional<SpaceInfo> spaceOpt = spaceRepository.findById(spaceId);
         if (spaceOpt.isPresent()) {
             SpaceInfo space = spaceOpt.get();

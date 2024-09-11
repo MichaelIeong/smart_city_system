@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface EventService {
 
-    List<EventInfo> getHistory(int deviceID);
+    List<EventInfo> getHistory(String deviceID);
 
     void saveEvent(EventInfo eventInfo);
 }

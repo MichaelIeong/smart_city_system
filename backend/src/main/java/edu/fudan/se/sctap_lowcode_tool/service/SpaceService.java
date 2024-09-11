@@ -9,11 +9,11 @@ import java.util.Set;
 public interface SpaceService {
     SpaceInfo saveOrUpdateSpace(SpaceInfo spaceInfo);
 
-    boolean deleteSpace(int spaceId);
+    boolean deleteSpace(String spaceId);
 
-    Optional<SpaceInfo> findSpaceById(int spaceId);
+    Optional<SpaceInfo> findSpaceById(String spaceId);
 
-    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
+    Set<DeviceInfo> getAllSpaceDevices(String spaceId);
 
     Iterable<SpaceInfo> findAllSpaces();
 
@@ -21,7 +21,7 @@ public interface SpaceService {
 
     Optional<String> exportSpaces();
 
-    boolean addDeviceToSpace(int spaceId, DeviceInfo deviceInfo);
+    boolean addDeviceToSpace(String spaceId, DeviceInfo deviceInfo);
 
-    boolean removeDeviceFromSpace(int spaceId, int deviceId);
+    boolean removeDeviceFromSpace(String spaceId, String deviceId);
 }

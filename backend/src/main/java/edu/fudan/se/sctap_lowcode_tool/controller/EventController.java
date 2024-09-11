@@ -31,7 +31,7 @@ public class EventController {
 
     @Operation(summary = "得到历史事件", description = "让SCTAP构造应用的时候需要此数据")
     @GetMapping("/{deviceID}/history")
-    public ResponseEntity<List<EventInfo>> getHistory(@PathVariable int deviceID) {
+    public ResponseEntity<List<EventInfo>> getHistory(@PathVariable String deviceID) {
         try {
             return ResponseEntity.ok(eventService.getHistory(deviceID));
         } catch (Exception e) {

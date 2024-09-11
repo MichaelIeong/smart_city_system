@@ -768,7 +768,7 @@ const userNav = options => {
       meta: {
         title: 'menu.account',
         icon: 'user',
-        show: true
+        show: false
       },
       redirect: '/account/center',
       component: 'RouteView'
@@ -779,7 +779,7 @@ const userNav = options => {
       id: 10029,
       meta: {
         title: 'menu.account.center',
-        show: true
+        show: false
       },
       component: 'AccountCenter'
     },
@@ -792,7 +792,7 @@ const userNav = options => {
         title: 'menu.account.settings',
         hideHeader: true,
         hideChildren: true,
-        show: true
+        show: false
       },
       redirect: '/account/settings/basic',
       component: 'AccountSettings'
@@ -818,17 +818,6 @@ const userNav = options => {
         show: false
       },
       component: 'SecuritySettings'
-    },
-    {
-      name: 'CustomSettings',
-      path: '/account/settings/custom',
-      parentId: 10030,
-      id: 10033,
-      meta: {
-        title: 'account.settings.menuMap.custom',
-        show: false
-      },
-      component: 'CustomSettings'
     },
     {
       name: 'BindingSettings',
