@@ -9,7 +9,7 @@
         <div class="top">
           <div class="header">
             <a href="/">
-              <img src="~@/assets/logo.png" class="logo" alt="logo">
+              <img src="~@/assets/Fudan_University_Logo.svg" class="logo" alt="logo">
               <span class="title">IoT Platform</span>
             </a>
           </div>
