@@ -1,15 +1,15 @@
 <template>
-  <div>
-    <a-row :gutter="24" style="margin-bottom: 24px;">
+  <div style="height: 100%">
+    <a-row :gutter="24" style="height: 50% ;margin-bottom: 2%; ">
       <a-col :span="12">
-        <a-card title="设备类型" style="height: 550px;">
+        <a-card title="设备类型" >
           <a-table
             :columns="deviceTypeColumns"
             :dataSource="deviceTypes"
             row-key="id"
             @rowClick="handleDeviceTypeClick"
             :pagination="false"
-            :scroll="{ y: 200 }"
+            :scroll="{ y: 159 }"
           />
           <a-divider />
           <a-form @submit="handleNewDeviceTypeSubmit">
@@ -24,15 +24,15 @@
       </a-col>
 
       <a-col :span="12">
-        <a-card title="设备类型详情" style="height: 550px;">
+        <a-card title="设备类型详情" >
           <a-form @submit="handleDeviceTypeSubmit">
             <a-form-item label="属性">
               <a-input v-model="selectedDeviceType.attribute1" placeholder="属性1" />
               <a-input v-model="selectedDeviceType.attribute2" placeholder="属性2" />
             </a-form-item>
-            <a-form-item label="事件">
-              <a-input v-model="selectedDeviceType.event1" placeholder="事件1" />
-              <a-input v-model="selectedDeviceType.event2" placeholder="事件2" />
+            <a-form-item label="能力">
+              <a-input v-model="selectedDeviceType.event1" placeholder="能力1" />
+              <a-input v-model="selectedDeviceType.event2" placeholder="能力2" />
             </a-form-item>
             <a-form-item label="操作">
               <a-button @click="handleOperationClick('operation1')">操作1</a-button>
@@ -46,16 +46,16 @@
       </a-col>
     </a-row>
 
-    <a-row :gutter="24">
+    <a-row :gutter="24" style="height: 50% ">
       <a-col :span="24">
-        <a-card title="设备实例" style="height: 700px;">
+        <a-card title="设备实例" >
           <a-table
             :columns="deviceInstanceColumns"
             :dataSource="deviceInstances"
             row-key="id"
             @rowClick="handleDeviceInstanceClick"
             :pagination="false"
-            :scroll="{ y: 100 }"
+            :scroll="{ y: 150 }"
           />
           <a-divider />
           <a-form @submit.prevent="handleNewDeviceInstanceSubmit">
@@ -124,7 +124,7 @@ export default {
   data () {
     return {
       deviceTypes: [
-        { id: 1, name: '设备类型A', attribute1: '属性1', attribute2: '属性2', event1: '事件1', event2: '事件2' },
+        { id: 1, name: '温度传感器', attribute1: '属性1', attribute2: '属性2', event1: '温度感知', event2: '高温警报' },
         { id: 2, name: '设备类型B', attribute1: '属性1', attribute2: '属性2', event1: '事件1', event2: '事件2' },
         { id: 3, name: '设备类型C', attribute1: '属性1', attribute2: '属性2', event1: '事件1', event2: '事件2' },
         { id: 4, name: '设备类型D', attribute1: '属性1', attribute2: '属性2', event1: '事件1', event2: '事件2' }
@@ -188,7 +188,7 @@ export default {
     getDeviceInstances (deviceTypeId) {
       // 模拟获取设备实例
       return [
-        { id: 1, name: '设备实例A1', location: '位置1' },
+        { id: 1, name: '温度计', location: 'x:245,y:754,z:129', capabilities: '温度感知', data: '26摄氏度', status: '运行中' },
         { id: 2, name: '设备实例B1', location: '位置2' }
       ]
     },
