@@ -15,8 +15,13 @@ public class ProjectInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer ProjectId;   // 项目的唯一标识符
 
+    @Column(nullable = false)
     private String projectName;   // 项目的名称
 
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @Column
+    private String projectImage;   // 项目的图片
+
+    @OneToMany(mappedBy = "spaceId", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SpaceInfo> spaces = new HashSet<>();   // 项目中包含的空间
+
 }
