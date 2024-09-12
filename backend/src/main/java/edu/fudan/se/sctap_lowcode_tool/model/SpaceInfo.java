@@ -24,8 +24,8 @@ public class SpaceInfo {
 
     @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scenarioId")
-    private ScenarioInfo scenario;   // 空间所属的场景
+    @JoinColumn(name = "projectId")
+    private ProjectInfo projectInfo;   // 空间所属的场景
 
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<PropertyInfo> properties = new HashSet<>();   // 空间的属性

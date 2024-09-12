@@ -1,0 +1,45 @@
+module.exports = function(RED) {
+    "use strict";
+
+    function SensorNode(n) {
+        RED.nodes.createNode(this, n);
+        var node = this;
+        this.name = n.name;
+        this.location = n.location;
+        this.device = n.device;
+        this.devicetype = n.devicetype;
+        this.query = n.query;
+
+        var newMsg = {};
+        var steps = Number(1);
+        Object.assign(newMsg, {steps: steps});
+
+        // 在节点初始化时自动执行一次
+        setImmediate(function() {
+            node.emit("input", {});
+        });
+
+        this.on("input", function(msg, send, done) {
+            msg = msg || {};  // 防止 msg 未定义
+            msg.name = node.name;
+            msg.type = node.type;
+            msg.step = Number(1);
+            msg.location = node.location;
+            if (node.device) {
+                msg.device = node.device;
+            }
+            if (node.devicetype) {
+                msg.devicetype = node.devicetype;
+            }
+            msg.query = node.query;
+            var nodeName = node.name;
+            newMsg[nodeName] = msg;
+
+            send(newMsg);
+            done();
+        });
+    }
+
+    RED.nodes.registerType("sensor", SensorNode);
+
+}

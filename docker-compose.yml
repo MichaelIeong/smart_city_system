@@ -14,27 +14,27 @@ services:
     networks:
       - app-network
 
-  vue:
-    environment:
-      - NODE_ENV=production
-    build: ./frontend
-    depends_on:
-      - web
-      - node-red
-    ports:
-      - "8000:80"
-    networks:
-      - app-network
+#  vue:
+#    environment:
+#      - NODE_ENV=production
+#    build: ./frontend
+#    depends_on:
+#      - web
+#      - node-red
+#    ports:
+#      - "8000:80"
+#    networks:
+#      - app-network
     #    environment:
     #      - VUE_APP_API_BASE_URL=http://localhost:8000 # 指定后端API的URL
 
-  node-red:
-    build: ./node-red
-    container_name: custom-node-red
-    ports:
-      - "1880:1880"
-    networks:
-      - app-network
+#  node-red:
+#    build: ./node-red
+#    container_name: custom-node-red
+#    ports:
+#      - "1880:1880"
+#    networks:
+#      - app-network
 
 #  db:
 #    image: mysql:8.0
