@@ -9,12 +9,19 @@
     :i18nRender="i18nRender"
     v-bind="settings"
   >
+    <!-- Ads begin
+      广告代码 真实项目中请移除
+      production remove this Ads
+    -->
+    <ads v-if="isProPreviewSite && !collapsed"/>
+    <!-- Ads end -->
+
     <!-- 1.0.0+ 版本 pro-layout 提供 API，
           我们推荐使用这种方式进行 LOGO 和 title 自定义
     -->
     <template v-slot:menuHeaderRender>
       <div>
-        <img src="@/assets/Fudan_University_Logo.svg"/>
+        <img src="@/assets/Fudan_University_Logo.svg" />
         <h1>{{ title }}</h1>
       </div>
     </template>
@@ -22,21 +29,35 @@
           增加 Header 左侧内容区自定义
     -->
     <template v-slot:headerContentRender>
+      <div>
+        <a-tooltip title="刷新页面">
+          <a-icon type="reload" style="font-size: 18px;cursor: pointer;" @click="() => { $message.info('只是一个DEMO') }" />
+        </a-tooltip>
+        <a-select
+          v-model="selectedOption"
+          style="margin-left: 24px; width: 200px;"
+        placeholder="请选择"
+        >
+          <a-select-option value="option1">选项1</a-select-option>
+          <a-select-option value="option2">选项2</a-select-option>
+          <a-select-option value="option3">选项3</a-select-option>
+        </a-select>
+      </div>
     </template>
 
-    <!--    <setting-drawer v-if="isDev" :settings="settings" @change="handleSettingChange">-->
-    <!--      <div style="margin: 12px 0;">-->
-    <!--        This is SettingDrawer custom footer content.-->
-    <!--      </div>-->
-    <!--    </setting-drawer>-->
+    <setting-drawer v-if="isDev" :settings="settings" @change="handleSettingChange">
+      <div style="margin: 12px 0;">
+        This is SettingDrawer custom footer content.
+      </div>
+    </setting-drawer>
     <template v-slot:rightContentRender>
-      <right-content :top-menu="settings.layout === 'topmenu'" :is-mobile="isMobile" :theme="settings.theme"/>
+      <right-content :top-menu="settings.layout === 'topmenu'" :is-mobile="isMobile" :theme="settings.theme" />
     </template>
     <!-- custom footer / 自定义Footer -->
     <template v-slot:footerRender>
-      <global-footer/>
+      <global-footer />
     </template>
-    <router-view/>
+    <router-view />
   </pro-layout>
 </template>
 
@@ -102,10 +123,10 @@ export default {
     })
   },
   created () {
-    const routes = asyncRouterMap.find((item) => item.path === '/')
-    // const routes = this.mainMenu.find((item) => item.path === '/')
-    this.menus = (routes && routes.children) || []
-  },
+  const routes = asyncRouterMap.find((item) => item.path === '/')
+  // const routes = this.mainMenu.find((item) => item.path === '/')
+  this.menus = (routes && routes.children) || []
+},
   mounted () {
     const userAgent = navigator.userAgent
     if (userAgent.indexOf('Edge') > -1) {
