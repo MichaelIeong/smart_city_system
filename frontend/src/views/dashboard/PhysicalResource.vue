@@ -1,7 +1,7 @@
 <template>
   <div>
-    <a-row :gutter="24">
-      <a-col :span="8">
+    <a-row :gutter="24" style="margin-bottom: 24px;">
+      <a-col :span="12">
         <a-card title="设备类型" style="height: 550px;">
           <a-table
             :columns="deviceTypeColumns"
@@ -23,7 +23,7 @@
         </a-card>
       </a-col>
 
-      <a-col :span="8">
+      <a-col :span="12">
         <a-card title="设备类型详情" style="height: 550px;">
           <a-form @submit="handleDeviceTypeSubmit">
             <a-form-item label="属性">
@@ -44,9 +44,11 @@
           </a-form>
         </a-card>
       </a-col>
+    </a-row>
 
-      <a-col :span="8">
-        <a-card title="设备实例" style="height: 550px;">
+    <a-row :gutter="24">
+      <a-col :span="24">
+        <a-card title="设备实例" style="height: 700px;">
           <a-table
             :columns="deviceInstanceColumns"
             :dataSource="deviceInstances"
@@ -56,13 +58,43 @@
             :scroll="{ y: 100 }"
           />
           <a-divider />
-          <a-form @submit="handleNewDeviceInstanceSubmit">
-            <a-form-item label="新增设备实例">
-              <a-input v-model="newDeviceInstance.name" placeholder="输入设备实例名称" />
-              <a-input v-model="newDeviceInstance.location" placeholder="输入部署位置" />
-            </a-form-item>
+          <a-form @submit.prevent="handleNewDeviceInstanceSubmit">
+            <a-row :gutter="16">
+              <!-- 第一行：三个输入框 -->
+              <a-col :span="8">
+                <a-form-item label="设备实例名称">
+                  <a-input v-model="newDeviceInstance.name" placeholder="输入设备实例名称" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="8">
+                <a-form-item label="部署位置">
+                  <a-input v-model="newDeviceInstance.location" placeholder="输入部署位置" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="8">
+                <a-form-item label="设备能力描述">
+                  <a-input v-model="newDeviceInstance.capabilities" placeholder="输入设备能力描述" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+
+            <a-row :gutter="16">
+              <!-- 第二行：两个输入框 -->
+              <a-col :span="12">
+                <a-form-item label="设备数据">
+                  <a-input v-model="newDeviceInstance.data" placeholder="输入设备数据" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="设备状态">
+                  <a-input v-model="newDeviceInstance.status" placeholder="输入设备状态" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+
+            <!-- 提交按钮 -->
             <a-form-item>
-              <a-button type="primary" @click="handleNewDeviceInstanceSubmit">新增设备实例</a-button>
+              <a-button type="primary" html-type="submit">新增设备实例</a-button>
             </a-form-item>
           </a-form>
         </a-card>
@@ -111,7 +143,10 @@ export default {
 
       deviceInstanceColumns: [
         { title: '设备实例名称', dataIndex: 'name', key: 'name' },
-        { title: '部署位置', dataIndex: 'location', key: 'location' }
+        { title: '部署位置', dataIndex: 'location', key: 'location' },
+        { title: '能力描述', dataIndex: 'capabilities', key: 'capabilities' },
+        { title: '设备数据', dataIndex: 'data', key: 'data' },
+        { title: '设备状态', dataIndex: 'status', key: 'status' }
       ]
     }
   },
