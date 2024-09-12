@@ -20,9 +20,13 @@ import './core/lazy_use' // use lazy load components
 // import './permission' // permission control
 import './utils/filter' // global filter
 import './global.less' // global style
+import 'element-ui/lib/theme-chalk/index.css'
+import Element from 'element-ui'
 
 Vue.config.productionTip = false
 
+// element-ui
+Vue.use(Element)
 // mount axios to `Vue.$http` and `this.$http`
 Vue.use(VueAxios)
 // use pro-layout components
