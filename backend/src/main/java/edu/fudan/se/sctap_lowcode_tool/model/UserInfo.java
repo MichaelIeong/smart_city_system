@@ -16,6 +16,6 @@ public class UserInfo {
     @JoinTable(name = "user_scenario",
             joinColumns = @JoinColumn(name = "userId"),
             inverseJoinColumns = @JoinColumn(name = "scenarioId"))
-    private Set<ScenarioInfo> scenarios = new HashSet<>();  // 用户有权限的场景
+    private Set<ProjectInfo> scenarios = new HashSet<>();  // 用户有权限的场景
 
 }

@@ -30,13 +30,10 @@
     -->
     <template v-slot:headerContentRender>
       <div>
-        <a-tooltip title="刷新页面">
-          <a-icon type="reload" style="font-size: 18px;cursor: pointer;" @click="() => { $message.info('只是一个DEMO') }" />
-        </a-tooltip>
         <a-select
           v-model="selectedOption"
           style="margin-left: 24px; width: 200px;"
-        placeholder="请选择"
+          placeholder="请选择"
         >
           <a-select-option value="option1">选项1</a-select-option>
           <a-select-option value="option2">选项2</a-select-option>

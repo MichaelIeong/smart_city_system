@@ -15,7 +15,7 @@ public class DeviceInfo {
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
 
-    @Column//(nullable = false)
+    @Column
     private String url;   // 设备的URL，用于远程访问或控制
 
     @Column
