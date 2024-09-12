@@ -188,8 +188,7 @@ export default {
     getDeviceInstances (deviceTypeId) {
       // 模拟获取设备实例
       return [
-        { id: 1, name: '温度计', location: 'x:245,y:754,z:129', capabilities: '温度感知', data: '26摄氏度', status: '运行中' },
-        { id: 2, name: '设备实例B1', location: '位置2' }
+        { id: 1, name: '温度计', location: 'x:245,y:754,z:129', capabilities: '温度感知', data: '26摄氏度', status: '运行中' }
       ]
     },
     handleOperationClick (operation) {
