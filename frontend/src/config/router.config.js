@@ -1,5 +1,5 @@
 // eslint-disable-next-line
-import {UserLayout, BasicLayout} from '@/layouts'
+import { UserLayout, BasicLayout } from '@/layouts'
 
 const RouteView = {
   name: 'RouteView', render: h => h('router-view')
@@ -35,24 +35,31 @@ export const asyncRouterMap = [{
         hideChildrenInMenu: false,
         permission: ['dashboard']
       },
-      children: [{
-        // 物理资源
-        path: '/resource/physical-resource/:pageNo([1-9]\\d*)?',
-        name: 'PhysicalResource',
-        // component: () => import('@/views/dashboard/Analysis'),
-        meta: { title: 'menu.resource.physical-resource', keepAlive: false, permission: ['dashboard'] }
-      }, // 信息资源
-        {
-          path: '/resource/cyber-resource',
-          name: 'CyberResource',
-          meta: { title: 'menu.resource.cyber-resource' }
-        }, // 社会资源
-        {
-          path: '/resource/social-resource',
-          name: 'SocialResource',
-          // component: () => import('@/views/dashboard/Workplace'),
-          meta: { title: 'menu.resource.social-resource', keepAlive: true, permission: ['dashboard'] }
-        }]
+      children:
+        [
+          {
+            // 物理资源
+            path: '/resource/physical-resource/:pageNo([1-9]\\d*)?',
+            name: 'PhysicalResource',
+            component: () => import('@/views/dashboard/PhysicalResource.vue'),
+            meta: { title: 'menu.resource.physical-resource', keepAlive: false, permission: ['dashboard'] }
+          },
+          // 信息资源
+          {
+            path: '/resource/cyber-resource',
+            name: 'CyberResource',
+            component: () => import('@/views/dashboard/CyberResource'),
+            meta: { title: 'menu.resource.cyber-resource', keepAlive: true, permission: ['dashboard'] }
+          },
+          // 社会资源
+          {
+            path: '/resource/social-resource',
+            name: 'SocialResource',
+            component: () => import('@/views/dashboard/SocialResource.vue'),
+            meta: { title: 'menu.resource.social-resource', keepAlive: true, permission: ['dashboard'] }
+          }
+        ]
+
     }, // 场景展示
     {
       path: '/space-scene',
