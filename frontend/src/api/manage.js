@@ -6,7 +6,8 @@ const api = {
   service: '/service',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
-  orgTree: '/org/tree'
+  orgTree: '/org/tree',
+  tap: '/tap'
 }
 
 export default api
@@ -73,5 +74,29 @@ export function saveSub (sub) {
     url: '/sub',
     method: sub.id === 0 ? 'post' : 'put',
     data: sub
+  })
+}
+
+export function getTapList (parameter) {
+  return request({
+    url: api.tap,
+    method: 'get',
+    params: parameter
+  })
+}
+
+export function saveTap (parameter) {
+  return request({
+    url: api.tap,
+    method: 'post',
+    data: parameter
+  })
+}
+
+export function deleteTap (parameter) {
+  return request({
+    url: api.tap,
+    method: 'delete',
+    params: parameter
   })
 }
