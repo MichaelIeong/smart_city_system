@@ -86,7 +86,9 @@
           <template>
             <a @click="handleEdit(record)">配置</a>
             <a-divider type="vertical"/>
-            <a @click="handleSub(record)">订阅报警</a>
+            <a @click="handleEdit(record)">订阅</a>
+            <a-divider type="vertical"/>
+            <a @click="deleteRule(record)">删除</a>
           </template>
         </span>
       </a-table>
@@ -290,6 +292,13 @@ export default {
       form.resetFields()
     },
     handleSub (record) {
+      if (record.ruleStatus !== 0) {
+        this.$message.info(`${record.ruleId} 订阅成功`)
+      } else {
+        this.$message.error(`${record.ruleId} 订阅失败，规则已关闭`)
+      }
+    },
+    deleteRule (record) {
       if (record.ruleStatus !== 0) {
         this.$message.info(`${record.ruleId} 订阅成功`)
       } else {
