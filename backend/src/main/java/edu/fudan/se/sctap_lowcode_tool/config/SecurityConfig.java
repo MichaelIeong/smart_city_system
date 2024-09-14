@@ -1,22 +1,26 @@
 package edu.fudan.se.sctap_lowcode_tool.config;
 
+import edu.fudan.se.sctap_lowcode_tool.security.JwtAuthenticationFilter;
+import edu.fudan.se.sctap_lowcode_tool.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
 
+    private final JwtTokenProvider jwtTokenProvider;
+
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();  // 返回 BCryptPasswordEncoder 实例
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -24,13 +28,14 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/auth/register", "/auth/login").permitAll() // 允许未登录用户访问注册和登录接口
-                                .anyRequest().authenticated() // 其他请求需要认证
+                                .requestMatchers("/auth/register", "/auth/login", "/fusion/uploadrule", "/fusion/getRuleList").permitAll()
+                                .anyRequest().authenticated()
                 )
-                .cors(cors -> cors.disable()) // 启用 CORS
-                .csrf(csrf -> csrf.disable()); // 禁用 CSRF 保护
+                .cors(cors -> cors.disable())
+                .csrf(csrf -> csrf.disable())
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 }
-

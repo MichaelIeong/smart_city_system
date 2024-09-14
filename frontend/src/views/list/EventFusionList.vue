@@ -109,7 +109,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getRoleList, getRuleList } from '@/api/manage'
+import { getRuleList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -203,7 +203,7 @@ export default {
     }
   },
   created () {
-    getRoleList({ t: new Date() })
+    // getRoleList({ t: new Date() })
     this.refreshTable()
   },
   computed: {
@@ -318,6 +318,7 @@ export default {
       }
     },
     loadData () {
+      console.log(99999)
       // const requestParameters = Object.assign({}, this.queryParam)
       return getRuleList()
           .then(res => {

@@ -2,13 +2,24 @@ package edu.fudan.se.sctap_lowcode_tool.security;
 
 import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 @Component
@@ -16,16 +27,16 @@ public class JwtTokenProvider {
 
     private final String SECRET_KEY = "YourVeryLongSecretKeyAtLeast32Bytes";
     private final long EXPIRATION_TIME = 86400000; // 1 天
+    private final UserDetailsService userDetailsService;
 
-    // 创建 JWT Token
+    public JwtTokenProvider(@Lazy UserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
+
     public String createToken(String username, Set<ProjectInfo> projects) {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("projects", projects);
 
-        // 打印用于调试
-        System.out.println("Creating JWT token for user: " + username);
-
-        // 创建密钥
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
         return Jwts.builder()
@@ -36,13 +47,40 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 从 JWT Token 中提取用户名
-    public String getUsernameFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+    public String getJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY.getBytes())
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            System.out.println("Invalid JWT token: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public Authentication getAuthentication(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(SECRET_KEY.getBytes())
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
+
+        String username = claims.getSubject();
+        List<GrantedAuthority> authorities = Collections.emptyList();
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 }

@@ -1,8 +1,10 @@
 import request from '@/utils/request'
+import store from '@/store'
 
 const api = {
   user: '/user',
   role: '/role',
+  rule: '/fusion/getRuleList',
   service: '/service',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
@@ -28,9 +30,14 @@ export function getRoleList (parameter) {
 }
 
 export function getRuleList () {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
   return request({
-    url: '/fusion/getRuleList',
-    method: 'get'
+    url: api.rule,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
   })
 }
 
