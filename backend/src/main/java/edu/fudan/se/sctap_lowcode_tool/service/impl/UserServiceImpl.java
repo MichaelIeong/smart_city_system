@@ -22,12 +22,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String login(String userName, String passWord) throws Exception{
+        System.out.println(12345);
 
-        UserInfo user = userRepository.findByUsername(userName)
+        UserInfo user = userRepository.findByuserName(userName)
                 .orElseThrow(() -> new Exception("用户不存在"));
 
+        System.out.println(user.getPassWord());
         // 验证密码
         if (!passwordEncoder.matches(passWord, user.getPassWord())) {
+            System.out.println(54321);
             throw new Exception("密码错误");
         }
 
@@ -38,7 +41,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void register(String userName, String passWord) throws Exception {
         // 检查用户名是否已存在
-        if (userRepository.findByUsername(userName).isPresent()) {
+        if (userRepository.findByuserName(userName).isPresent()) {
             throw new Exception("用户名已存在");
         }
 

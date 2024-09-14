@@ -114,11 +114,11 @@
 </template>
 
 <script>
-import md5 from 'md5'
+// import md5 from 'md5'
 import TwoStepCaptcha from '@/components/tools/TwoStepCaptcha'
 import { mapActions } from 'vuex'
 import { timeFix } from '@/utils/util'
-import { getSmsCaptcha, get2step, getAccessToken } from '@/api/login'
+import { getSmsCaptcha } from '@/api/login'
 
 export default {
   components: {
@@ -143,32 +143,32 @@ export default {
       }
     }
   },
-  created () {
-    get2step({ })
-      .then(res => {
-        this.requiredTwoStepCaptcha = res.result.stepCode
-      })
-      .catch(() => {
-        this.requiredTwoStepCaptcha = false
-      })
-      // alert('hello')
-      var params = {
-        username: 'admin',
-        password: 'admin'
-      }
-      const hide = this.$message.loading('正在登录..', 0)
-      getAccessToken(params)
-        .then(res => {
-          setTimeout(hide, 2500)
-          this.$notification['success']({
-            message: '提示',
-            description: '你的AccessToken为：' + res.access,
-            duration: 8
-          })
-        })
-
-    // this.requiredTwoStepCaptcha = true
-  },
+  // created () {
+  //   get2step({ })
+  //     .then(res => {
+  //       this.requiredTwoStepCaptcha = res.result.stepCode
+  //     })
+  //     .catch(() => {
+  //       this.requiredTwoStepCaptcha = false
+  //     })
+  //     // alert('hello')
+  //     var params = {
+  //       username: 'admin',
+  //       password: 'admin'
+  //     }
+  //     const hide = this.$message.loading('正在登录..', 0)
+  //     getAccessToken(params)
+  //       .then(res => {
+  //         setTimeout(hide, 2500)
+  //         this.$notification['success']({
+  //           message: '提示',
+  //           description: '你的AccessToken为：' + res.access,
+  //           duration: 8
+  //         })
+  //       })
+  //
+  //   // this.requiredTwoStepCaptcha = true
+  // },
   methods: {
     ...mapActions(['Login', 'Logout']),
     // handler
@@ -205,10 +205,26 @@ export default {
           const loginParams = { ...values }
           delete loginParams.username
           loginParams[!state.loginType ? 'email' : 'username'] = values.username
-          loginParams.password = md5(values.password)
+          // loginParams.password = md5(values.password)
           Login(loginParams)
-            .then((res) => this.loginSuccess(res))
-            .catch(err => this.requestFailed(err))
+            .then((res) => {
+              console.log(8888)
+              this.loginSuccess(res)
+            })
+            .catch(err => {
+              console.log(9999, err.response ? err.response : err)
+              if (err.response) {
+                // 处理 API 错误
+                console.error('Error response:', err.response)
+              } else if (err.request) {
+                // 处理请求发送错误
+                console.error('Error request:', err.request)
+              } else {
+                // 处理其他错误
+                console.error('Error message:', err.message)
+              }
+              this.requestFailed(err)
+            })
             .finally(() => {
               state.loginBtn = false
             })

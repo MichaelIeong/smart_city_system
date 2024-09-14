@@ -29,7 +29,7 @@ export function getRoleList (parameter) {
 
 export function getRuleList () {
   return request({
-    url: 'http://127.0.0.1:8080/fusion/getRuleList',
+    url: '/fusion/getRuleList',
     method: 'get'
   })
 }
