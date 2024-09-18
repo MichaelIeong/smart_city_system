@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.utils;
+package edu.fudan.se.sctap_lowcode_tool.utils.import_utils;
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -9,8 +9,17 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Utility class for handling ZIP file operations.
+ */
 public class UnZip {
 
+    /**
+     * Deletes a directory and all its contents.
+     *
+     * @param directoryToBeDeleted the directory to be deleted
+     * @return true if the directory was successfully deleted, false otherwise
+     */
     public static boolean deleteDirectory(File directoryToBeDeleted) {
         File[] allContents = directoryToBeDeleted.listFiles();
         if (allContents != null) {
@@ -21,12 +30,18 @@ public class UnZip {
         return directoryToBeDeleted.delete();
     }
 
+    /**
+     * Deletes a directory and all its contents.
+     *
+     * @param directoryToBeDeleted the directory to be deleted
+     * @return true if the directory was successfully deleted, false otherwise
+     */
     public static boolean deleteDirectory(Path directoryToBeDeleted) {
         return deleteDirectory(directoryToBeDeleted.toFile());
     }
 
 
-    public static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
+    private static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
         File destFile = new File(destinationDir, zipEntry.getName());
 
         String destDirPath = destinationDir.getCanonicalPath();
@@ -39,6 +54,13 @@ public class UnZip {
         return destFile;
     }
 
+    /**
+     * Unzips a multipart file to the specified destination directory.
+     *
+     * @param file    the multipart file to unzip
+     * @param destDir the destination directory
+     * @throws IOException if an I/O error occurs
+     */
     public static void unzip(MultipartFile file, Path destDir) throws IOException {
 
         File destDirFile = destDir.toFile();

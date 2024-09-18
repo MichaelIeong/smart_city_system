@@ -16,7 +16,6 @@ public interface ProjectService {
 
     Iterable<ProjectInfo> findAll(); // 获取所有项目
 
-    // todo: 项目预览图（从model studio获取）
     String getProjectPreview(int projectId);
 
     boolean importProjects(String json);    // 导入项目
