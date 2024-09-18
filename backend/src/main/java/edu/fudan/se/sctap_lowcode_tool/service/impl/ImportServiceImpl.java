@@ -1,15 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EventInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.model.import_json.meta.CustomerThing;
 import edu.fudan.se.sctap_lowcode_tool.model.import_json.meta.Meta;
-import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.DeviceTypeRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.EventRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.service.ImportService;
 import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.InvalidJsonValueException;
 import org.slf4j.Logger;
@@ -18,9 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
 @Service
 public class ImportServiceImpl implements ImportService {
@@ -39,31 +31,73 @@ public class ImportServiceImpl implements ImportService {
     @Autowired
     private EventRepository eventRepository;
 
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    /**
+     * Checks if the given Meta object represents a sensor.
+     *
+     * @param meta the Meta object to check
+     * @return true if the Meta object represents a sensor, false otherwise
+     */
     @Override
     public boolean isSensor(Meta meta) {
         return meta.DeviceType().contains("传感器");
     }
 
+    /**
+     * Converts a Meta object to a SpaceInfo object.
+     * details: <br>
+     * - SpaceId: meta.Id <br>
+     * - SpaceName: meta.Name <br>
+     *
+     * @param meta the Meta object to convert
+     * @return the converted SpaceInfo object
+     */
     @Override
     public SpaceInfo toSpaceInfo(Meta meta) {
         SpaceInfo spaceInfo = new SpaceInfo();
-        spaceInfo.setSpaceId(meta.Id());
+//        spaceInfo.setSpaceId(meta.Id());
         spaceInfo.setSpaceName(meta.Name());
         return spaceInfo;
     }
-    
+
+    /**
+     * Converts an event object and its parenting meta to an EventInfo object.
+     * details: <br>
+     * - EventId: event.Id (requireNonNull) <br>
+     * - EventType: event.Name (requireNonNull) <br>
+     * - Location: spaceMeta.Name <br>
+     * - ObjectId: spaceMeta.Id <br>
+     *
+     * @param spaceMeta the Meta object of the space where the event occurs
+     * @param event     the CustomerThing object representing the event
+     * @return the converted EventInfo object
+     * @throws InvalidJsonValueException if violates the non-null constraint
+     */
     @Override
     public EventInfo toEventInfo(Meta spaceMeta, CustomerThing event) throws InvalidJsonValueException {
         requireNonNull(spaceMeta, "event.Id", event.Id());
         requireNonNull(spaceMeta, "event.Name", event.Name());
         EventInfo eventInfo = new EventInfo();
-        eventInfo.setEventId(event.Id());
+//        eventInfo.setEventId(event.Id());
         eventInfo.setEventType(event.Name());
-        eventInfo.setLocation(spaceMeta.Name());
+//        eventInfo.setLocation(spaceMeta.Name());
         eventInfo.setObjectId(spaceMeta.Id());
         return eventInfo;
     }
 
+
+    /**
+     * Converts a Meta object to a DeviceTypeInfo object.
+     * details: <br>
+     * - DeviceTypeName: meta.DeviceType (requireNonNull) <br>
+     * - IsSensor: using method isSensor(meta) <br>
+     *
+     * @param meta the Meta object to convert
+     * @return the converted DeviceTypeInfo object
+     * @throws InvalidJsonValueException if violates the non-null constraint
+     */
     @Override
     public DeviceTypeInfo toDeviceTypeInfo(Meta meta) throws InvalidJsonValueException {
         requireNonNull(meta, "meta.DeviceType", meta.DeviceType());
@@ -73,6 +107,18 @@ public class ImportServiceImpl implements ImportService {
         return deviceTypeInfo;
     }
 
+    /**
+     * Converts a Meta object to a DeviceInfo object.
+     * details: <br>
+     * - CoordinateX/Y/Z: meta.GraphicPosition.X/Y/Z <br>
+     * - IsSensor: using method isSensor(meta) <br>
+     * - DeviceId: meta.DeviceId (requireNonNull) <br>
+     * - DeviceName: meta.DeviceName (requireNonNull) <br>
+     *
+     * @param meta the Meta object to convert
+     * @return the converted DeviceInfo object
+     * @throws InvalidJsonValueException if violates the non-null constraint
+     */
     @Override
     public DeviceInfo toDeviceInfo(Meta meta) throws InvalidJsonValueException {
         requireNonNull(meta, "meta.DeviceId", meta.DeviceId());
@@ -81,8 +127,7 @@ public class ImportServiceImpl implements ImportService {
         deviceInfo.setCoordinateX(meta.GraphicPosition().X());
         deviceInfo.setCoordinateY(meta.GraphicPosition().Y());
         deviceInfo.setCoordinateZ(meta.GraphicPosition().Z());
-        deviceInfo.setIsSensor(this.isSensor(meta));
-        deviceInfo.setDeviceId(meta.DeviceId());
+//        deviceInfo.setDeviceId(meta.DeviceId());
         deviceInfo.setDeviceName(meta.DeviceName());
         return deviceInfo;
     }
@@ -93,12 +138,19 @@ public class ImportServiceImpl implements ImportService {
     }
 
     /**
-     * 向数据库中添加设备信息及设备类型信息 <br>
-     * ! 若该Meta信息非设备, 跳过 <br>
-     * ! 跳过数据库中已存在的设备 <br>
-     * ! 若设备信息中的值不合法，跳过该设备的导入，不报错 <br>
-     * @param deviceMeta 该设备的Meta信息
-     * @param spaceMeta 该设备所在空间的Meta信息
+     * Add DeviceInfo and DeviceTypeInfo to the database. <br>
+     *
+     * details: <br>
+     * - Add Device,
+     * - Add DeviceType,
+     * - Add Device-Space Reference <br>
+     *
+     * warnings: <br>
+     * ! Skip if the given Meta object is not a device, but a space or wall instead. <br>
+     * ! Skip if the device already exists in the database. <br>
+     * ! Skip if the device information is invalid, log this, but do not throw an error. <br>
+     * @param deviceMeta the Meta object representing the device
+     * @param spaceMeta the Meta object representing the space where the device is located
      */
     @Override
     public void addDevice(Meta deviceMeta, Meta spaceMeta) {
@@ -110,39 +162,48 @@ public class ImportServiceImpl implements ImportService {
                 deviceTypeRepository.save(deviceTypeInfo);
             }
             // Add Device
-            if (deviceRepository.existsById(deviceMeta.DeviceId())) return;
+//            if (deviceRepository.existsById(deviceMeta.DeviceId())) return;
             DeviceInfo deviceInfo = this.toDeviceInfo(deviceMeta);
             deviceRepository.save(deviceInfo);
             // Add Device Reference to Space
-            SpaceInfo spaceInfo = spaceRepository.findById(spaceMeta.Id()).orElseGet(() -> {
-                this.addSpace(spaceMeta);
-                return spaceRepository.getReferenceById(spaceMeta.Id());
-            });
-            Set<DeviceInfo> devices = spaceInfo.getSpaceDevices();
-            if (devices == null) {
-                devices = new HashSet<>();
-            }
-            devices.add(deviceInfo);
-            spaceInfo.setSpaceDevices(devices);
-            spaceRepository.save(spaceInfo);
+//            SpaceInfo spaceInfo = spaceRepository.findById(spaceMeta.Id()).orElseThrow();
+//            spaceInfo.getSpaceDevices().add(deviceInfo);
+//            spaceRepository.save(spaceInfo);
         } catch (InvalidJsonValueException e) {
             log.warn(e.getMessage());
         }
     }
 
+    // TODO: maintain the relations of adjacent spaces
+
     /**
-     * 向数据库中添加空间和事件信息 <br>
-     * ! 跳过数据库中已存在的空间 <br>
-     * ! 若事件信息中的值不合法，跳过该事件的导入，不报错 <br>
-     * @param meta 该空间的Meta信息
+     * Add SpaceInfo and EventInfo to the database. <br>
+     * <p>
+     * details:
+     * - Add Space,
+     * - Add relation between this Space and the Project,
+     * - Add its Events,
+     * - Add its Properties <br>
+     * <p>
+     * warnings: <br>
+     * ! Skip if the space already exists in the database. <br>
+     * ! Skip if the event information is invalid, log this, but do not throw an error. <br>
+     *
+     * @param meta        the Meta object representing the space
+     * @param projectInfo the ProjectInfo object where the space is located
      */
     @Override
-    public void addSpace(Meta meta) {
+    public void addSpace(Meta meta, ProjectInfo projectInfo) {
         if (meta == null) return;
         // Add Space
         SpaceInfo spaceInfo = this.toSpaceInfo(meta);
-        if (spaceRepository.existsById(spaceInfo.getSpaceId())) return;
+//        if (spaceRepository.existsById(spaceInfo.getSpaceId())) return;
         spaceRepository.save(spaceInfo);
+        // Add Space-Project Reference
+
+
+        // Add Properties
+
         // Add Events
         if (meta.CustomerEvents() == null) return;
         meta.CustomerEvents().forEach(event -> {
@@ -155,11 +216,31 @@ public class ImportServiceImpl implements ImportService {
         });
     }
 
+    /**
+     * **Entry Method of this class** <br>
+     * Import the Meta objects recursively. <br>
+     * <p>
+     * - Make a new ProjectInfo and
+     * - for each remaining space in the iterator, <br>
+     * - Add SpaceInfo and EventInfo (using method addSpaceAndEvent) <br>
+     * - Add All Devices and DeviceTypes in the space (using method addDevice) <br>
+     * <p>
+     * ! Skip all existing and invalid information, log this, but do not throw an error. <br>
+     *
+     * @param metaIterator the iterator of Meta objects to import
+     * @param projectName the project name to be saved
+     */
     @Transactional
     @Override
-    public void importMetaRecursively(Iterator<Meta> metaIterator) {
+    public void importMetaRecursively(Iterator<Meta> metaIterator, String projectName) {
+
+        // Make a new ProjectInfo and save
+        ProjectInfo projectInfo = new ProjectInfo();
+        projectInfo.setProjectName(projectName);
+        projectRepository.save(projectInfo);
+
         metaIterator.forEachRemaining(meta -> {
-            this.addSpace(meta);
+            this.addSpace(meta, projectInfo);
             meta.getChildrenDevices().forEach(childDevice ->
                     this.addDevice(childDevice, meta)
             );

@@ -14,7 +14,7 @@ public class EventServiceImpl  implements EventService {
     private EventRepository eventRepository;
 
     @Override
-    public List<EventInfo> getHistory(String deviceID) {
+    public List<EventInfo> getHistory(int deviceID) {
         return List.of();
     }
 

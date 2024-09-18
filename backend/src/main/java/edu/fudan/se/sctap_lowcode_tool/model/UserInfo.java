@@ -22,8 +22,8 @@ public class UserInfo {
 
     @ManyToMany
     @JoinTable(name = "user_project",
-            joinColumns = @JoinColumn(name = "userId"),
-            inverseJoinColumns = @JoinColumn(name = "projectId"))
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "project_id"))
     private Set<ProjectInfo> projects = new HashSet<>();  // 用户有权限的场景
 
     public Integer getUserId() {

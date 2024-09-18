@@ -3,16 +3,12 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 @Entity
 @Table(name = "app_Info")
 @Data
 public class AppInfo {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "app_id", nullable = false)
     private int appId; // 主键字段，假设每个AppInfo都有一个唯一的ID
 

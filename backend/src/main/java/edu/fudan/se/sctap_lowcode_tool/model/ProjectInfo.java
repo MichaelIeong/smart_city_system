@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -13,7 +14,7 @@ public class ProjectInfo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer ProjectId;   // 项目的唯一标识符
+    private Integer projectId;   // 项目的唯一标识符
 
     @Column(nullable = false)
     private String projectName;   // 项目的名称
@@ -21,7 +22,18 @@ public class ProjectInfo {
     @Column
     private String projectImage;   // 项目的图片
 
-    @OneToMany(mappedBy = "spaceId", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "projectInfo", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SpaceInfo> spaces = new HashSet<>();   // 项目中包含的空间
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ProjectInfo that)) return false;
+        return Objects.equals(projectId, that.projectId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(projectId);
+    }
 }

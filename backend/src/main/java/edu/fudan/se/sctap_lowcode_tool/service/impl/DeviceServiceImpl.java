@@ -25,7 +25,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public boolean deleteDevice(String deviceID) {
+    public boolean deleteDevice(int deviceID) {
         if (deviceRepository.existsById(deviceID)) {
             deviceRepository.deleteById(deviceID);
             return true;
@@ -34,49 +34,28 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public Optional<DeviceInfo> findById(String deviceID) {
+    public Optional<DeviceInfo> findById(int deviceID) {
         return deviceRepository.findById(deviceID);
     }
 
     @Override
-    public String getDeviceStatus(String deviceID) {
+    public String getDeviceStatus(int deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getStatus)
                 .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceURL(String deviceID) {
+    public String getDeviceURL(int deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getUrl)
                 .orElse("Device not found");
     }
 
     @Override
-    public String getDeviceData(String deviceID) {
+    public String getDeviceData(int deviceID) {
         return deviceRepository.findById(deviceID)
                 .map(DeviceInfo::getData)
-                .orElse("Device not found");
-    }
-
-    @Override
-    public String getDeviceType(String deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getType)
-                .orElse("Device not found");
-    }
-
-    @Override
-    public Boolean getDeviceIsSensor(String deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getIsSensor)
-                .orElse(false);
-    }
-
-    @Override
-    public String getDeviceCapabilities(String deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getCapabilities)
                 .orElse("Device not found");
     }
 
