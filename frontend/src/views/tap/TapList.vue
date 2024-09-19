@@ -158,16 +158,27 @@ export default {
   },
   methods: {
     handleAdd () {
-      message.info('新建')
       this.$router.push({ path: '/tap/tap-detail/0' })
     },
     handleEdit (record) {
-      message.info('编辑')
       this.$router.push({ path: '/tap/tap-detail/' + record.id })
     },
     handleBatchDelete () {
-      message.info('批量删除')
-      deleteTaps(this.selectedRowKeys)
+      const that = this
+      const refs = this.$refs
+      Modal.confirm({
+        title: '确认删除?',
+        content: '删除后将无法恢复，请确认是否继续。',
+        onOk () {
+          console.log('999')
+          return deleteTaps(that.selectedRowKeys).then(() => {
+            refs.table.refresh()
+            message.success('删除成功')
+          }).catch(() => {
+            message.error('删除失败')
+          })
+        }
+      })
     },
     handleDelete (record) {
       const refs = this.$refs

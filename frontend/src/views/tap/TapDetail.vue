@@ -167,11 +167,11 @@ export default {
       getTapDetail({ id: tapID })
         .then(res => {
           const info = JSON.parse(res.result)
+          console.log(info)
           this.form.user = info.user
           this.form.app = info.app
-          // 不确定
-          this.triggerList = info.Scenario_Trigger
-          this.actionList = info.Scenario_Action
+          this.triggerList = info.dsl.Scenario_Trigger
+          this.actionList = info.dsl.Scenario_Action
         })
     }
   }
