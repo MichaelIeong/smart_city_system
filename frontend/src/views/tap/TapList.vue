@@ -67,7 +67,7 @@
 
 <script>
 import { STable, Ellipsis } from '@/components'
-import { deleteTap, getRoleList, getTapList } from '@/api/manage'
+import { deleteTap, deleteTaps, getRoleList, getTapList } from '@/api/manage'
 import { Modal, message } from 'ant-design-vue'
 
 const columns = [
@@ -159,12 +159,15 @@ export default {
   methods: {
     handleAdd () {
       message.info('新建')
+      this.$router.push({ path: '/tap/tap-detail/0' })
     },
     handleEdit (record) {
       message.info('编辑')
+      this.$router.push({ path: '/tap/tap-detail/' + record.id })
     },
     handleBatchDelete () {
       message.info('批量删除')
+      deleteTaps(this.selectedRowKeys)
     },
     handleDelete (record) {
       const refs = this.$refs

@@ -62,7 +62,7 @@ import historyEventEditor from './modules/historyEventEditor.vue'
 import computedResultEditor from './modules/computedResultEditor.vue'
 import LocationInput from './modules/locationInput.vue'
 import bus from './modules/bus'
-import { saveTap } from '@/api/manage'
+import { getTapDetail, saveTap } from '@/api/manage'
 
 export default {
   name: 'TapDetail',
@@ -104,6 +104,7 @@ export default {
     upload () {
       const finalResult = this.getResult()
       const uploadResult = {
+        id: this.$route.params.id,
         user: this.form.user,
         dsl: finalResult,
         endTime: '',
@@ -160,6 +161,19 @@ export default {
         this.$message.warning('Please fill in the history event and computing result!')
       }
     })
+
+    const tapID = this.$route.params.id
+    if (tapID !== '0') {
+      getTapDetail({ id: tapID })
+        .then(res => {
+          const info = JSON.parse(res.result)
+          this.form.user = info.user
+          this.form.app = info.app
+          // 不确定
+          this.triggerList = info.Scenario_Trigger
+          this.actionList = info.Scenario_Action
+        })
+    }
   }
 }
 </script>

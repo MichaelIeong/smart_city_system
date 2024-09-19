@@ -85,18 +85,31 @@ export function getTapList (parameter) {
   })
 }
 
+export function getTapDetail (parameter) {
+  return request({
+    url: api.tap + `/${parameter.id}`,
+    method: 'get'
+  })
+}
+
 export function saveTap (parameter) {
   return request({
-    url: api.tap,
-    method: 'post',
+    url: parameter.id === '0' ? api.tap : api.tap + `/${parameter.id}`,
+    method: parameter.id === '0' ? 'post' : 'put',
     data: parameter
   })
 }
 
 export function deleteTap (parameter) {
   return request({
-    url: api.tap,
-    method: 'delete',
-    params: parameter
+    url: api.tap + `/${parameter.id}`,
+    method: 'delete'
+  })
+}
+
+export function deleteTaps (ids) {
+  return request({
+    url: api.tap + `?id=${ids.join('&id=')}`,
+    method: 'delete'
   })
 }
