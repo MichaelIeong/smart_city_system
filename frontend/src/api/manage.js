@@ -7,7 +7,7 @@ const api = {
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
-  tap: '/tap'
+  tap: '/taps'
 }
 
 export default api
