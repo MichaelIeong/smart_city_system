@@ -15,8 +15,61 @@ import java.util.*;
 @RequestMapping("/taps")
 public class MockSCTAPController {
 
-    private static final String MOCK_DATA = """
-            {user=234, dsl={Scenario_Trigger={event_type=[], filter=[]}, Scenario_Action=[], Scenario_Description={event_list=[], location=[[]], time_zone=[{type=, start_time=, end_time=}], object_id=[], result=[{result_name=, function_name=, param=}]}}, endTime=, startTime=1726706679224, app=printer add paper}
+    private static final String MOCK_DATA =
+            """
+            {
+              "id": 0,
+              "user": "Ethan",
+              "dsl": {
+                "Scenario_Trigger": {
+                  "event_type": [["Noisy_Detected"], ["Order_Delivered"], ["Person_Entry"]],
+                  "filter": [
+                    "location is DiningArea04",
+                    "timestamp < 20:42:50",
+                    "objectId belongsTo trigger_objectId",
+                    "event_data.location < 100"
+                  ]
+                },
+                "Scenario_Action": [
+                  {
+                    "history_condition": "func1 > 222",
+                    "current_condition": "contain_DiningArea01.luminance < 333",
+                    "action": {
+                      "action_name": "AC_Turn_On",
+                      "action_location": ["contain DiningArea01"],
+                      "action_param": "func1"
+                    }
+                  }
+                ],
+                "Scenario_Description": {
+                  "event_list": ["Water_Leak", "Coffee_Start_making"],
+                  "location": [[], []],
+                  "time_zone": [
+                    {
+                      "type": "time",
+                      "start_time": "last 3 min",
+                      "end_time": "trigger_timestamp"
+                    },
+                    {
+                      "type": "time",
+                      "start_time": "last 4 min",
+                      "end_time": "last 1 min"
+                    }
+                  ],
+                  "object_id": [["trigger_objectId", "vip"], ["trigger_objectId"]],
+                  "result": [
+                    {
+                      "function_name": "count",
+                      "param": "Water_Leak",
+                      "result_name": "func1"
+                    }
+                  ]
+                }
+              },
+              "endTime": "",
+              "startTime": 1726749750382,
+              "app": "printer add paper"
+            }
             """;
 
     public static Map<String, Object> buildResponse(Object data) {
