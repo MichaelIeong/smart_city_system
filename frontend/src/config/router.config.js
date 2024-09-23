@@ -78,9 +78,9 @@ export const asyncRouterMap = [{
     {
       path: '/service-group',
       name: 'service-group',
-      component: RouteView,
-      redirect: '/service-group/service-group-list',
-      meta: { title: 'menu.service-group', icon: 'profile', permission: ['profile'] }
+      // component: RouteView,
+      component: () => import('@/views/list/ServiceCompositionList'),
+      meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
     },
 
     // result
