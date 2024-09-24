@@ -102,7 +102,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getRuleList } from '@/api/manage'
+import { getServiceList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -305,7 +305,7 @@ export default {
     loadData () {
       console.log(99999)
       // const requestParameters = Object.assign({}, this.queryParam)
-      return getRuleList()
+      return getServiceList()
           .then(res => {
             console.log('Data received:', res)
             return res // 确保数据格式是数组
