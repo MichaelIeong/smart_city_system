@@ -102,7 +102,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getServiceList } from '@/api/manage'
+// import { getServiceList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -321,7 +321,11 @@ export default {
           projectName: '2024-05-10'
         }
       ]
-
+      // return getServiceList()
+      //   .then(res => {
+      //     console.log('Data received:', res)
+      //     return res // 确保数据格式是数组
+      //   })
       return new Promise((resolve) => {
         // 模拟 API 延迟
         setTimeout(() => {
