@@ -14,7 +14,7 @@
           </template>
           <el-descriptions-item label="name">{{ t.name }}</el-descriptions-item>
           <el-descriptions-item label="location">
-            <span v-for="(loc, i) in t.location" :key="i">
+            <span v-for="(loc, index) in t.location" :key="index">
               {{ loc.locationPreposition + ' ' + loc.location + ',' }}
             </span>
           </el-descriptions-item>
@@ -106,7 +106,12 @@ const defaultItem = {
 }
 
 export default {
-  props: ['value'],
+  props: {
+    value: {
+      type: Array,
+      default: () => []
+    }
+  },
   components: {
     LocationInput
   },

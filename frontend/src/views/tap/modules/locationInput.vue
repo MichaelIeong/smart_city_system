@@ -16,7 +16,15 @@
 import { locationOptions, locationPrepositionOptions } from './data.js'
 
 export default {
-  props: ['value'],
+  props: {
+    value: {
+      type: Object,
+      default: () => ({
+        locationPreposition: '',
+        location: ''
+      })
+    }
+  },
   data () {
     return {
       locationOptions,

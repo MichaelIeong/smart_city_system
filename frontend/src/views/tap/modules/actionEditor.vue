@@ -19,18 +19,18 @@
           <el-descriptions-item label="action_name">{{ t.action.action_name }}
           </el-descriptions-item>
           <el-descriptions-item label="conditions">
-            <span v-for="(c, i) in t.history_condition" :key="'hc' + i">
-              {{ `${i === 0 ? 'where ' : c.logicalOperator} ${c.name} ${c.comparator} ${c.value}` }}
+            <span v-for="(c, index) in t.history_condition" :key="'hc' + index">
+              {{ `${index === 0 ? 'where ' : c.logicalOperator} ${c.name} ${c.comparator} ${c.value}` }}
             </span>
-            <span v-for="(c, i) in t.current_condition" :key="'cc' + i">
-              {{ `${i === 0 ? 'where ' : c.logicalOperator}
+            <span v-for="(c, index) in t.current_condition" :key="'cc' + index">
+              {{ `${index === 0 ? 'where ' : c.logicalOperator}
               ${c.location.locationPreposition}_${c.location.location}.${c.property.join('.')} ${c.comparator}
               ${c.value}`
               }}
             </span>
           </el-descriptions-item>
           <el-descriptions-item label="location">
-            <span v-for="(loc, i) in t.action.action_location" :key="i">
+            <span v-for="(loc, index) in t.action.action_location" :key="index">
               {{ `${loc.locationPreposition} ${loc.location},` }}
             </span>
           </el-descriptions-item>
@@ -170,7 +170,16 @@ const defaultItem = {
 }
 
 export default {
-  props: ['value', 'computedResultList'],
+  props: {
+    value: {
+      type: Array,
+      default: () => []
+    },
+    computedResultList: {
+      type: Array,
+      default: () => []
+    }
+  },
   components: {
     LocationInput
   },

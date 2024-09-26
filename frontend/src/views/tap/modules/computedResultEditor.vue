@@ -67,7 +67,16 @@ const defaultItem = {
 }
 
 export default {
-  props: ['value', 'historyEventList'],
+  props: {
+    value: {
+      type: Array,
+      default: () => []
+    },
+    historyEventList: {
+      type: Array,
+      default: () => []
+    }
+  },
   data () {
     return {
       dialogEditorVisible: false,

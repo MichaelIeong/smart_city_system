@@ -120,7 +120,12 @@ const defaultItem = {
 }
 
 export default {
-  props: ['value'],
+  props: {
+    value: {
+      type: Array,
+      default: () => []
+    }
+  },
   components: {
     LocationInput
   },
