@@ -47,6 +47,7 @@
 </template>
 
 <script>
+import { postProject } from '@/api/manage'
 export default {
   data () {
     return {
@@ -64,38 +65,31 @@ export default {
     }
   },
   methods: {
-    selectProject (projectId) {
-      console.log(`选择的项目ID是: ${projectId}`)
-    },
     handleFileUpload (event) {
-      // 获取用户选择的文件
       this.newProject.file = event.target.files[0]
     },
-    importProject () {
-      if (!this.newProject.file) {
-        alert('请选择文件')
-        return
+    async importProject () {
+      try {
+        if (!this.newProject.file) {
+          alert('请选择文件')
+          return
+        }
+
+        // 使用 FormData 构建请求数据
+        const formData = new FormData()
+        formData.append('name', this.newProject.name)
+        formData.append('file', this.newProject.file)
+
+        // 发送 POST 请求到后端，调用 postProject
+        const response = await postProject(formData)
+
+        // 处理响应
+        console.log('导入成功', response.data)
+        this.showImportModal = false // 关闭模态框
+        // 可在此处刷新项目列表
+      } catch (error) {
+        console.error('导入失败', error)
       }
-
-      // 使用 FormData 来构建请求数据
-      const formData = new FormData()
-      formData.append('name', this.newProject.name)
-      formData.append('file', this.newProject.file)
-
-      // 发送 POST 请求到后端
-      fetch('/api/import/upload', {
-        method: 'POST',
-        body: formData
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('导入成功', data)
-          this.showImportModal = false // 关闭模态框
-          // 可在此处刷新项目列表
-        })
-        .catch(error => {
-          console.error('导入失败', error)
-        })
     }
   }
 }
