@@ -28,7 +28,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/auth/register", "/auth/login", "/fusion/uploadrule", "/fusion/getRuleList").permitAll()
+                                .requestMatchers("/auth/register", "/auth/login", "/fusion/uploadrule", "/fusion/getRuleList", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
+                                        "/api-docs/**", "/api/import/upload").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .cors(cors -> cors.disable())

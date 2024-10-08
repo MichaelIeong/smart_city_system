@@ -3,7 +3,35 @@
     <!-- 使用 $t() 函數來引用多語言鍵值 -->
     <h2>{{ $t('menu.projectSelection') }}</h2>
 
-    <!-- 項目列表 -->
+    <!-- 导入按钮，点击后显示模态框 -->
+    <button @click="showImportModal = true">导入</button>
+
+    <!-- 项目导入模态框 -->
+    <div v-if="showImportModal" class="modal">
+      <div class="modal-content">
+        <h3>导入项目</h3>
+
+        <!-- 表单 -->
+        <form @submit.prevent="importProject">
+          <div>
+            <label for="project-name">项目名称:</label>
+            <input type="text" v-model="newProject.name" id="project-name" required />
+          </div>
+
+          <div>
+            <label for="project-zip">选择zip文件:</label>
+            <input type="file" @change="handleFileUpload" id="project-zip" accept=".zip" required />
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit">确定</button>
+            <button @click="showImportModal = false">取消</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 项目列表 -->
     <div class="project-grid">
       <div
         v-for="(project) in allProjects"
@@ -12,69 +40,56 @@
         @click="selectProject(project.id)"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
-        <div class="item-name">{{ project.name }}</div> <!-- 項目名稱可以直接展示，假設項目名稱不需要多語言處理 -->
+        <div class="item-name">{{ project.name }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { postProject } from '@/api/manage'
 export default {
   data () {
     return {
+      showImportModal: false, // 控制模态框显示隐藏
+      newProject: {
+        name: '',
+        file: null
+      },
       allProjects: [
-        {
-          id: 'p1',
-          name: '項目一',
-          image: 'https://via.placeholder.com/800x400.png?text=項目一'
-        },
-        {
-          id: 'p2',
-          name: '項目二',
-          image: 'https://via.placeholder.com/800x400.png?text=項目二'
-        },
-        {
-          id: 'p3',
-          name: '項目三',
-          image: 'https://via.placeholder.com/800x400.png?text=項目三'
-        },
-        {
-          id: 'p4',
-          name: '項目四',
-          image: 'https://via.placeholder.com/800x400.png?text=項目四'
-        },
-        {
-          id: 'p5',
-          name: '項目五',
-          image: 'https://via.placeholder.com/800x400.png?text=項目五'
-        },
-        {
-          id: 'p6',
-          name: '項目六',
-          image: 'https://via.placeholder.com/800x400.png?text=項目六'
-        },
-        {
-          id: 'p7',
-          name: '項目七',
-          image: 'https://via.placeholder.com/800x400.png?text=項目七'
-        },
-        {
-          id: 'p8',
-          name: '項目八',
-          image: 'https://via.placeholder.com/800x400.png?text=項目八'
-        },
-        {
-          id: 'p9',
-          name: '項目九',
-          image: 'https://via.placeholder.com/800x400.png?text=項目九'
-        }
+        // 示例项目数据
+        { id: 'p1', name: '项目一', image: 'https://via.placeholder.com/800x400.png?text=项目一' },
+        { id: 'p2', name: '项目二', image: 'https://via.placeholder.com/800x400.png?text=项目二' }
+        // 其他项目数据...
       ]
     }
   },
   methods: {
-    selectProject (projectId) {
-      // 處理點擊項目後的邏輯，比如跳轉到詳細頁
-      console.log(`選擇的項目ID是: ${projectId}`)
+    handleFileUpload (event) {
+      this.newProject.file = event.target.files[0]
+    },
+    async importProject () {
+      try {
+        if (!this.newProject.file) {
+          alert('请选择文件')
+          return
+        }
+
+        // 使用 FormData 构建请求数据
+        const formData = new FormData()
+        formData.append('name', this.newProject.name)
+        formData.append('file', this.newProject.file)
+
+        // 发送 POST 请求到后端，调用 postProject
+        const response = await postProject(formData)
+
+        // 处理响应
+        console.log('导入成功', response.data)
+        this.showImportModal = false // 关闭模态框
+        // 可在此处刷新项目列表
+      } catch (error) {
+        console.error('导入失败', error)
+      }
     }
   }
 }
@@ -118,5 +133,31 @@ export default {
   padding: 10px;
   font-size: 1.2em;
   text-align: center;
+}
+
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
 }
 </style>
