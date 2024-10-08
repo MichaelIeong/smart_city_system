@@ -102,7 +102,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getRuleList } from '@/api/manage'
+// import { getServiceList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -304,12 +304,34 @@ export default {
     },
     loadData () {
       console.log(99999)
-      // const requestParameters = Object.assign({}, this.queryParam)
-      return getRuleList()
-          .then(res => {
-            console.log('Data received:', res)
-            return res // 确保数据格式是数组
-          })
+      // 增加假数据
+      const fakeData = [
+        {
+          ruleId: 1,
+          ruleName: '违规处理服务',
+          callCount: 3,
+          ruleStatus: 0, // 0 表示可用
+          projectName: '2024-05-10'
+        },
+        {
+          ruleId: 2,
+          ruleName: '车辆进出停车场服务',
+          callCount: 3,
+          ruleStatus: 0, // 0 表示可用
+          projectName: '2024-05-10'
+        }
+      ]
+      // return getServiceList()
+      //   .then(res => {
+      //     console.log('Data received:', res)
+      //     return res // 确保数据格式是数组
+      //   })
+      return new Promise((resolve) => {
+        // 模拟 API 延迟
+        setTimeout(() => {
+          resolve(fakeData)
+        }, 500)
+      })
     }
   }
 }
