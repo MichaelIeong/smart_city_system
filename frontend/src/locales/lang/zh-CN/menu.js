@@ -6,7 +6,7 @@ export default {
     'menu.projectSelection': '项目选择',
     'menu.resource.cyber-resource': '信息资源',
     'menu.resource.social-resource': '社会资源',
-    'menu.space-scene': '场景展示',
+    'menu.space-scene': '环境表示',
     'menu.form.basic-form': '基础表单',
     'menu.form.step-form': '分步表单',
     'menu.form.step-form.info': '分步表单（填写转账信息）',

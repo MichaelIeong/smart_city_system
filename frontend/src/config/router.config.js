@@ -66,12 +66,14 @@ export const asyncRouterMap = [{
       name: 'space-scene',
       component: () => import('@/views/list/TableList'),
       meta: { title: 'menu.space-scene', keepAlive: true, icon: 'picture', permission: ['dashboard'] }
-    }, // 事件融合
+    },
+
+    // 事件融合
     {
       path: '/event-fusion',
       name: 'event-fusion',
       component: () => import('@/views/list/EventFusionList'),
-      meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'fork', permission: ['table'] }
+      meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'link', permission: ['table'] }
     },
 
     // 服务组合

@@ -23,7 +23,7 @@ export default {
   menu: {
     locale: true
   },
-  title: 'IoT Platform',
+  title: 'SCU-OS Platform',
   pwa: false,
   iconfontUrl: '',
   production: process.env.NODE_ENV === 'production' && process.env.VUE_APP_PREVIEW !== 'true'
