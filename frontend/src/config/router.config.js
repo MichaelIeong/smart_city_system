@@ -10,17 +10,17 @@ export const asyncRouterMap = [{
   name: 'index',
   component: BasicLayout,
   meta: { title: 'menu.home' },
-  redirect: '/project-selection',
+  redirect: '/resource/physical-resource',
 
   children: [
     // 项目选择
-    {
-      path: '/project-selection',
-      name: 'projectSelection',
-      hidden: true,
-      component: () => import('@/views/user/ProjectSelection'),
-      meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
-    },
+    // {
+    //   path: '/project-selection',
+    //   name: 'projectSelection',
+    //   hidden: true,
+    //   component: () => import('@/views/user/ProjectSelection'),
+    //   meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
+    // },
 
     // 资源管理
     {
@@ -260,6 +260,11 @@ export const constantRouterMap = [
         path: 'register',
         name: 'register',
         component: () => import(/* webpackChunkName: "user" */ '@/views/user/Register')
+      },
+      {
+        path: 'project-selection',
+        name: 'project-selection',
+        component: () => import(/* webpackChunkName: "user" */ '@/views/user/ProjectSelection')
       },
       {
         path: 'register-result',

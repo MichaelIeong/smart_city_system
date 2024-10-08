@@ -251,7 +251,7 @@ export default {
         })
       })
       */
-      this.$router.push({ path: '/' })
+      this.$router.push({ path: '/user/project-selection' })
       // 延迟 1 秒显示欢迎信息
       setTimeout(() => {
         this.$notification.success({
