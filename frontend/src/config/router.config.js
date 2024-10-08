@@ -62,18 +62,38 @@ export const asyncRouterMap = [{
 
     }, // 场景展示
     {
-      path: '/space-scene',
-      name: 'space-scene',
-      component: () => import('@/views/list/TableList'),
-      meta: { title: 'menu.space-scene', keepAlive: true, icon: 'picture', permission: ['dashboard'] }
-    },
-
-    // 事件融合
+      path: '/spacescene',
+      redirect: '/spacescene/spacescene-list',
+      component: RouteView,
+      meta: { title: 'menu.spacescene', keepAlive: true, icon: 'table', permission: ['dashboard'] },
+      children: [
+        {
+          path: '/spacescene/spacesceneDemo',
+          name: 'SpaceDemo',
+          hideChildrenInMenu: true,
+          component: () => import('@/views/list/SpaceDemo'),
+          meta: { title: 'menu.spacescene.list', keepAlive: true, permission: ['table'] }
+          // path: '/spacesence/spacesence-list/:pageNo([1-9]\\d*)?',
+          // name: 'SpaceSenceList',
+          // hideChildrenInMenu: true,
+          // component: () => import('@/views/list/TableList'),
+          // meta: { title: 'menu.spacesence.list', keepAlive: true, permission: ['table'] },
+          // children: [
+          //   {
+          //     path: '/spacesence/spacesence-list/sdkDemo',
+          //     name: 'sdkDemo',
+          //     component: () => import('@/views/list/sdkDemo'),
+          //     meta: { title: 'menu.spacesence.list.sdkDemo', keepAlive: true, permission: ['table'] }
+          //   }
+          // ]
+        }
+      ]
+    }, // 事件融合
     {
       path: '/event-fusion',
       name: 'event-fusion',
       component: () => import('@/views/list/EventFusionList'),
-      meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'link', permission: ['table'] }
+      meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'fork', permission: ['table'] }
     },
 
     // 服务组合

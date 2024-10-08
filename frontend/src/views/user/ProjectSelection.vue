@@ -37,7 +37,7 @@
         v-for="(project) in allProjects"
         :key="project.id"
         class="project-item"
-        @click="selectProject(project.id)"
+        @click="goToProjectSelection"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
         <div class="item-name">{{ project.name }}</div>
@@ -48,6 +48,7 @@
 
 <script>
 import { postProject } from '@/api/manage'
+
 export default {
   data () {
     return {
@@ -90,6 +91,10 @@ export default {
       } catch (error) {
         console.error('导入失败', error)
       }
+    },
+    // 跳转到项目选择页面的方法
+    goToProjectSelection () {
+      this.$router.push({ path: '/spacescene/spacesceneDemo' })
     }
   }
 }
