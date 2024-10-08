@@ -1,5 +1,5 @@
 <template>
-  <div class="app">
+  <div class="main">
     <!-- 使用 $t() 函數來引用多語言鍵值 -->
     <h2>{{ $t('menu.projectSelection') }}</h2>
 

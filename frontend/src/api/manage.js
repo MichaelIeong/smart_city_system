@@ -5,10 +5,11 @@ const api = {
   user: '/user',
   role: '/role',
   rule: '/fusion/getRuleList',
-  service: '/service',
+  service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
-  orgTree: '/org/tree'
+  orgTree: '/org/tree',
+  tap: '/taps'
 }
 
 export default api
@@ -41,11 +42,15 @@ export function getRuleList () {
   })
 }
 
-export function getServiceList (parameter) {
+export function getServiceList () {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
   return request({
     url: api.service,
     method: 'get',
-    params: parameter
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
   })
 }
 
@@ -80,5 +85,42 @@ export function saveSub (sub) {
     url: '/sub',
     method: sub.id === 0 ? 'post' : 'put',
     data: sub
+  })
+}
+
+export function getTapList (parameter) {
+  return request({
+    url: api.tap,
+    method: 'get',
+    params: parameter
+  })
+}
+
+export function getTapDetail (parameter) {
+  return request({
+    url: api.tap + `/${parameter.id}`,
+    method: 'get'
+  })
+}
+
+export function saveTap (parameter) {
+  return request({
+    url: parameter.id === '0' ? api.tap : api.tap + `/${parameter.id}`,
+    method: parameter.id === '0' ? 'post' : 'put',
+    data: parameter
+  })
+}
+
+export function deleteTap (parameter) {
+  return request({
+    url: api.tap + `/${parameter.id}`,
+    method: 'delete'
+  })
+}
+
+export function deleteTaps (ids) {
+  return request({
+    url: api.tap + `?id=${ids.join('&id=')}`,
+    method: 'delete'
   })
 }

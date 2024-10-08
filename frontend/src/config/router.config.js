@@ -10,17 +10,17 @@ export const asyncRouterMap = [{
   name: 'index',
   component: BasicLayout,
   meta: { title: 'menu.home' },
-  redirect: '/project-selection',
+  redirect: '/resource/physical-resource',
 
   children: [
     // 项目选择
-    {
-      path: '/project-selection',
-      name: 'projectSelection',
-      hidden: true,
-      component: () => import('@/views/user/ProjectSelection'),
-      meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
-    },
+    // {
+    //   path: '/project-selection',
+    //   name: 'projectSelection',
+    //   hidden: true,
+    //   component: () => import('@/views/user/ProjectSelection'),
+    //   meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
+    // },
 
     // 资源管理
     {
@@ -78,9 +78,34 @@ export const asyncRouterMap = [{
     {
       path: '/service-group',
       name: 'service-group',
+      // component: RouteView,
+      component: () => import('@/views/list/ServiceCompositionList'),
+      meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
+    },
+
+    // 应用构造
+    {
+      path: '/tap',
+      name: 'tap',
       component: RouteView,
-      redirect: '/service-group/service-group-list',
-      meta: { title: 'menu.service-group', icon: 'profile', permission: ['profile'] }
+      redirect: '/tap/tap-list',
+      meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
+      children: [
+        {
+          path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
+          name: 'TapListWrapper',
+          hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
+          component: () => import('@/views/tap/TapList'),
+          meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
+        },
+        {
+          path: '/tap/tap-detail/:id',
+          name: 'TapDetail',
+          hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
+          component: () => import('@/views/tap/TapDetail'),
+          meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
+        }
+      ]
     },
 
     // result
@@ -235,6 +260,11 @@ export const constantRouterMap = [
         path: 'register',
         name: 'register',
         component: () => import(/* webpackChunkName: "user" */ '@/views/user/Register')
+      },
+      {
+        path: 'project-selection',
+        name: 'project-selection',
+        component: () => import(/* webpackChunkName: "user" */ '@/views/user/ProjectSelection')
       },
       {
         path: 'register-result',
