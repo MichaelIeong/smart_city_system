@@ -1,10 +1,10 @@
 <template>
   <div class="main">
-    <!-- 使用 $t() 函數來引用多語言鍵值 -->
+    <!-- 使用 $t() 函数来引用多语言键值 -->
     <h2>{{ $t('menu.projectSelection') }}</h2>
 
     <!-- 导入按钮，点击后显示模态框 -->
-    <button @click="showImportModal = true">导入</button>
+    <a-button type="primary" icon="plus" @click="showImportModal = true">新建</a-button>
 
     <!-- 项目导入模态框 -->
     <div v-if="showImportModal" class="modal">
@@ -24,8 +24,8 @@
           </div>
 
           <div class="modal-actions">
-            <button type="submit">确定</button>
-            <button @click="showImportModal = false">取消</button>
+            <a-button type="primary" htmlType="submit">确定</a-button>
+            <a-button @click="showImportModal = false">取消</a-button>
           </div>
         </form>
       </div>
@@ -96,10 +96,8 @@ export default {
 </script>
 
 <style scoped>
-.app {
-  text-align: center;
-  max-width: 1200px;
-  margin: 0 auto;
+.main {
+  padding: 20px;
 }
 
 .project-grid {
