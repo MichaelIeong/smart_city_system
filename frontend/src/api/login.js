@@ -34,6 +34,17 @@ export function login (parameter) {
   })
 }
 
+export function register (parameter) {
+  return request({
+    url: userApi.Register,
+    method: 'post',
+    data: JSON.stringify(parameter),
+    headers: {
+      'Content-Type': 'application/json' // 设置请求头
+    }
+  })
+}
+
 export function getSmsCaptcha (parameter) {
   return request({
     url: userApi.SendSms,

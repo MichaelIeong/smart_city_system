@@ -86,7 +86,9 @@
           <template>
             <a @click="handleEdit(record)">配置</a>
             <a-divider type="vertical"/>
-            <a @click="handleSub(record)">订阅报警</a>
+            <a @click="handleEdit(record)">订阅</a>
+            <a-divider type="vertical"/>
+            <a @click="deleteRule(record)">删除</a>
           </template>
         </span>
       </a-table>
@@ -107,7 +109,7 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-import { getRoleList, getRuleList } from '@/api/manage'
+import { getRuleList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
@@ -201,7 +203,7 @@ export default {
     }
   },
   created () {
-    getRoleList({ t: new Date() })
+    // getRoleList({ t: new Date() })
     this.refreshTable()
   },
   computed: {
@@ -296,6 +298,13 @@ export default {
         this.$message.error(`${record.ruleId} 订阅失败，规则已关闭`)
       }
     },
+    deleteRule (record) {
+      if (record.ruleStatus !== 0) {
+        this.$message.info(`${record.ruleId} 订阅成功`)
+      } else {
+        this.$message.error(`${record.ruleId} 订阅失败，规则已关闭`)
+      }
+    },
     onSelectChange (selectedRowKeys, selectedRows) {
       this.selectedRowKeys = selectedRowKeys
       this.selectedRows = selectedRows
@@ -309,6 +318,7 @@ export default {
       }
     },
     loadData () {
+      console.log(99999)
       // const requestParameters = Object.assign({}, this.queryParam)
       return getRuleList()
           .then(res => {

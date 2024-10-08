@@ -3,11 +3,14 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
 import edu.fudan.se.sctap_lowcode_tool.model.RuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.security.JwtTokenProvider;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionService;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +26,9 @@ public class FusionController {
 
     @Autowired
     private FusionService fusionService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;  // 负责生成 JWT Token
 
     Gson gson = new Gson();
 
@@ -57,13 +63,27 @@ public class FusionController {
 
     @Operation(summary = "获取规则列表", description = "将规则list传给前端")
     @GetMapping("/getRuleList")
-    public ResponseEntity<List<RuleInfo>> getRuleList(){
+    public ResponseEntity<?> getRuleList(HttpServletRequest request){
         System.out.println("获取规则列表");
+        // 验证token存在及有效性
+
         List<RuleInfo> ruleInfoList = new ArrayList<>();
         ruleInfoList = fusionService.getRuleList();
         System.out.println(ruleInfoList);
         return ResponseEntity.ok(ruleInfoList);
 
     }
+//    public ResponseEntity<?> getRuleList(){
+//
+//        System.out.println("获取规则列表");
+//        // 验证token存在及有效性
+//
+//        List<RuleInfo> ruleInfoList = new ArrayList<>();
+//        ruleInfoList = fusionService.getRuleList();
+//        System.out.println(ruleInfoList);
+//        return ResponseEntity.ok(ruleInfoList);
+//
+//
+//    }
 
 }

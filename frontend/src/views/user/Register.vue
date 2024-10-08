@@ -2,15 +2,22 @@
   <div class="main user-layout-register">
     <h3><span>{{ $t('user.register.register') }}</span></h3>
     <a-form ref="formRegister" :form="form" id="formRegister">
+<!--      <a-form-item>-->
+<!--        <a-input-->
+<!--          size="large"-->
+<!--          type="text"-->
+<!--          :placeholder="$t('user.register.email.placeholder')"-->
+<!--          v-decorator="['email', {rules: [{ required: true, type: 'email', message: $t('user.email.required') }], validateTrigger: ['change', 'blur']}]"-->
+<!--        ></a-input>-->
+<!--      </a-form-item>-->
       <a-form-item>
         <a-input
           size="large"
           type="text"
-          :placeholder="$t('user.register.email.placeholder')"
-          v-decorator="['email', {rules: [{ required: true, type: 'email', message: $t('user.email.required') }], validateTrigger: ['change', 'blur']}]"
+          :placeholder="$t('user.register.username.placeholder')"
+          v-decorator="['username', {rules: [{ required: true, message: $t('user.username.required') }], validateTrigger: ['change', 'blur']}]"
         ></a-input>
       </a-form-item>
-
       <a-popover
         placement="rightTop"
         :trigger="['focus']"
@@ -44,14 +51,14 @@
         ></a-input-password>
       </a-form-item>
 
-      <a-form-item>
-        <a-input size="large" :placeholder="$t('user.login.mobile.placeholder')" v-decorator="['mobile', {rules: [{ required: true, message: $t('user.phone-number.required'), pattern: /^1[3456789]\d{9}$/ }, { validator: this.handlePhoneCheck } ], validateTrigger: ['change', 'blur'] }]">
-          <a-select slot="addonBefore" size="large" defaultValue="+86">
-            <a-select-option value="+86">+86</a-select-option>
-            <a-select-option value="+87">+87</a-select-option>
-          </a-select>
-        </a-input>
-      </a-form-item>
+<!--      <a-form-item>-->
+<!--        <a-input size="large" :placeholder="$t('user.login.mobile.placeholder')" v-decorator="['mobile', {rules: [{ required: true, message: $t('user.phone-number.required'), pattern: /^1[3456789]\d{9}$/ }, { validator: this.handlePhoneCheck } ], validateTrigger: ['change', 'blur'] }]">-->
+<!--          <a-select slot="addonBefore" size="large" defaultValue="+86">-->
+<!--            <a-select-option value="+86">+86</a-select-option>-->
+<!--            <a-select-option value="+87">+87</a-select-option>-->
+<!--          </a-select>-->
+<!--        </a-input>-->
+<!--      </a-form-item>-->
       <!--<a-input-group size="large" compact>
             <a-select style="width: 20%" size="large" defaultValue="+86">
               <a-select-option value="+86">+86</a-select-option>
@@ -60,23 +67,23 @@
             <a-input style="width: 80%" size="large" placeholder="11 位手机号"></a-input>
           </a-input-group>-->
 
-      <a-row :gutter="16">
-        <a-col class="gutter-row" :span="16">
-          <a-form-item>
-            <a-input size="large" type="text" :placeholder="$t('user.login.mobile.verification-code.placeholder')" v-decorator="['captcha', {rules: [{ required: true, message: '请输入验证码' }], validateTrigger: 'blur'}]">
-              <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }"/>
-            </a-input>
-          </a-form-item>
-        </a-col>
-        <a-col class="gutter-row" :span="8">
-          <a-button
-            class="getCaptcha"
-            size="large"
-            :disabled="state.smsSendBtn"
-            @click.stop.prevent="getCaptcha"
-            v-text="!state.smsSendBtn && $t('user.register.get-verification-code')||(state.time+' s')"></a-button>
-        </a-col>
-      </a-row>
+<!--      <a-row :gutter="16">-->
+<!--        <a-col class="gutter-row" :span="16">-->
+<!--          <a-form-item>-->
+<!--            <a-input size="large" type="text" :placeholder="$t('user.login.mobile.verification-code.placeholder')" v-decorator="['captcha', {rules: [{ required: true, message: '请输入验证码' }], validateTrigger: 'blur'}]">-->
+<!--              <a-icon slot="prefix" type="mail" :style="{ color: 'rgba(0,0,0,.25)' }"/>-->
+<!--            </a-input>-->
+<!--          </a-form-item>-->
+<!--        </a-col>-->
+<!--        <a-col class="gutter-row" :span="8">-->
+<!--          <a-button-->
+<!--            class="getCaptcha"-->
+<!--            size="large"-->
+<!--            :disabled="state.smsSendBtn"-->
+<!--            @click.stop.prevent="getCaptcha"-->
+<!--            v-text="!state.smsSendBtn && $t('user.register.get-verification-code')||(state.time+' s')"></a-button>-->
+<!--        </a-col>-->
+<!--      </a-row>-->
 
       <a-form-item>
         <a-button
@@ -96,7 +103,7 @@
 </template>
 
 <script>
-import { getSmsCaptcha } from '@/api/login'
+import { getSmsCaptcha, register } from '@/api/login'
 import { deviceMixin } from '@/store/device-mixin'
 import { scorePassword } from '@/utils/util'
 
@@ -205,11 +212,24 @@ export default {
     },
 
     handleSubmit () {
-      const { form: { validateFields }, state, $router } = this
+      const { form: { validateFields }, state } = this
       validateFields({ force: true }, (err, values) => {
         if (!err) {
           state.passwordLevelChecked = false
-          $router.push({ name: 'registerResult', params: { ...values } })
+          const registrationData = {
+            userName: values.username,
+            passWord: values.password
+          }
+          console.log(registrationData)
+          register(registrationData)
+            .then(res => {
+              // 如果注册成功，跳转到注册成功页面
+              this.$router.push({ name: 'registerResult', params: { ...values } })
+            })
+            .catch(() => {
+              // 处理注册失败的情况，比如提示错误信息
+              this.$message.error('注册失败，请重试')
+            })
         }
       })
     },
