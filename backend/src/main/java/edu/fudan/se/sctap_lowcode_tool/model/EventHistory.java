@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "event_history")
 @Data
-// TODO: 将DeviceHistory改为EventHistory，新增应用执行的历史记录
+// TODO: 表结构需要修改，等待重构
 public class EventHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

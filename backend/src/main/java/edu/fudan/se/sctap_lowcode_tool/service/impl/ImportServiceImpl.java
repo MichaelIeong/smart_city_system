@@ -76,7 +76,6 @@ public class ImportServiceImpl implements ImportService {
         }
     }
 
-    ;
 
     /**
      * Checks if the given Meta object represents a sensor.

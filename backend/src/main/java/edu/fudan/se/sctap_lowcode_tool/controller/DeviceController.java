@@ -36,28 +36,6 @@ public class DeviceController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{deviceId}/status")
-    @Operation(summary = "查询设备状态", description = "获取指定设备的当前状态，如在线或离线。")
-    public ResponseEntity<String> getDeviceStatus(@PathVariable int deviceId) {
-        String status = deviceService.getDeviceStatus(deviceId);
-        return status != null ? ResponseEntity.ok(status) : ResponseEntity.notFound().build();
-    }
-
-    @GetMapping("/{deviceId}/url")
-    @Operation(summary = "查询设备URL", description = "获取指定设备的URL。")
-    public ResponseEntity<String> getDeviceURL(@PathVariable int deviceId) {
-        String url = deviceService.getDeviceURL(deviceId);
-        return url != null ? ResponseEntity.ok(url) : ResponseEntity.notFound().build();
-    }
-
-    @GetMapping("/{deviceId}/data")
-    @Operation(summary = "查询设备数据", description = "获取指定设备的数据。")
-    public ResponseEntity<String> getDeviceData(@PathVariable int deviceId) {
-        String data = deviceService.getDeviceData(deviceId);
-        return data != null ? ResponseEntity.ok(data) : ResponseEntity.notFound().build();
-    }
-
-
     @GetMapping("/{deviceId}")
     @Operation(summary = "获取设备信息", description = "根据设备Id获取设备的详细信息。")
     public ResponseEntity<DeviceInfo> getDeviceById(@PathVariable int deviceId) {

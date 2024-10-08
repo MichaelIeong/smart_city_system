@@ -13,7 +13,5 @@ public interface DeviceTypeService {
 
     Boolean getTypeIsSensor(int deviceID); // 获取设备类型是否为传感器
 
-    String getTypeCapabilities(int deviceID); // 获取设备类型的能力
-
     Iterable<DeviceTypeInfo> findAll(); // 获取所有设备类型
 }

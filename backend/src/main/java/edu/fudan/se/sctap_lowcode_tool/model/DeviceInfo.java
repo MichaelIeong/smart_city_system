@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.Set;
+
 
 @Entity
 @Table(name = "devices",
@@ -15,7 +17,6 @@ import lombok.ToString;
 public class DeviceInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
     private Integer id;   // 设备的唯一标识符
 
     @ToString.Exclude
@@ -33,21 +34,17 @@ public class DeviceInfo {
     @JoinColumn(name = "device_type_id")
     private DeviceTypeInfo deviceType;   // 设备的类型
 
-    @Column
-    private String url;   // 设备的URL，用于远程访问或控制
+    @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<StateDevice> states;   // 设备的状态
 
-    @Column
-    private String status;  // 设备的当前状态，例如“在线”、“离线”
+    @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
-    @Column
-    private String data; // 设备的数据，例如“当前温度：25℃”
+    private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}
 
-    @Column
     private float coordinateX; // 设备的横坐标
 
-    @Column
     private float coordinateY; // 设备的纵坐标
 
-    @Column
     private float coordinateZ; // 设备的Z轴坐标
 }

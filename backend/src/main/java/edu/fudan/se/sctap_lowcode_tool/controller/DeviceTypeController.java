@@ -43,13 +43,6 @@ public class DeviceTypeController {
         return isSensor != null ? ResponseEntity.ok(isSensor) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{typeId}/capabilities")
-    @Operation(summary = "查询类型能力", description = "获取指定类型的功能和能力。")
-    public ResponseEntity<String> getTypeCapabilities(@PathVariable int typeId) {
-        String capabilities = deviceTypeService.getTypeCapabilities(typeId);
-        return capabilities != null ? ResponseEntity.ok(capabilities) : ResponseEntity.notFound().build();
-    }
-
     @GetMapping("/{typeId}")
     @Operation(summary = "获取设备类型信息", description = "根据类型ID获取类型的详细信息。")
     public ResponseEntity<DeviceTypeInfo> getDeviceTypeById(@PathVariable int typeId) {

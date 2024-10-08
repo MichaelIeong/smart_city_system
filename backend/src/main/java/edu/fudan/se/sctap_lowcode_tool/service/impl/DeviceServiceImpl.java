@@ -39,27 +39,6 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public String getDeviceStatus(int deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getStatus)
-                .orElse("Device not found");
-    }
-
-    @Override
-    public String getDeviceURL(int deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getUrl)
-                .orElse("Device not found");
-    }
-
-    @Override
-    public String getDeviceData(int deviceID) {
-        return deviceRepository.findById(deviceID)
-                .map(DeviceInfo::getData)
-                .orElse("Device not found");
-    }
-
-    @Override
     public Iterable<DeviceInfo> findAll() {
         return Optional.of(deviceRepository.findAll())
                 .orElseGet(Collections::emptyList);

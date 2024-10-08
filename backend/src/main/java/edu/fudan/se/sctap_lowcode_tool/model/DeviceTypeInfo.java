@@ -21,8 +21,11 @@ public class DeviceTypeInfo {
     @Column(nullable = false)
     private Boolean isSensor;   // 设备类型的名称
 
-    @Column
-    private String capabilities; // 设备的能力描述，表示能返回什么data，例如“温度float(sensor)”，“音频输出(device)”
+    @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<StateDeviceType> states = new HashSet<>();   // 设备类型的状态
+
+    @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ActuatingFunctionDeviceType> actuatingFunctions = new HashSet<>();   // 设备类型的执行功能
 
     @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<DeviceInfo> devices = new HashSet<>();   // 设备实例

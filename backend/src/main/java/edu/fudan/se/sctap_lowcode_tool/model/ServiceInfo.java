@@ -5,13 +5,13 @@ import lombok.Data;
 import lombok.ToString;
 
 @Entity
-@Table(name = "events",
+@Table(name = "services",
         uniqueConstraints = {@UniqueConstraint(
-                columnNames = {"space_id", "event_id"}
+                columnNames = {"space_id", "service_id"}
         )}
 )
 @Data
-public class EventInfo {
+public class ServiceInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
@@ -22,15 +22,10 @@ public class EventInfo {
     @JoinColumn(name = "space_id")
     private SpaceInfo parentingSpace;
 
-    @Column(name = "event_id", nullable = false)
-    private String eventId; // 事件ID(由用户自定义, Project内唯一)
-
-    @ToString.Exclude
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "property_id")
-    private PropertyInfo propertyToUpdate;
+    @Column(name = "service_id", nullable = false)
+    private String serviceId; // 服务ID(由用户自定义, Project内唯一)
 
     @Column(nullable = false)
-    private String eventType; // 事件类型, 例如“温度过高”
+    private String serviceName; // 服务名称, 例如“会议模式”
 
 }

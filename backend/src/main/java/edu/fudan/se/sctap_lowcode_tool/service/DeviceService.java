@@ -11,12 +11,6 @@ public interface DeviceService {
 
     Optional<DeviceInfo> findById(int deviceID); // 根据ID查找设备
 
-    String getDeviceStatus(int deviceID); // 获取设备状态
-
-    String getDeviceURL(int deviceID); // 获取设备的URL
-
-    String getDeviceData(int deviceID); // 获取设备的数据
-
     Iterable<DeviceInfo> findAll(); // 获取所有设备
 
     boolean importDevices(String json);
