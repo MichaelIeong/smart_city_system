@@ -83,6 +83,31 @@ export const asyncRouterMap = [{
       meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
     },
 
+    // 应用构造
+    {
+      path: '/tap',
+      name: 'tap',
+      component: RouteView,
+      redirect: '/tap/tap-list',
+      meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
+      children: [
+        {
+          path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
+          name: 'TapListWrapper',
+          hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
+          component: () => import('@/views/tap/TapList'),
+          meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
+        },
+        {
+          path: '/tap/tap-detail/:id',
+          name: 'TapDetail',
+          hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
+          component: () => import('@/views/tap/TapDetail'),
+          meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
+        }
+      ]
+    },
+
     // result
     {
       path: '/result',
