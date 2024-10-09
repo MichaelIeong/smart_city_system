@@ -1,7 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -22,6 +24,8 @@ public class ProjectInfo {
     @Column
     private String projectImage;   // 项目的图片
 
+    @ToString.Exclude
+    @JsonIgnore
     @OneToMany(mappedBy = "projectInfo", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SpaceInfo> spaces = new HashSet<>();   // 项目中包含的空间
 
