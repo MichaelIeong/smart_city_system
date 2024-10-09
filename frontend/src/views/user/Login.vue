@@ -62,6 +62,9 @@
           :disabled="state.loginBtn"
         >{{ $t('user.login.login') }}</a-button>
       </a-form-item>
+      <div class="user-login-other">
+        <router-link class="register" :to="{ name: 'register' }">{{ $t('user.login.signup') }}</router-link>
+      </div>
     </a-form>
 
     <two-step-captcha
