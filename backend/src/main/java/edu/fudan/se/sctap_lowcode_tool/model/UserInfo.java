@@ -12,14 +12,11 @@ import java.util.Set;
 public class UserInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "userid", nullable = false)
     private Integer userId;   // 用户的唯一标识符
 
-    @Column(name = "username", nullable = false)
-    private String userName;   // 用户的用户名
+    private String username;   // 用户的用户名
 
-    @Column(name = "password", nullable = false)
-    private String passWord;   // 用户的密码
+    private String password;   // 用户的密码
 
     @ManyToMany
     @JoinTable(name = "user_project",
