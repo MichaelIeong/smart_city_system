@@ -1,10 +1,10 @@
 <template>
   <div class="main">
-    <!-- 使用 $t() 函數來引用多語言鍵值 -->
+    <!-- 使用 $t() 函数来引用多语言键值 -->
     <h2>{{ $t('menu.projectSelection') }}</h2>
 
     <!-- 导入按钮，点击后显示模态框 -->
-    <button @click="showImportModal = true">导入</button>
+    <a-button type="primary" icon="plus" @click="showImportModal = true">新建</a-button>
 
     <!-- 项目导入模态框 -->
     <div v-if="showImportModal" class="modal">
@@ -24,8 +24,8 @@
           </div>
 
           <div class="modal-actions">
-            <button type="submit">确定</button>
-            <button @click="showImportModal = false">取消</button>
+            <a-button type="primary" htmlType="submit">确定</a-button>
+            <a-button @click="showImportModal = false">取消</a-button>
           </div>
         </form>
       </div>
@@ -37,7 +37,7 @@
         v-for="(project) in allProjects"
         :key="project.id"
         class="project-item"
-        @click="selectProject(project.id)"
+        @click="goToProjectSelection"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
         <div class="item-name">{{ project.name }}</div>
@@ -48,6 +48,7 @@
 
 <script>
 import { postProject } from '@/api/manage'
+
 export default {
   data () {
     return {
@@ -90,16 +91,18 @@ export default {
       } catch (error) {
         console.error('导入失败', error)
       }
+    },
+    // 跳转到项目选择页面的方法
+    goToProjectSelection () {
+      this.$router.push({ path: '/spacescene/spacesceneDemo' })
     }
   }
 }
 </script>
 
 <style scoped>
-.app {
-  text-align: center;
-  max-width: 1200px;
-  margin: 0 auto;
+.main {
+  padding: 20px;
 }
 
 .project-grid {

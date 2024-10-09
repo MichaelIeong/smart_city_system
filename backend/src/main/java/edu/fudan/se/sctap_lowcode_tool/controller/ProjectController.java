@@ -78,4 +78,9 @@ public class ProjectController {
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(500).body("Error generating JSON"));
     }
+
+    @GetMapping
+    public ResponseEntity<String> hello() {
+        return ResponseEntity.ok("Hello, World!");
+    }
 }

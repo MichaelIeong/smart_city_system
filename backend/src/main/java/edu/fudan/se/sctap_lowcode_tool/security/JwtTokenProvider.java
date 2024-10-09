@@ -35,7 +35,7 @@ public class JwtTokenProvider {
 
     public String createToken(String username, Set<ProjectInfo> projects) {
         Claims claims = Jwts.claims().setSubject(username);
-        claims.put("projects", projects);
+        claims.put("projects", projects.stream().map(ProjectInfo::getProjectId).toArray());
 
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 

@@ -28,26 +28,12 @@ public class DeviceTypeController {
         return deviceTypeService.deleteType(typeId) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
-    @PutMapping("/{typeId}")
-    @Operation(summary = "更新设备类型", description = "更新指定设备类型的详细信息。")
-    public ResponseEntity<Void> updateDeviceType(@PathVariable int typeId, @RequestBody DeviceTypeInfo deviceTypeInfo) {
-        deviceTypeInfo.setTypeId(typeId);
-        deviceTypeService.saveOrUpdateDeviceType(deviceTypeInfo);
-        return ResponseEntity.ok().build();
-    }
 
     @GetMapping("/{typeId}/isSensor")
     @Operation(summary = "查询类型是否为传感器", description = "查询当前设备类型是否为传感器。")
     public ResponseEntity<Boolean> getTypeIsSensor(@PathVariable int typeId) {
         Boolean isSensor = deviceTypeService.getTypeIsSensor(typeId);
         return isSensor != null ? ResponseEntity.ok(isSensor) : ResponseEntity.notFound().build();
-    }
-
-    @GetMapping("/{typeId}/capabilities")
-    @Operation(summary = "查询类型能力", description = "获取指定类型的功能和能力。")
-    public ResponseEntity<String> getTypeCapabilities(@PathVariable int typeId) {
-        String capabilities = deviceTypeService.getTypeCapabilities(typeId);
-        return capabilities != null ? ResponseEntity.ok(capabilities) : ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{typeId}")

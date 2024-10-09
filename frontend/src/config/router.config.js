@@ -13,15 +13,6 @@ export const asyncRouterMap = [{
   redirect: '/resource/physical-resource',
 
   children: [
-    // 项目选择
-    // {
-    //   path: '/project-selection',
-    //   name: 'projectSelection',
-    //   hidden: true,
-    //   component: () => import('@/views/user/ProjectSelection'),
-    //   meta: { title: 'menu.projectSelection', keepAlive: false, permission: ['user'] }
-    // },
-
     // 资源管理
     {
       path: '/resource',
@@ -62,10 +53,32 @@ export const asyncRouterMap = [{
 
     }, // 场景展示
     {
-      path: '/space-scene',
-      name: 'space-scene',
-      component: () => import('@/views/list/TableList'),
-      meta: { title: 'menu.space-scene', keepAlive: true, icon: 'picture', permission: ['dashboard'] }
+      path: '/spacescene',
+      redirect: '/spacescene/spacescene-list',
+      component: RouteView,
+      meta: { title: 'menu.spacescene', keepAlive: true, icon: 'table', permission: ['dashboard'] },
+      children: [
+        {
+          path: '/spacescene/spacesceneDemo',
+          name: 'SpaceDemo',
+          hideChildrenInMenu: true,
+          component: () => import('@/views/list/SpaceDemo'),
+          meta: { title: 'menu.spacescene.list', keepAlive: true, permission: ['table'] }
+          // path: '/spacesence/spacesence-list/:pageNo([1-9]\\d*)?',
+          // name: 'SpaceSenceList',
+          // hideChildrenInMenu: true,
+          // component: () => import('@/views/list/TableList'),
+          // meta: { title: 'menu.spacesence.list', keepAlive: true, permission: ['table'] },
+          // children: [
+          //   {
+          //     path: '/spacesence/spacesence-list/sdkDemo',
+          //     name: 'sdkDemo',
+          //     component: () => import('@/views/list/sdkDemo'),
+          //     meta: { title: 'menu.spacesence.list.sdkDemo', keepAlive: true, permission: ['table'] }
+          //   }
+          // ]
+        }
+      ]
     }, // 事件融合
     {
       path: '/event-fusion',
@@ -251,11 +264,11 @@ export const constantRouterMap = [
         name: 'login',
         component: () => import(/* webpackChunkName: "user" */ '@/views/user/Login')
       },
-      {
-        path: 'iotlogin',
-        name: 'iotlogin',
-        component: () => import(/* webpackChunkName: "user" */ '@/views/user/IoTLogin')
-      },
+      // {
+      //   path: 'iotlogin',
+      //   name: 'iotlogin',
+      //   component: () => import(/* webpackChunkName: "user" */ '@/views/user/IoTLogin')
+      // },
       {
         path: 'register',
         name: 'register',

@@ -11,3 +11,4 @@ public interface FusionRuleRepository extends JpaRepository<FusionRule, Integer>
 
     FusionRule findByRuleName(String ruleName);
 }
+

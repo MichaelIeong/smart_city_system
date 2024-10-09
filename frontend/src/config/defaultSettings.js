@@ -14,7 +14,7 @@
 
 export default {
   navTheme: 'light', // theme for nav menu
-  primaryColor: '#184aa1', // '#F5222D', // primary color of ant design  #1890ff
+  primaryColor: '#184aa1', // '#F5222D', // primary color of ant design
   layout: 'sidemenu', // nav menu position: `sidemenu` or `topmenu`
   contentWidth: 'Fluid', // layout of content: `Fluid` or `Fixed`, only works when layout is topmenu
   fixedHeader: false, // sticky header
@@ -23,7 +23,7 @@ export default {
   menu: {
     locale: true
   },
-  title: 'IoT Platform',
+  title: 'SCU-OS Platform',
   pwa: false,
   iconfontUrl: '',
   production: process.env.NODE_ENV === 'production' && process.env.VUE_APP_PREVIEW !== 'true'

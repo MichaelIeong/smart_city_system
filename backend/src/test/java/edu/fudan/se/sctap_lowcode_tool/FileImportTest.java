@@ -30,11 +30,13 @@ public class FileImportTest {
     private MockMvc mockMvc;
 
     @Test
-    public void testImport() {
+    public void importServiceTest() {
         Path base = Path.of("src/main/resources/jsonFolder3");
+        String projectName = "test" + java.time.LocalDateTime.now().
+                format(java.time.format.DateTimeFormatter.ofPattern("MMdd-HHmm"));
         try {
             MetaBFSIterator iterator = MetaBFSIterator.usingIndex(base);
-            importService.importMetaRecursively(iterator);
+            importService.importMetaRecursively(iterator, projectName);
         } catch (Exception e) {
             System.out.println(e.getMessage());
             throw new RuntimeException(e);
@@ -42,17 +44,23 @@ public class FileImportTest {
     }
 
     @Test
-    public void testUnzipAndImport() throws Exception {
+    public void importApiTest() throws Exception {
+
+        String filePath = "src/main/resources/jsonFolder3.zip";
+        String projectName = "test" + java.time.LocalDateTime.now().
+                format(java.time.format.DateTimeFormatter.ofPattern("MMdd-HHmm"));
+
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file",
                 "jsonFolder3.zip",
                 "application/zip",
-                new FileInputStream("src/main/resources/jsonFolder3.zip")
+                new FileInputStream(filePath)
         );
 
         mockMvc.perform(
                 multipart("/api/import/upload")
                 .file(mockFile)
+                        .param("projectName", projectName)
                 ).andExpect(status().isOk());
     }
 

@@ -41,13 +41,6 @@ public class DeviceTypeServiceImpl implements DeviceTypeService {
     }
 
     @Override
-    public String getTypeCapabilities(int deviceID) {
-        return deviceTypeRepository.findById(deviceID)
-                .map(DeviceTypeInfo::getCapabilities)
-                .orElse("Type not found");
-    }
-
-    @Override
     public Iterable<DeviceTypeInfo> findAll() {
         return Optional.of(deviceTypeRepository.findAll())
                 .orElseGet(Collections::emptyList);
