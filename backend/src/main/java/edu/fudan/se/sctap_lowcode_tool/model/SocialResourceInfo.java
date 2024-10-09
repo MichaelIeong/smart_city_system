@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -20,6 +21,7 @@ public class SocialResourceInfo {
     private Integer id;   // 社会资源唯一标识符
 
     @ToString.Exclude
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private ProjectInfo projectInfo;   // 资源所属的Project
