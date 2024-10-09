@@ -13,7 +13,6 @@
               <span class="title">SCU-OS Platform</span>
             </a>
           </div>
-
         </div>
 
         <router-view />
@@ -30,12 +29,12 @@
 
 <script>
 import { deviceMixin } from '@/store/device-mixin'
-import SelectLang from '@/components/SelectLang'
+import RightContent from '@/components/GlobalHeader/RightContent'
 
 export default {
   name: 'UserLayout',
   components: {
-    SelectLang
+    RightContent
   },
   mixins: [deviceMixin],
   mounted () {
