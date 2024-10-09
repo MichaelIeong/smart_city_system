@@ -78,7 +78,7 @@ export default {
 
         // 使用 FormData 构建请求数据
         const formData = new FormData()
-        formData.append('name', this.newProject.name)
+        formData.append('projectName', this.newProject.name) // 确保字段名和后端匹配
         formData.append('file', this.newProject.file)
 
         // 发送 POST 请求到后端，调用 postProject
