@@ -1,7 +1,7 @@
 <template>
   <div class="main">
     <!-- 使用 $t() 函數來引用多語言鍵值 -->
-    <h2>{{ $t('menu.projectSelection') }}</h2>
+    <h1 class="center-text">{{ $t('menu.projectSelection') }}</h1>
 
     <!-- 項目列表 -->
     <div class="project-grid">
@@ -12,7 +12,7 @@
         @click="selectProject(project.id)"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
-        <div class="item-name">{{ project.name }}</div> <!-- 項目名稱可以直接展示，假設項目名稱不需要多語言處理 -->
+        <div class="item-name">{{ project.name }}</div>
       </div>
     </div>
   </div>
@@ -25,56 +25,20 @@ export default {
       allProjects: [
         {
           id: 'p1',
-          name: '項目一',
-          image: 'https://via.placeholder.com/800x400.png?text=項目一'
+          name: 'Ai Park',
+          image: require('@/assets/commercial.jpg')
         },
         {
           id: 'p2',
-          name: '項目二',
-          image: 'https://via.placeholder.com/800x400.png?text=項目二'
-        },
-        {
-          id: 'p3',
-          name: '項目三',
-          image: 'https://via.placeholder.com/800x400.png?text=項目三'
-        },
-        {
-          id: 'p4',
-          name: '項目四',
-          image: 'https://via.placeholder.com/800x400.png?text=項目四'
-        },
-        {
-          id: 'p5',
-          name: '項目五',
-          image: 'https://via.placeholder.com/800x400.png?text=項目五'
-        },
-        {
-          id: 'p6',
-          name: '項目六',
-          image: 'https://via.placeholder.com/800x400.png?text=項目六'
-        },
-        {
-          id: 'p7',
-          name: '項目七',
-          image: 'https://via.placeholder.com/800x400.png?text=項目七'
-        },
-        {
-          id: 'p8',
-          name: '項目八',
-          image: 'https://via.placeholder.com/800x400.png?text=項目八'
-        },
-        {
-          id: 'p9',
-          name: '項目九',
-          image: 'https://via.placeholder.com/800x400.png?text=項目九'
+          name: '凯州新城',
+          image: require('@/assets/residential.jpg')
         }
       ]
     }
   },
   methods: {
     selectProject (projectId) {
-      // 處理點擊項目後的邏輯，比如跳轉到詳細頁
-      console.log(`選擇的項目ID是: ${projectId}`)
+      console.log(`选择的项目ID是: ${projectId}`)
     }
   }
 }
@@ -87,19 +51,27 @@ export default {
   margin: 0 auto;
 }
 
+.center-text {
+  color: #184aa1;
+  text-align: center;
+}
+
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(2, 1fr); /* 每行显示2个项目 */
+  gap: 30px;
+  padding: 30px;
 }
 
 .project-item {
   cursor: pointer;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   transition: transform 0.3s;
+  width: 100%;
+  height: 260px;
+  position: relative; /* 为绝对定位的子元素做准备 */
 }
 
 .project-item:hover {
@@ -108,15 +80,19 @@ export default {
 
 .item-image {
   width: 100%;
-  height: auto;
-  border-bottom: 2px solid #007bff;
+  height: 210px; /* 固定图片高度 */
+  border-bottom: 2px solid #184aa1;
 }
 
 .item-name {
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 10px;
-  font-size: 1.2em;
+  font-size: 1.4em;
   text-align: center;
+  position: absolute; /* 绝对定位 */
+  bottom: 0; /* 放置在卡片的最底部 */
+  left: 0;
+  right: 0;
 }
 </style>
