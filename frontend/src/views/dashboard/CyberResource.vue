@@ -6,7 +6,7 @@
           <a-row :gutter="48">
             <a-col :md="8" :sm="24">
               <a-form-item label="资源编号">
-                 <a-input v-model="queryParam.id" placeholder="请输入待查找资源编号" />
+                <a-input v-model="queryParam.id" placeholder="请输入待查找资源编号" />
               </a-form-item>
             </a-col>
             <a-col :md="8" :sm="24">
@@ -55,8 +55,7 @@
 
       <a-table
         :columns="cyberColumns"
-        :dataSource="listData"
-        :loading="loading"
+        :dataSource="cyberData"
         row-key="id"
         @rowClick="handleDeviceTypeDetailClick"
         :pagination="false"
@@ -75,13 +74,7 @@
 
 <script>
 
-// eslint-disable-next-line no-unused-vars
-const statusMap = {
-  0: { status: 'default', text: '关闭' },
-  1: { status: 'processing', text: '运行中' },
-  2: { status: 'success', text: '已上线' },
-  3: { status: 'error', text: '异常' }
-}
+import axios from 'axios'
 
 export default {
   name: 'TableList',
@@ -94,30 +87,13 @@ export default {
       advanced: false,
       queryParam: {},
       cyberColumns: [
-        { title: '资源类型', dataIndex: 'type' },
-        { title: '资源编号', dataIndex: 'no' },
+        { title: '资源类型', dataIndex: 'resourceType' },
+        { title: '资源编号', dataIndex: 'resourceId' },
         { title: '描述', dataIndex: 'description' },
-        { title: '状态', dataIndex: 'status' },
-        { title: '更新时间', dataIndex: 'updatedAt' }
+        { title: '状态', dataIndex: 'state' },
+        { title: '更新时间', dataIndex: 'lastUpdateTime' }
       ],
-      listData: [
-        {
-          id: 1,
-          type: '消息通知',
-          no: '001',
-          description: '交管中心信息服务',
-          status: '正常',
-          updatedAt: '2024-09-01'
-        },
-        {
-          id: 2,
-          type: '异常警报',
-          no: '002',
-          description: '停车场保卫处',
-          status: '正常',
-          updatedAt: '2024-09-02'
-        }
-      ],
+      cyberData: [],
       selectedRowKeys: [],
       selectedRows: [],
       filteredData: []
@@ -132,6 +108,18 @@ export default {
     }
   },
   methods: {
+    // 定义一个方法来获取数据
+    async fetchData () {
+      try {
+        // 替换 `id` 为实际的资源ID
+        const response = await axios.get(`/api/cyberResources/project/{id}`)
+
+        // 假设数据返回的格式就是数组形式
+        this.dataSource = response.data
+      } catch (error) {
+        console.error('获取数据时发生错误:', error)
+      }
+    },
     filterData () {
       // 根据查询条件过滤数据
       this.filteredData = this.listData.filter(item => {
@@ -166,8 +154,9 @@ export default {
       this.advanced = !this.advanced
     }
   },
+  // 在组件加载时自动调用
   created () {
-    this.filteredData = this.listData // 初始化表格数据
+    this.fetchData() // 调用方法获取数据
   }
 }
 </script>

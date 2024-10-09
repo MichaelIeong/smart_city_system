@@ -54,8 +54,8 @@
       </div>
 
       <a-table
-        :columns="cyberColumns"
-        :dataSource="listData"
+        :columns="socialColumns"
+        :dataSource="socialData"
         :loading="loading"
         row-key="id"
         @rowClick="handleDeviceTypeDetailClick"
@@ -74,14 +74,7 @@
 </template>
 
 <script>
-
-// eslint-disable-next-line no-unused-vars
-const statusMap = {
-  0: { status: 'default', text: '关闭' },
-  1: { status: 'processing', text: '运行中' },
-  2: { status: 'success', text: '已上线' },
-  3: { status: 'error', text: '异常' }
-}
+import axios from 'axios'
 
 export default {
   name: 'TableList',
@@ -93,31 +86,14 @@ export default {
       mdl: null,
       advanced: false,
       queryParam: {},
-      cyberColumns: [
-        { title: '资源类型', dataIndex: 'type' },
-        { title: '资源编号', dataIndex: 'no' },
+      socialColumns: [
+        { title: '资源类型', dataIndex: 'resourceType' },
+        { title: '资源编号', dataIndex: 'resourceId' },
         { title: '描述', dataIndex: 'description' },
-        { title: '状态', dataIndex: 'status' },
-        { title: '更新时间', dataIndex: 'updatedAt' }
+        { title: '状态', dataIndex: 'state' },
+        { title: '更新时间', dataIndex: 'lastUpdateTime' }
       ],
-      listData: [
-        {
-          id: 1,
-          type: '安保人员',
-          no: '001',
-          description: '负责停车场C3区域巡逻工作',
-          status: '正常',
-          updatedAt: '2024-09-01'
-        },
-        {
-          id: 2,
-          type: '维护人员',
-          no: '002',
-          description: '负责维修电梯A5区域设备',
-          status: '正常',
-          updatedAt: '2024-09-02'
-        }
-      ],
+      socialData: [],
       selectedRowKeys: [],
       selectedRows: [],
       filteredData: []
@@ -132,6 +108,18 @@ export default {
     }
   },
   methods: {
+    // 定义一个方法来获取数据
+    async fetchData () {
+      try {
+        // 替换 `id` 为实际的资源ID
+        const response = await axios.get(`/api/socialResources/project/{id}`)
+
+        // 假设数据返回的格式就是数组形式
+        this.dataSource = response.data
+      } catch (error) {
+        console.error('获取数据时发生错误:', error)
+      }
+    },
     filterData () {
       // 根据查询条件过滤数据
       this.filteredData = this.listData.filter(item => {
@@ -140,6 +128,7 @@ export default {
         return matchesId && matchesStatus
       })
     },
+
     resetQueryParam () {
       this.queryParam = {}
       this.filteredData = this.listData
@@ -167,7 +156,7 @@ export default {
     }
   },
   created () {
-    this.filteredData = this.listData // 初始化表格数据
+    this.fetchData() // 调用方法获取数据
   }
 }
 </script>
