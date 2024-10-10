@@ -1,7 +1,7 @@
 <template>
   <page-header-wrapper>
     <a-card :bordered="false">
-      <div class="table-page-search-wrapper">
+      <!-- <div class="table-page-search-wrapper">
         <a-form layout="inline">
           <a-row :gutter="48">
             <a-col :md="8" :sm="24">
@@ -27,7 +27,7 @@
             </a-col>
           </a-row>
         </a-form>
-      </div>
+      </div> -->
 
       <div class="table-operator">
         <a-button type="primary" icon="plus" @click="handleAdd">新建</a-button>
@@ -49,7 +49,7 @@
           <a-badge :status="text | statusTypeFilter" :text="text | statusFilter"/>
         </span>
         <span slot="description" slot-scope="text">
-          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>
+          <ellipsis :length="15" tooltip>{{ text }}</ellipsis>
         </span>
 
         <span slot="action" slot-scope="text, record">
@@ -67,28 +67,29 @@
 
 <script>
 import { STable, Ellipsis } from '@/components'
-import { deleteTap, deleteTaps, getRoleList, getTapList } from '@/api/manage'
+import { deleteTap, deleteTaps, getTapList } from '@/api/manage'
 import { Modal, message } from 'ant-design-vue'
 
 const columns = [
   {
-    title: '编号',
-    dataIndex: 'no'
+    title: '序号',
+    dataIndex: 'seq'
   },
   {
     title: '描述',
     dataIndex: 'description',
     scopedSlots: { customRender: 'description' }
   },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    scopedSlots: { customRender: 'status' }
-  },
+  // {
+  //   title: '状态',
+  //   dataIndex: 'status',
+  //   scopedSlots: { customRender: 'status' }
+  // },
   {
     title: '更新时间',
     dataIndex: 'updatedAt',
-    sorter: true
+    // sorter: true
+    sorter: (a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
   },
   {
     title: '操作',
@@ -130,7 +131,16 @@ export default {
         const requestParameters = Object.assign({}, parameter, this.queryParam)
         return getTapList(requestParameters)
           .then(res => {
-            return res.result
+            // console.log(res)
+            res.data = res.data.map((item, index) => {
+              item.seq = ((res.pageNo - 1) * res.pageSize) + (index + 1) // TODO: 序号验证: 翻页继续计数
+              item.updatedAt = item.updateTime.replace(
+                /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).*/,
+                '$1-$2-$3 $4:$5:$6'
+              )
+              return item
+            })
+            return res
           })
       },
       selectedRowKeys: [],
@@ -146,7 +156,8 @@ export default {
     }
   },
   created () {
-    getRoleList({ t: new Date() })
+    // getRoleList({ t: new Date() }) // TODO: 一直报错
+    console.log(columns)
   },
   computed: {
     rowSelection () {
@@ -158,10 +169,12 @@ export default {
   },
   methods: {
     handleAdd () {
-      this.$router.push({ path: '/tap/tap-detail/0' })
+      // this.$router.push({ path: '/tap/tap-detail/0' })
+      this.$router.push({ name: 'TapDetail', params: { id: 0 } })
     },
     handleEdit (record) {
-      this.$router.push({ path: '/tap/tap-detail/' + record.id })
+      // this.$router.push({ path: '/tap/tap-detail/' + record.id })
+      this.$router.push({ name: 'TapDetail', params: { id: record.id } })
     },
     handleBatchDelete () {
       const that = this

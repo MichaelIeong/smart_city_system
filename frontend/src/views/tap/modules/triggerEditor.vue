@@ -1,9 +1,9 @@
 <template>
   <div>
-    <h2 class="title">Trigger</h2>
+    <h2 class="title">触发器</h2>
 
     <el-alert
-      title="Select perception events as triggers according to time, location and object."
+      title="根据时间、地点和对象选择感知事件作为触发器。"
       type="success"
       :closable="false">
     </el-alert>
@@ -17,47 +17,47 @@
             </el-button>
             <el-button size="mini" icon="el-icon-delete" @click="removeItem(i)"></el-button>
           </template>
-          <el-descriptions-item label="event_type">{{ t.event_type[0] }}</el-descriptions-item>
-          <el-descriptions-item label="filter">{{ t.filter }}</el-descriptions-item>
+          <el-descriptions-item label="事件类型" :labelStyle="labelStyle">{{ t.event_type[0] }}</el-descriptions-item>
+          <el-descriptions-item label="过滤器" :labelStyle="labelStyle">{{ t.filter }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
     </div>
     <!-- 添加按钮和配置对话框 -->
     <el-card style="display: flex;align-content: center;justify-content: center;" class="card-margin">
       <el-button type="text" @click="openEditor()">
-        <i class="el-icon-circle-plus" style="font-size: 25px;"> Add Trigger</i>
+        <i class="el-icon-circle-plus" style="font-size: 25px;">新增触发器</i>
       </el-button>
-      <el-dialog title="Trigger" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
+      <el-dialog title="触发器" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
         <el-form :model="item_now" label-width="auto">
-          <el-form-item label="event_type">
+          <el-form-item label="事件类型">
             <el-cascader
               v-model="item_now.event_type"
-              :options="eventTypeNameOptions"
+              :options="eventOptionList"
               filterable
               :props="{ expandTrigger: 'hover' }"
-              placeholder="event type"></el-cascader>
+              placeholder="事件类型"></el-cascader>
           </el-form-item>
           <el-dropdown @command="handleCommand">
             <span>
-              add filter<i class="el-icon-arrow-down el-icon--right"></i>
+              新增过滤器<i class="el-icon-arrow-down el-icon--right"></i>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="location">location</el-dropdown-item>
-              <el-dropdown-item command="timestamp">timestamp</el-dropdown-item>
-              <el-dropdown-item command="objectId">objectId</el-dropdown-item>
-              <el-dropdown-item command="eventData">eventData</el-dropdown-item>
+              <el-dropdown-item command="location">位置</el-dropdown-item>
+              <el-dropdown-item command="timestamp">时间戳</el-dropdown-item>
+              <!-- <el-dropdown-item command="objectId">objectId</el-dropdown-item> -->
+              <!-- <el-dropdown-item command="eventData">eventData</el-dropdown-item> -->
             </el-dropdown-menu>
           </el-dropdown>
-          <el-form-item label="location" v-if="item_now.filterList.includes(&quot;location&quot;)">
-            <LocationInput v-model="item_now.rawFilter.location" />
+          <el-form-item label="位置" v-if="item_now.filterList.includes(&quot;location&quot;)">
+            <LocationInput v-model="item_now.rawFilter.location" :allowCurrentPosition="true" />
           </el-form-item>
-          <el-form-item label="timestamp" v-if="item_now.filterList.includes(&quot;timestamp&quot;)">
+          <el-form-item label="时间戳" v-if="item_now.filterList.includes(&quot;timestamp&quot;)">
             <span>
-              <el-select v-model="item_now.rawFilter.timestamp.comparator" placeholder="comparator">
+              <el-select v-model="item_now.rawFilter.timestamp.comparator" placeholder="比较关系">
                 <el-option v-for="item in comparatorOptions" :key="item.value" :label="item.label" :value="item.value">
                 </el-option>
               </el-select>
-              <el-time-picker v-model="item_now.rawFilter.timestamp.value" placeholder="time" value-format="HH:mm:ss">
+              <el-time-picker v-model="item_now.rawFilter.timestamp.value" placeholder="时间" value-format="HH:mm:ss">
               </el-time-picker>
             </span>
           </el-form-item>
@@ -92,8 +92,8 @@
           </el-form-item>
         </el-form>
         <div slot="footer">
-          <el-button @click="cancelUpdateItem">Cancel</el-button>
-          <el-button type="primary" @click="updateItem">Confirm</el-button>
+          <el-button @click="cancelUpdateItem">取消</el-button>
+          <el-button type="primary" @click="updateItem">确认</el-button>
         </div>
       </el-dialog>
     </el-card>
@@ -102,8 +102,9 @@
 
 <script>
 
-import { eventTypeNameOptions, comparatorOptions, objectIdOptions, objectIdOperatorOptions, eventDataOptions } from './data.js'
+import { comparatorOptions, objectIdOptions, objectIdOperatorOptions, eventDataOptions } from './data.js'
 import LocationInput from './locationInput.vue'
+import { getEvents } from '@/api/manage.js'
 
 const defaultItem = {
   event_type: '',
@@ -158,14 +159,18 @@ export default {
       item_now: JSON.parse(JSON.stringify(defaultItem)),
       resultList: [],
       comparatorOptions,
-      eventTypeNameOptions,
+      eventOptionList: [],
       objectIdOptions,
       objectIdOperatorOptions,
-      eventDataOptions
+      eventDataOptions,
+      labelStyle: { 'width': '80px' } // 表单样式 (标签列宽固定)
     }
   },
   mounted () {
     this.resultList = this.value
+  },
+  created () {
+    this.getEventList()
   },
   methods: {
     test () { },
@@ -183,9 +188,9 @@ export default {
         if (item.filterList.includes('timestamp')) {
           filterList.push(`timestamp ${item.rawFilter.timestamp.comparator} ${item.rawFilter.timestamp.value}`)
         }
-        if (item.filterList.includes('objectId')) {
-          filterList.push(`objectId ${item.rawFilter.objectIdOperator} ${item.rawFilter.objectId}`)
-        }
+        // if (item.filterList.includes('objectId')) {
+        //   filterList.push(`objectId ${item.rawFilter.objectIdOperator} ${item.rawFilter.objectId}`)
+        // }
         if (item.filterList.includes('eventData')) {
           filterList.push(`event_data.${item.rawFilter.eventData.key} ${item.rawFilter.eventData.comparator} ${item.rawFilter.eventData.value},`)
         }
@@ -193,6 +198,58 @@ export default {
       })
       // console.log(finalResult)
       return finalResult
+    },
+    showResult (trigger) {
+      if (!trigger) return
+      const list = []
+      trigger.event_type.forEach(eType => {
+        const item = {
+          event_type: '',
+          filter: '',
+          rawFilter: {},
+          filterList: []
+        }
+        item.event_type = eType
+        list.push(item)
+      })
+      trigger.filter.forEach((filterRule, index) => {
+        this.dealFilterString(filterRule, list[index])
+      })
+      list.forEach(item => {
+        this.resultList.push(item)
+      })
+    },
+    dealFilterString (string, item) {
+      item.filter = string
+      const parts = string.split(',')
+      parts.forEach(part => {
+        part = part.trim()
+        if (part.startsWith('location')) {
+          item.filterList.push('location')
+          const words = part.split(' ')
+          item.rawFilter.location = {
+            locationPreposition: words[1],
+            location: words[2]
+          }
+        } else if (part.startsWith('timestamp')) {
+          item.filterList.push('timestamp')
+          const words = part.split(' ')
+          item.rawFilter.timestamp = {
+            comparator: words[1],
+            value: words[2]
+          }
+        }
+      })
+    },
+    getEventList () {
+      const projectId = 1 // TODO: true projectId
+      getEvents(projectId).then(res => {
+        // console.log(res)
+        this.eventOptionList = res.map(event => ({
+          value: event.eventId,
+          label: event.eventType
+        }))
+      })
     },
     handleCommand (command) {
       if (!this.item_now.filterList.includes(command)) this.item_now.filterList.push(command)

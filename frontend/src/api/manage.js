@@ -10,7 +10,11 @@ const api = {
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
-  tap: '/taps'
+  tap: '/api/taps',
+  events: '/api/events',
+  spaces: '/api/spaces',
+  properties: '/api/properties',
+  services: '/api/services'
 }
 
 export default api
@@ -102,7 +106,7 @@ export function saveSub (sub) {
 
 export function getTapList (parameter) {
   return request({
-    url: api.tap,
+    url: api.tap + `?project=1`,
     method: 'get',
     params: parameter
   })
@@ -117,8 +121,8 @@ export function getTapDetail (parameter) {
 
 export function saveTap (parameter) {
   return request({
-    url: parameter.id === '0' ? api.tap : api.tap + `/${parameter.id}`,
-    method: parameter.id === '0' ? 'post' : 'put',
+    url: parameter.id === 0 ? api.tap : api.tap + `/${parameter.id}`,
+    method: parameter.id === 0 ? 'post' : 'put',
     data: parameter
   })
 }
@@ -134,5 +138,53 @@ export function deleteTaps (ids) {
   return request({
     url: api.tap + `?id=${ids.join('&id=')}`,
     method: 'delete'
+  })
+}
+
+export function getEvents (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
+  return request({
+    url: api.events + `?project=${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function getSpaces (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
+  return request({
+    url: api.spaces + `?project=${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function getProperties (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
+  return request({
+    url: api.properties + `?project=${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function getServices (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
+  return request({
+    url: api.services + `?project=${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
   })
 }
