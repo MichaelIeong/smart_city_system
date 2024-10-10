@@ -1,43 +1,15 @@
 <template>
   <div class="main">
-    <!-- 使用 $t() 函数来引用多语言键值 -->
-    <h2>{{ $t('menu.projectSelection') }}</h2>
+    <!-- 使用 $t() 函數來引用多語言鍵值 -->
+    <h1 class="center-text">{{ $t('menu.projectSelection') }}</h1>
 
-    <!-- 导入按钮，点击后显示模态框 -->
-    <a-button type="primary" icon="plus" @click="showImportModal = true">新建</a-button>
-
-    <!-- 项目导入模态框 -->
-    <div v-if="showImportModal" class="modal">
-      <div class="modal-content">
-        <h3>导入项目</h3>
-
-        <!-- 表单 -->
-        <form @submit.prevent="importProject">
-          <div>
-            <label for="project-name">项目名称:</label>
-            <input type="text" v-model="newProject.name" id="project-name" required />
-          </div>
-
-          <div>
-            <label for="project-zip">选择zip文件:</label>
-            <input type="file" @change="handleFileUpload" id="project-zip" accept=".zip" required />
-          </div>
-
-          <div class="modal-actions">
-            <a-button type="primary" htmlType="submit">确定</a-button>
-            <a-button @click="showImportModal = false">取消</a-button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- 项目列表 -->
+    <!-- 項目列表 -->
     <div class="project-grid">
       <div
         v-for="(project) in allProjects"
         :key="project.id"
         class="project-item"
-        @click="goToProjectSelection"
+        @click="selectProject(project.id)"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
         <div class="item-name">{{ project.name }}</div>
@@ -47,77 +19,59 @@
 </template>
 
 <script>
-import { postProject } from '@/api/manage'
-
 export default {
   data () {
     return {
-      showImportModal: false, // 控制模态框显示隐藏
-      newProject: {
-        name: '',
-        file: null
-      },
       allProjects: [
-        // 示例项目数据
-        { id: 'p1', name: '项目一', image: 'https://via.placeholder.com/800x400.png?text=项目一' },
-        { id: 'p2', name: '项目二', image: 'https://via.placeholder.com/800x400.png?text=项目二' }
-        // 其他项目数据...
+        {
+          id: 'p1',
+          name: 'Ai Park',
+          image: require('@/assets/commercial.jpg')
+        },
+        {
+          id: 'p2',
+          name: '凯州新城',
+          image: require('@/assets/residential.jpg')
+        }
       ]
     }
   },
   methods: {
-    handleFileUpload (event) {
-      this.newProject.file = event.target.files[0]
-    },
-    async importProject () {
-      try {
-        if (!this.newProject.file) {
-          alert('请选择文件')
-          return
-        }
-
-        // 使用 FormData 构建请求数据
-        const formData = new FormData()
-        formData.append('projectName', this.newProject.name) // 确保字段名和后端匹配
-        formData.append('file', this.newProject.file)
-
-        // 发送 POST 请求到后端，调用 postProject
-        const response = await postProject(formData)
-
-        // 处理响应
-        console.log('导入成功', response.data)
-        this.showImportModal = false // 关闭模态框
-        // 可在此处刷新项目列表
-      } catch (error) {
-        console.error('导入失败', error)
-      }
-    },
-    // 跳转到项目选择页面的方法
-    goToProjectSelection () {
-      this.$router.push({ path: '/spacescene/spacesceneDemo' })
+    selectProject (projectId) {
+      console.log(`选择的项目ID是: ${projectId}`)
     }
   }
 }
 </script>
 
 <style scoped>
-.main {
-  padding: 20px;
+.app {
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.center-text {
+  color: #184aa1;
+  text-align: center;
 }
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(2, 1fr); /* 每行显示2个项目 */
+  gap: 30px;
+  padding: 30px;
 }
 
 .project-item {
   cursor: pointer;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   transition: transform 0.3s;
+  width: 100%;
+  height: 260px;
+  position: relative; /* 为绝对定位的子元素做准备 */
 }
 
 .project-item:hover {
@@ -126,41 +80,19 @@ export default {
 
 .item-image {
   width: 100%;
-  height: auto;
-  border-bottom: 2px solid #007bff;
+  height: 210px; /* 固定图片高度 */
+  border-bottom: 2px solid #184aa1;
 }
 
 .item-name {
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 10px;
-  font-size: 1.2em;
+  font-size: 1.4em;
   text-align: center;
-}
-
-/* 模态框样式 */
-.modal {
-  position: fixed;
-  top: 0;
+  position: absolute; /* 绝对定位 */
+  bottom: 0; /* 放置在卡片的最底部 */
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
-}
-
-.modal-actions {
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
+  right: 0;
 }
 </style>

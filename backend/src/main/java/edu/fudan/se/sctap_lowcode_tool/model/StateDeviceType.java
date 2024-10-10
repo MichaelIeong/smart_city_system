@@ -16,7 +16,7 @@ public class StateDeviceType {
     @JoinColumn(name = "device_type_id", nullable = false)
     private DeviceTypeInfo deviceType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "state_id", nullable = false)
     private StateInfo state;
 

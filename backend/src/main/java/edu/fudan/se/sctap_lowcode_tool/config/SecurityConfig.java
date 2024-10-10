@@ -34,6 +34,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    // 登陆验证filter
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorizeRequests ->
@@ -47,5 +48,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 }

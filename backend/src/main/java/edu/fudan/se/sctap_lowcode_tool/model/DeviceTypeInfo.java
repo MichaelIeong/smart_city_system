@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.ToString;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -43,4 +44,15 @@ public class DeviceTypeInfo {
     @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<DeviceInfo> devices = new HashSet<>();   // 设备实例
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DeviceTypeInfo that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(deviceTypeId, that.deviceTypeId) && Objects.equals(deviceTypeName, that.deviceTypeName) && Objects.equals(isSensor, that.isSensor);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, deviceTypeId, deviceTypeName, isSensor);
+    }
 }

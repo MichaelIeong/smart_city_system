@@ -1,31 +1,24 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
-public interface SpaceService {
-    SpaceInfo saveOrUpdateSpace(SpaceInfo spaceInfo);
+@Service
+public class SpaceService {
 
-    boolean deleteSpace(int spaceId);
+    @Autowired
+    private SpaceRepository spaceRepository;
 
-    Optional<SpaceInfo> findSpaceById(int spaceId);
+    public List<SpaceInfo> findSpacesByProjectId(int projectId) {
+        return spaceRepository.findByProjectInfo_ProjectId(projectId);
+    }
 
-    Set<DeviceInfo> getAllSpaceDevices(int spaceId);
-
-    Iterable<SpaceInfo> findAllSpaces();
-
-    boolean importSpaces(String json);
-
-    Optional<String> exportSpaces();
-
-    boolean addDeviceToSpace(int spaceId, DeviceInfo deviceInfo);
-
-    boolean removeDeviceFromSpace(int spaceId, int deviceId);
-
-    List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo);
+    public Optional<SpaceInfo> findSpaceById(int id) {
+        return spaceRepository.findById(id);
+    }
 }

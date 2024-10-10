@@ -2,18 +2,9 @@
   <page-header-wrapper>
     <a-card :bordered="false">
       <a-descriptions title="退款申请">
-        <a-descriptions-item label="取货单号">1000000000</a-descriptions-item>
-        <a-descriptions-item label="状态">已取货</a-descriptions-item>
-        <a-descriptions-item label="销售单号">1234123421</a-descriptions-item>
-        <a-descriptions-item label="子订单">3214321432</a-descriptions-item>
       </a-descriptions>
       <a-divider style="margin-bottom: 32px"/>
       <a-descriptions title="用户信息">
-        <a-descriptions-item label="用户姓名">付小小</a-descriptions-item>
-        <a-descriptions-item label="联系电话">18100000000</a-descriptions-item>
-        <a-descriptions-item label="常用快递">菜鸟仓储</a-descriptions-item>
-        <a-descriptions-item label="取货地址">浙江省杭州市西湖区万塘路18号</a-descriptions-item>
-        <a-descriptions-item label="备注">	无</a-descriptions-item>
       </a-descriptions>
       <a-divider style="margin-bottom: 32px"/>
 
@@ -100,30 +91,6 @@ export default {
                 price: '2.00',
                 num: '1',
                 amount: '2.00'
-              },
-              {
-                id: '1234562',
-                name: '凉茶 300ml',
-                barcode: '12421432143214322',
-                price: '3.00',
-                num: '2',
-                amount: '6.00'
-              },
-              {
-                id: '1234563',
-                name: '好吃的薯片',
-                barcode: '12421432143214323',
-                price: '7.00',
-                num: '4',
-                amount: '28.00'
-              },
-              {
-                id: '1234564',
-                name: '特别好吃的蛋卷',
-                barcode: '12421432143214324',
-                price: '8.50',
-                num: '3',
-                amount: '25.50'
               }
             ],
             pageSize: 10,
@@ -168,38 +135,6 @@ export default {
         return new Promise(resolve => {
           resolve({
             data: [
-              {
-                key: '1',
-                time: '2017-10-01 14:10',
-                rate: '联系客户',
-                status: 'processing',
-                operator: '取货员 ID1234',
-                cost: '5mins'
-              },
-              {
-                key: '2',
-                time: '2017-10-01 14:05',
-                rate: '取货员出发',
-                status: 'success',
-                operator: '取货员 ID1234',
-                cost: '1h'
-              },
-              {
-                key: '3',
-                time: '2017-10-01 13:05',
-                rate: '取货员接单',
-                status: 'success',
-                operator: '取货员 ID1234',
-                cost: '5mins'
-              },
-              {
-                key: '4',
-                time: '2017-10-01 13:00',
-                rate: '申请审批通过',
-                status: 'success',
-                operator: '系统',
-                cost: '1h'
-              },
               {
                 key: '5',
                 time: '2017-10-01 12:00',
