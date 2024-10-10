@@ -5,10 +5,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.import_json.meta.Meta;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * The {@code MetaBFSIterator} class implements a breadth-first search (BFS) iterator for traversing
@@ -30,19 +27,61 @@ public class MetaBFSIterator implements Iterator<Meta> {
      */
     public MetaBFSIterator(Path basePath, Path relativePath) throws IOException, ParseException {
         try {
+//            Queue<Path> waitingQueue = new LinkedList<>();
+//            waitingQueue.add(relativePath);
+//
+//            while (!waitingQueue.isEmpty()) {
+//                Path currentMetaPathRelative = waitingQueue.poll();
+//                Path currentMetaPath = basePath.resolve(currentMetaPathRelative);
+//                Meta currentMeta = ImportFileParser.parseMeta(currentMetaPath);
+//                queue.add(currentMeta);
+//                List<Path> childrenMetaPaths = currentMeta.getChildrenSpaces().stream()
+//                        .map(Meta::MetaUri)
+//                        .map(Path::of)
+//                        .toList();
+//                waitingQueue.addAll(childrenMetaPaths);
+//            }
             Queue<Path> waitingQueue = new LinkedList<>();
+            Set<Path> visitedPaths = new HashSet<>(); // 记录已访问的路径
             waitingQueue.add(relativePath);
 
             while (!waitingQueue.isEmpty()) {
                 Path currentMetaPathRelative = waitingQueue.poll();
+
+                // 如果该路径已访问过，则跳过
+                if (visitedPaths.contains(currentMetaPathRelative)) {
+                    continue;
+                }
+
+                // 标记为已访问
+                visitedPaths.add(currentMetaPathRelative);
+
                 Path currentMetaPath = basePath.resolve(currentMetaPathRelative);
-                Meta currentMeta = ImportFileParser.parseMeta(currentMetaPath);
+                // 1. 将 Path 转换为字符串
+                String metaPathString = currentMetaPath.toString();
+
+                // 2. 使用正则表达式去掉 "/Floor" 到下一个 "/" 的部分
+                String modifiedPathString = metaPathString.replaceAll("/Floor[^/]*", "");
+
+                // 3. 将修改后的字符串转换回 Path 对象
+                Path modifiedRootMetaRelativePath = Path.of(modifiedPathString);
+
+                // 解析 Meta 文件
+                Meta currentMeta = ImportFileParser.parseMeta(modifiedRootMetaRelativePath);
                 queue.add(currentMeta);
+
+                // 获取子 Meta 文件路径
                 List<Path> childrenMetaPaths = currentMeta.getChildrenSpaces().stream()
                         .map(Meta::MetaUri)
                         .map(Path::of)
                         .toList();
-                waitingQueue.addAll(childrenMetaPaths);
+
+                // 将未访问过的子路径加入队列
+                for (Path childPath : childrenMetaPaths) {
+                    if (!visitedPaths.contains(childPath)) {
+                        waitingQueue.add(childPath);
+                    }
+                }
             }
         } catch (ParseException e) {
             throw e;
