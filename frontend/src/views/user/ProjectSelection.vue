@@ -46,6 +46,7 @@ export default {
     // 用户点击项目时，选择该项目并保存到 localStorage
     selectProject (projectId) {
       localStorage.setItem('selectedProjectId', projectId) // 保存选择的项目ID
+      this.$router.push({ path: '/space-scene' })
     },
 
     // 获取所有项目数据
