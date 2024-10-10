@@ -59,15 +59,6 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public String getProjectPreview(int projectId) {
-        // 获取项目的预览图片
-        return projectRepository.findById(projectId)
-                .map(ProjectInfo::getProjectImage)
-                .orElse("Image not found");
-    }
-
-    // todo: 配合model studio导入导出项目
-    @Override
     public boolean importProjects(String json) {
         // 导入项目（从JSON字符串）
         return Optional.ofNullable(json)
@@ -85,4 +76,5 @@ public class ProjectServiceImpl implements ProjectService {
         return Optional.ofNullable(findAll())
                 .map(projects -> jsonUtil.convertListToJson((List<ProjectInfo>) projects));
     }
+
 }
