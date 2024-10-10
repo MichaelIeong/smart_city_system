@@ -62,6 +62,9 @@
           :disabled="state.loginBtn"
         >{{ $t('user.login.login') }}</a-button>
       </a-form-item>
+      <div class="user-login-other">
+        <router-link class="register" :to="{ name: 'register' }">{{ $t('user.login.signup') }}</router-link>
+      </div>
     </a-form>
 
     <two-step-captcha
@@ -74,7 +77,6 @@
 </template>
 
 <script>
-// import md5 from 'md5'
 import TwoStepCaptcha from '@/components/tools/TwoStepCaptcha'
 import { mapActions } from 'vuex'
 import { timeFix } from '@/utils/util'
@@ -310,7 +312,7 @@ export default {
       transition: color 0.3s;
 
       &:hover {
-        color: #1890ff;
+        color: #184aa1;
       }
     }
 

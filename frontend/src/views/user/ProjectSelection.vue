@@ -1,10 +1,10 @@
 <template>
   <div class="main">
-    <!-- 使用 $t() 函數來引用多語言鍵值 -->
+    <!-- 使用 $t() 函数来引用多语言键值 -->
     <h2>{{ $t('menu.projectSelection') }}</h2>
 
     <!-- 导入按钮，点击后显示模态框 -->
-    <button @click="showImportModal = true">导入</button>
+    <a-button type="primary" icon="plus" @click="showImportModal = true">新建</a-button>
 
     <!-- 项目导入模态框 -->
     <div v-if="showImportModal" class="modal">
@@ -24,8 +24,8 @@
           </div>
 
           <div class="modal-actions">
-            <button type="submit">确定</button>
-            <button @click="showImportModal = false">取消</button>
+            <a-button type="primary" htmlType="submit">确定</a-button>
+            <a-button @click="showImportModal = false">取消</a-button>
           </div>
         </form>
       </div>
@@ -37,7 +37,7 @@
         v-for="(project) in allProjects"
         :key="project.id"
         class="project-item"
-        @click="selectProject(project.id)"
+        @click="goToProjectSelection"
       >
         <img :src="project.image" alt="Project Image" class="item-image" />
         <div class="item-name">{{ project.name }}</div>
@@ -47,6 +47,8 @@
 </template>
 
 <script>
+import { postProject } from '@/api/manage'
+
 export default {
   data () {
     return {
@@ -64,48 +66,43 @@ export default {
     }
   },
   methods: {
-    selectProject (projectId) {
-      console.log(`选择的项目ID是: ${projectId}`)
-    },
     handleFileUpload (event) {
-      // 获取用户选择的文件
       this.newProject.file = event.target.files[0]
     },
-    importProject () {
-      if (!this.newProject.file) {
-        alert('请选择文件')
-        return
+    async importProject () {
+      try {
+        if (!this.newProject.file) {
+          alert('请选择文件')
+          return
+        }
+
+        // 使用 FormData 构建请求数据
+        const formData = new FormData()
+        formData.append('name', this.newProject.name)
+        formData.append('file', this.newProject.file)
+
+        // 发送 POST 请求到后端，调用 postProject
+        const response = await postProject(formData)
+
+        // 处理响应
+        console.log('导入成功', response.data)
+        this.showImportModal = false // 关闭模态框
+        // 可在此处刷新项目列表
+      } catch (error) {
+        console.error('导入失败', error)
       }
-
-      // 使用 FormData 来构建请求数据
-      const formData = new FormData()
-      formData.append('name', this.newProject.name)
-      formData.append('file', this.newProject.file)
-
-      // 发送 POST 请求到后端
-      fetch('/api/import/upload', {
-        method: 'POST',
-        body: formData
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('导入成功', data)
-          this.showImportModal = false // 关闭模态框
-          // 可在此处刷新项目列表
-        })
-        .catch(error => {
-          console.error('导入失败', error)
-        })
+    },
+    // 跳转到项目选择页面的方法
+    goToProjectSelection () {
+      this.$router.push({ path: '/spacescene/spacesceneDemo' })
     }
   }
 }
 </script>
 
 <style scoped>
-.app {
-  text-align: center;
-  max-width: 1200px;
-  margin: 0 auto;
+.main {
+  padding: 20px;
 }
 
 .project-grid {

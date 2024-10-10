@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.RegisterRequest;
@@ -24,17 +23,13 @@ public class UserController {
     @Operation(summary = "用户登录", description = "登录，验证后返回token和projectList")
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        System.out.println(loginRequest.getUsername());
-        System.out.println(loginRequest.getPassword());
         try {
             // 调用 UserService 进行用户验证
             String token = userService.login(loginRequest.getUsername(), loginRequest.getPassword());
             // 返回生成的 JWT token以及用户的项目list
             LoginResponse loginResponse = new LoginResponse(token);
-            System.out.println("Login Response: " + new ObjectMapper().writeValueAsString(loginResponse));  // 打印 JSON 格式的响应
             return ResponseEntity.ok(loginResponse);  // 返回生成的 JWT token 或者其他凭证
         } catch (Exception e) {
-            System.out.println("gagagaga");
             return ResponseEntity.status(401).body("Unauthorized: " + e.getMessage());
         }
     }
@@ -43,10 +38,8 @@ public class UserController {
     @Operation(summary = "用户登录", description = "登录，验证后返回token和projectList")
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody RegisterRequest registerRequest) {
-        System.out.println(registerRequest.getUserName());
-        System.out.println(registerRequest.getPassWord());
         try {
-            userService.register(registerRequest.getUserName(), registerRequest.getPassWord());
+            userService.register(registerRequest.getUsername(), registerRequest.getPassword());
             return ResponseEntity.ok("用户注册成功");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("注册失败: " + e.getMessage());

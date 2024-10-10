@@ -2,15 +2,16 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "event_history")
 @Data
-// TODO: 将DeviceHistory改为EventHistory，新增应用执行的历史记录
+// TODO: 表结构需要修改，等待重构
 public class EventHistory {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
     private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
 

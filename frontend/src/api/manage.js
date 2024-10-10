@@ -2,6 +2,7 @@ import request from '@/utils/request'
 import store from '@/store'
 
 const api = {
+  project: 'api/import/upload',
   user: '/user',
   role: '/role',
   rule: '/fusion/getRuleList',
@@ -18,6 +19,14 @@ export function getUserList (parameter) {
   return request({
     url: api.user,
     method: 'get',
+    params: parameter
+  })
+}
+
+export function postProject (parameter) {
+  return request({
+    url: api.project,
+    method: 'post',
     params: parameter
   })
 }

@@ -58,7 +58,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseGet(Collections::emptyList);
     }
 
-    // todo: 项目预览图（从model studio获取然后把url存到project表）
     @Override
     public String getProjectPreview(int projectId) {
         // 获取项目的预览图片

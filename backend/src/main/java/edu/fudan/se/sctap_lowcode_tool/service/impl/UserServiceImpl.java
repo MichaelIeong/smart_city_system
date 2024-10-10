@@ -21,37 +21,34 @@ public class UserServiceImpl implements UserService {
     private BCryptPasswordEncoder passwordEncoder;  // 密码加密/验证
 
     @Override
-    public String login(String userName, String passWord) throws Exception{
-        System.out.println(12345);
+    public String login(String username, String password) throws Exception {
 
-        UserInfo user = userRepository.findByuserName(userName)
+        UserInfo user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new Exception("用户不存在"));
 
-        System.out.println(user.getPassWord());
         // 验证密码
-        if (!passwordEncoder.matches(passWord, user.getPassWord())) {
-            System.out.println(54321);
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new Exception("密码错误");
         }
 
         // 如果验证成功，生成 JWT Token
-        return jwtTokenProvider.createToken(userName, user.getProjects());
+        return jwtTokenProvider.createToken(username, user.getProjects());
     }
 
     @Override
-    public void register(String userName, String passWord) throws Exception {
+    public void register(String username, String password) throws Exception {
         // 检查用户名是否已存在
-        if (userRepository.findByuserName(userName).isPresent()) {
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new Exception("用户名已存在");
         }
 
         // 加密密码
-        String encodedPassword = passwordEncoder.encode(passWord);
+        String encodedPassword = passwordEncoder.encode(password);
 
         // 创建并保存用户
         UserInfo newUser = new UserInfo();
-        newUser.setUserName(userName);
-        newUser.setPassWord(encodedPassword);  // 保存加密后的密码
+        newUser.setUsername(username);
+        newUser.setPassword(encodedPassword);  // 保存加密后的密码
         userRepository.save(newUser);
     }
 }

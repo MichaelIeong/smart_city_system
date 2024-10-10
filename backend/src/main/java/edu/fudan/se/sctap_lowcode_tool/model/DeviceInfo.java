@@ -2,43 +2,49 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+
+import java.util.Set;
 
 
 @Entity
-@Table(name = "devices")
+@Table(name = "devices",
+        uniqueConstraints = {@UniqueConstraint(
+                columnNames = {"space_id", "device_id"}
+        )}
+)
 @Data
 public class DeviceInfo {
     @Id
-    @Column
-    private String deviceId;   // 设备的唯一标识符
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;   // 设备的唯一标识符
+
+    @ToString.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "space_id")
+    private SpaceInfo space;   // 设备所属的空间
+
+    @Column(name = "device_id", nullable = false)
+    private String deviceId; // 用户设定的设备ID(Space内唯一)
 
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
 
-    @Column
-    private String url;   // 设备的URL，用于远程访问或控制
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_type_id")
+    private DeviceTypeInfo deviceType;   // 设备的类型
 
-    @Column
-    private String status;  // 设备的当前状态，例如“在线”、“离线”
+    @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<StateDevice> states;   // 设备的状态
 
-    @Column
-    private String type;    // 设备的类型，例如“温度传感器”、“灯”
+    @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
-    @Column
-    private Boolean isSensor;  // 设备是否为传感器
+    private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}
 
-    @Column
-    private String capabilities; // 设备的能力描述，表示能返回什么data，例如“温度float(sensor)”，“音频输出(device)”
-
-    @Column
-    private String data; // 设备的数据，例如“当前温度：25℃”
-
-    @Column
     private float coordinateX; // 设备的横坐标
 
-    @Column
     private float coordinateY; // 设备的纵坐标
 
-    @Column
     private float coordinateZ; // 设备的Z轴坐标
 }

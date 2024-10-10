@@ -10,12 +10,8 @@
           <div class="header">
             <a href="/">
               <img src="~@/assets/Fudan_University_Logo.svg" class="logo" alt="logo">
-              <span class="title">IoT Platform</span>
+              <span class="title">SCU-OS Platform</span>
             </a>
-          </div>
-          <div class="desc">
-            {{ $t('layouts.userLayout.welcome') }}
-            <!-- {{ $t('layouts.userLayout.title') }} -->
           </div>
         </div>
 
@@ -33,12 +29,12 @@
 
 <script>
 import { deviceMixin } from '@/store/device-mixin'
-import SelectLang from '@/components/SelectLang'
+import RightContent from '@/components/GlobalHeader/RightContent'
 
 export default {
   name: 'UserLayout',
   components: {
-    SelectLang
+    RightContent
   },
   mixins: [deviceMixin],
   mounted () {
@@ -98,6 +94,7 @@ export default {
         .header {
           height: 44px;
           line-height: 44px;
+          margin-bottom: 100px;
 
           .badge {
             position: absolute;
@@ -118,13 +115,14 @@ export default {
 
           .title {
             font-size: 33px;
-            color: rgba(0, 0, 0, .85);
+            color: rgba(24, 75, 161);
             font-family: Avenir, 'Helvetica Neue', Arial, Helvetica, sans-serif;
             font-weight: 600;
             position: relative;
             top: 2px;
           }
         }
+
         .desc {
           font-size: 14px;
           color: rgba(0, 0, 0, 0.45);
@@ -135,12 +133,12 @@ export default {
 
       .main {
         min-width: 260px;
-        width: 368px;
+        width: 500px;
         margin: 0 auto;
       }
 
       .footer {
-        // position: absolute;
+        position: absolute;
         width: 100%;
         bottom: 0;
         padding: 0 16px;
@@ -150,14 +148,17 @@ export default {
         .links {
           margin-bottom: 8px;
           font-size: 14px;
+
           a {
             color: rgba(0, 0, 0, 0.45);
             transition: all 0.3s;
+
             &:not(:last-child) {
               margin-right: 40px;
             }
           }
         }
+
         .copyright {
           color: rgba(0, 0, 0, 0.45);
           font-size: 14px;
