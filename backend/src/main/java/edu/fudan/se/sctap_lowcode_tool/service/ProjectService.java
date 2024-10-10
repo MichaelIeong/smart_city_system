@@ -16,9 +16,10 @@ public interface ProjectService {
 
     Iterable<ProjectInfo> findAll(); // 获取所有项目
 
-    String getProjectPreview(int projectId);
+//    String getThumbnail(int projectId); // 获取项目预览
 
     boolean importProjects(String json);    // 导入项目
 
     Optional<String> exportProjects();  // 导出项目
+
 }
