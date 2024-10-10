@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SpaceService {
@@ -17,4 +18,7 @@ public class SpaceService {
         return spaceRepository.findByProjectInfo_ProjectId(projectId);
     }
 
+    public Optional<SpaceInfo> findSpaceById(int id) {
+        return spaceRepository.findById(id);
+    }
 }

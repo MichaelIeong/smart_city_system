@@ -89,15 +89,6 @@ public class APIControllerTest {
     }
 
     @Test
-    public void getAllSpacesByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/spaces?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
     public void getDeviceDetailById() throws Exception {
         printJsonResponse(mockMvc.perform(
                 get("/api/devices/1")
@@ -110,6 +101,23 @@ public class APIControllerTest {
     public void getDevicesByProjectId() throws Exception {
         printJsonResponse(mockMvc.perform(
                 get("/api/devices?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getAllSpacesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/spaces?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+    @Test
+    public void getSpaceDetail() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/spaces/1")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
         ));
