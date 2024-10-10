@@ -38,13 +38,13 @@
             <a-row :gutter="24" >
               <!-- 第一行：三个输入框 -->
               <a-col :span="12">
-                <a-form-item label="新增设备类型属性">
-                  <a-input v-model="newDeviceInstance.name" placeholder="输入新增设备类型属性" />
+                <a-form-item label="新增设备类型能力">
+                  <a-input v-model="newDeviceInstance.name" placeholder="输入新增设备类型能力" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
-                <a-form-item label="新增设备类型详情">
-                  <a-input v-model="newDeviceInstance.location" placeholder="输入新增设备类型详情" />
+                <a-form-item label="新增设备类型状态">
+                  <a-input v-model="newDeviceInstance.location" placeholder="输入新增设备类型状态" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -77,13 +77,13 @@
                 </a-form-item>
               </a-col>
               <a-col :span="8">
-                <a-form-item label="部署位置">
-                  <a-input v-model="newDeviceInstance.location" placeholder="输入部署位置" />
+                <a-form-item label="部署空间">
+                  <a-input v-model="newDeviceInstance.location" placeholder="输入部署空间" />
                 </a-form-item>
               </a-col>
               <a-col :span="8">
-                <a-form-item label="设备能力描述">
-                  <a-input v-model="newDeviceInstance.capabilities" placeholder="输入设备能力描述" />
+                <a-form-item label="设备属性描述">
+                  <a-input v-model="newDeviceInstance.capabilities" placeholder="输入设备属性描述" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -91,8 +91,8 @@
             <a-row :gutter="16">
               <!-- 第二行：两个输入框 -->
               <a-col :span="12">
-                <a-form-item label="设备数据">
-                  <a-input v-model="newDeviceInstance.data" placeholder="输入设备数据" />
+                <a-form-item label="设备能力">
+                  <a-input v-model="newDeviceInstance.data" placeholder="输入设备能力" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
@@ -219,8 +219,8 @@ export default {
       loading: false, // 用于显示加载状态
 
       deviceTypeDetailColumns: [
-        { title: '属性', dataIndex: 'attribute', key: 'attribute' },
-        { title: '详情', dataIndex: 'capabilities', key: 'capabilities' }
+        { title: '能力', dataIndex: 'attribute', key: 'attribute' },
+        { title: '状态', dataIndex: 'capabilities', key: 'capabilities' }
       ],
       deviceTypeDetail: [
 
@@ -258,9 +258,9 @@ export default {
 
       deviceInstanceColumns: [
         { title: '设备实例名称', dataIndex: 'name', key: 'name' },
-        { title: '部署位置', dataIndex: 'location', key: 'location' },
-        { title: '能力描述', dataIndex: 'capabilities', key: 'capabilities' },
-        { title: '设备数据', dataIndex: 'data', key: 'data' },
+        { title: '部署空间', dataIndex: 'location', key: 'location' },
+        { title: '设备功能', dataIndex: 'capabilities', key: 'capabilities' },
+        { title: '设备属性', dataIndex: 'properties', key: 'properties' },
         { title: '设备状态', dataIndex: 'status', key: 'status' }
       ]
     }
@@ -307,7 +307,7 @@ export default {
     getDeviceInstances (deviceTypeId) {
       // 模拟获取设备实例
       return [
-        { id: 1, name: '温度计', location: 'x:245,y:754,z:129', capabilities: '温度感知', data: '26摄氏度', status: '运行中' }
+        { id: 1, name: '温度计', location: 'x:245,y:754,z:129', capabilities: '温度感知', properties: '26摄氏度', status: '运行中' }
       ]
     },
     handleOperationClick (operation) {
