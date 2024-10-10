@@ -10,7 +10,7 @@
           <div class="header">
             <a href="/">
               <img src="~@/assets/Fudan_University_Logo.svg" class="logo" alt="logo">
-              <span class="title">SCU-OS Platform</span>
+              <span class="title">SC-UOS Platform</span>
             </a>
           </div>
         </div>
