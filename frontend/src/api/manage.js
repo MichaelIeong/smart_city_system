@@ -5,7 +5,7 @@ const api = {
   project: 'api/import/upload',
   user: '/user',
   role: '/role',
-  rule: '/fusion/getRuleList',
+  rule: '/api/fusion/getRuleList',
   service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
