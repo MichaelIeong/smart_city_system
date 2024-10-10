@@ -107,7 +107,8 @@ public class FusionRuleController {
         //location space表/device/type/function
         //现根据peojectid找到projectinfo
         Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
-        List<SpaceInfo> spaceInfoList = spaceService.findByProjectInfo(projectInfo.get());
+        //List<SpaceInfo> spaceInfoList = spaceService.findByProjectInfo(projectInfo.get());
+        List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(projectId);
         List<SensorData> sensorDataList = new ArrayList<>();
         for(SpaceInfo spaceInfo : spaceInfoList){
             //获取该空间中的device/deviceType
