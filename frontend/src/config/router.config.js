@@ -264,11 +264,6 @@ export const constantRouterMap = [
         name: 'login',
         component: () => import(/* webpackChunkName: "user" */ '@/views/user/Login')
       },
-      // {
-      //   path: 'iotlogin',
-      //   name: 'iotlogin',
-      //   component: () => import(/* webpackChunkName: "user" */ '@/views/user/IoTLogin')
-      // },
       {
         path: 'register',
         name: 'register',
