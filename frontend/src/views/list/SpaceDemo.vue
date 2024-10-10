@@ -17,7 +17,7 @@
             allow-clear
             @change="change(selectedBuilding)"
           >
-            <a-select-option value="0">建筑一</a-select-option>
+            <a-select-option value="0">D2地下车库</a-select-option>
             <a-select-option value="1">建筑二</a-select-option>
             <a-select-option value="2">建筑三</a-select-option>
           </a-select>
@@ -52,19 +52,42 @@
       <!-- 下拉框和表格之间的留白 -->
       <div style="height: 30px;"></div>
 
-      <!-- 设备实例表格 -->
-      <a-row justify="center" class="table-row">
-        <a-col :span="18"> <!-- 限制表格的宽度 -->
-          <a-table
-            size="default"
-            rowKey="key"
-            :columns="columns"
-            :dataSource="data"
-            scroll="{ x: 1200 }"
-          >
-          </a-table>
-        </a-col>
-      </a-row>
+      <!-- 四张并列的表格 -->
+      <div class="table-container">
+        <!-- 表格区域 -->
+        <a-row justify="center" gutter={16}>
+          <!-- 第一行：属性表和状态表 -->
+          <a-col :span="12">
+            <a-table
+              :columns="propertyColumns"
+              :dataSource="propertyData"
+              pagination={false}
+            />
+          </a-col>
+          <a-col :span="12">
+            <a-table
+              :columns="statusColumns"
+              :dataSource="statusData"
+              pagination={false}
+            />
+          </a-col>
+          <!-- 第二行：事件表和服务表 -->
+          <a-col :span="12">
+            <a-table
+              :columns="eventColumns"
+              :dataSource="eventData"
+              pagination={false}
+            />
+          </a-col>
+          <a-col :span="12">
+            <a-table
+              :columns="serviceColumns"
+              :dataSource="serviceData"
+              pagination={false}
+            />
+          </a-col>
+        </a-row>
+      </div>
     </div>
   </div>
 </template>
@@ -85,81 +108,82 @@ export default {
       selectedBuilding: '0',
       selectedFloor: undefined,
       selectedRoom: undefined,
-      // 表格列数据
-      columns: [
+
+      // 表格1: 属性
+      propertyColumns: [
         {
-          title: '设备实例名称',
+          title: '属性名称',
           dataIndex: 'name',
-          key: 'name',
-          width: 200
+          key: 'name'
         },
         {
-          title: '部署位置',
-          dataIndex: 'location',
-          key: 'location',
-          width: 200
-        },
-        {
-          title: '能力描述',
-          dataIndex: 'capability',
-          key: 'capability',
-          width: 200
-        },
-        {
-          title: '设备数据',
-          dataIndex: 'data',
-          key: 'data',
-          width: 200
-        },
-        {
-          title: '设备状态',
-          dataIndex: 'status',
-          key: 'status',
-          width: 200
+          title: '属性信息',
+          dataIndex: 'info',
+          key: 'info'
         }
       ],
-      // 表格数据
-      data: [
+      propertyData: [
+      { key: '1', name: '车位总数', info: '100' },
+      { key: '2', name: '车库面积', info: '2000 平方米' }
+      ],
+
+      // 表格2: 状态
+      statusColumns: [
         {
-          key: '1',
-          name: '探照灯-01',
-          location: '车库-停车场C3',
-          capability: '车辆检测',
-          data: '活动检测中',
-          status: '正常'
+          title: '状态名称',
+          dataIndex: 'name',
+          key: 'name'
         },
         {
-          key: '2',
-          name: '显示器-03',
-          location: '2号车库出口',
-          capability: '显示车辆信息',
-          data: '停车位已满',
-          status: '警告'
-        },
-        {
-          key: '3',
-          name: '咖啡-07',
-          location: '楼层1-保卫处监控室',
-          capability: '异常警告',
-          data: '活动检测中',
-          status: '正常'
-        },
-        {
-          key: '4',
-          name: '门禁系统-02',
-          location: '大门-入口D',
-          capability: '门禁识别与控制',
-          data: '最后通行：2024-09-22 12:34:56',
-          status: '正常'
-        },
-        {
-          key: '5',
-          name: '烟雾报警器-01',
-          location: '楼层3-储物间E',
-          capability: '烟雾检测与报警',
-          data: '无烟雾检测',
-          status: '正常'
+          title: '状态信息',
+          dataIndex: 'info',
+          key: 'info'
         }
+      ],
+      statusData: [
+      { key: '1', name: '空余车位数量', info: '30' },
+      { key: '2', name: '已停车位数量', info: '70' },
+      { key: '3', name: '今日入库车次', info: '15' }
+      ],
+
+      // 表格3: 事件
+      eventColumns: [
+        {
+          title: '事件名称',
+          dataIndex: 'name',
+          key: 'name'
+        },
+        {
+          title: '事件描述',
+          dataIndex: 'description',
+          key: 'description'
+        }
+      ],
+      eventData: [
+      { key: '1', name: '车辆入库', description: '车辆已成功入库，当前车位空余数量为 30。' },
+      { key: '2', name: '车辆出库', description: '车辆已成功出库，当前车位空余数量为 31。' },
+      { key: '3', name: '车库满', description: '车库已满，无法再入库。' }
+      ],
+
+      // 表格4: 服务
+      serviceColumns: [
+        {
+          title: '服务名称',
+          dataIndex: 'name',
+          key: 'name'
+        },
+        {
+          title: '服务描述',
+          dataIndex: 'description',
+          key: 'description'
+        }
+      ],
+      serviceData: [
+      { key: '1', name: '入库抬杆', description: '允许车辆进入车库。' },
+      { key: '2', name: '入库落杆', description: '阻止车辆进入车库。' },
+      { key: '3', name: '出库抬杆', description: '允许车辆离开车库。' },
+      { key: '4', name: '出库落杆', description: '阻止车辆离开车库。' },
+      { key: '5', name: '保安巡逻', description: '保安在车库内进行巡逻以确保安全。' }
       ]
     }
   },
@@ -234,6 +258,20 @@ html, body {
 .select-row {
   margin-left: 50px;
   margin-right: 50px;
+}
+
+.table-container {
+  display: flex;
+  justify-content: space-between; /* 平均分配空间 */
+  margin: 20px 0; /* 上下间距 */
+}
+
+.table-container .ant-table {
+  margin-right: 15px; /* 每个表格右侧留白 */
+}
+
+.table-container .ant-table:last-child {
+  margin-right: 0; /* 最后一个表格右侧不留白 */
 }
 
 </style>
