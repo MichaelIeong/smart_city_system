@@ -10,17 +10,17 @@
       <!-- 下拉框部分 -->
       <a-row :gutter="16" justify="center" align="middle" class="select-row">
         <!-- <a-col :span="8"> -->
-          <a-select
-            v-model="selectedBuilding"
-            placeholder="请选择空间"
-            style="width: 100%"
-            allow-clear
-            @change="change(selectedBuilding)"
-          >
-            <a-select-option value="0">D2地下车库</a-select-option>
-            <a-select-option value="1">空间二</a-select-option>
-            <a-select-option value="2">空间三</a-select-option>
-          </a-select>
+        <a-select
+          v-model="selectedBuilding"
+          placeholder="请选择空间"
+          style="width: 100%"
+          allow-clear
+          @change="change(selectedBuilding)"
+        >
+          <a-select-option value="0">D2地下车库</a-select-option>
+          <a-select-option value="1">空间二</a-select-option>
+          <a-select-option value="2">空间三</a-select-option>
+        </a-select>
         <!-- </a-col>
         <a-col :span="8">
           <a-select
@@ -55,20 +55,20 @@
       <!-- 四张并列的表格 -->
       <div class="table-container">
         <!-- 表格区域 -->
-        <a-row justify="center" gutter={16}>
+        <a-row justify="center" gutter="{16}">
           <!-- 第一行：属性表和状态表 -->
           <a-col :span="12">
             <a-table
               :columns="propertyColumns"
               :dataSource="propertyData"
-              pagination={false}
+              pagination="{false}"
             />
           </a-col>
           <a-col :span="12">
             <a-table
               :columns="statusColumns"
               :dataSource="statusData"
-              pagination={false}
+              pagination="{false}"
             />
           </a-col>
           <!-- 第二行：事件表和服务表 -->
@@ -76,14 +76,14 @@
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
-              pagination={false}
+              pagination="{false}"
             />
           </a-col>
           <a-col :span="12">
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
-              pagination={false}
+              pagination="{false}"
             />
           </a-col>
         </a-row>
@@ -94,6 +94,7 @@
 
 <script>
 import { createWebglEngine } from '@tslfe/dt-engine'
+import axios from 'axios'
 
 export default {
   name: 'SpaceDemo',
@@ -122,10 +123,7 @@ export default {
           key: 'info'
         }
       ],
-      propertyData: [
-      { key: '1', name: '车位总数', info: '100' },
-      { key: '2', name: '车库面积', info: '2000 平方米' }
-      ],
+      propertyData: [],
 
       // 表格2: 状态
       statusColumns: [
@@ -140,11 +138,7 @@ export default {
           key: 'info'
         }
       ],
-      statusData: [
-      { key: '1', name: '空余车位数量', info: '30' },
-      { key: '2', name: '已停车位数量', info: '70' },
-      { key: '3', name: '今日入库车次', info: '15' }
-      ],
+      statusData: [],
 
       // 表格3: 事件
       eventColumns: [
@@ -159,11 +153,7 @@ export default {
           key: 'description'
         }
       ],
-      eventData: [
-      { key: '1', name: '车辆入库', description: '车辆已成功入库，当前车位空余数量为 30。' },
-      { key: '2', name: '车辆出库', description: '车辆已成功出库，当前车位空余数量为 31。' },
-      { key: '3', name: '车库满', description: '车库已满，无法再入库。' }
-      ],
+      eventData: [],
 
       // 表格4: 服务
       serviceColumns: [
@@ -178,13 +168,7 @@ export default {
           key: 'description'
         }
       ],
-      serviceData: [
-      { key: '1', name: '入库抬杆', description: '允许车辆进入车库。' },
-      { key: '2', name: '入库落杆', description: '阻止车辆进入车库。' },
-      { key: '3', name: '出库抬杆', description: '允许车辆离开车库。' },
-      { key: '4', name: '出库落杆', description: '阻止车辆离开车库。' },
-      { key: '5', name: '保安巡逻', description: '保安在车库内进行巡逻以确保安全。' }
-      ]
+      serviceData: []
     }
   },
   methods: {
@@ -209,11 +193,45 @@ export default {
       return this.meta.render(this.FloorMap[type], true).then(() => {
         console.log('场景渲染完成.')
       })
+    },
+    async fetchData () {
+      try {
+        const response = await axios.get(`http://localhost:8080/api/spaces/1`)
+        console.log('response data:', response.data)
+        const data = response.data
+
+        // 处理固定属性（对应属性表）
+        this.propertyData = Object.entries(data.fixedProperties).map(([key, value]) => ({
+          name: key,
+          info: value
+        }))
+
+        // 处理状态（对应状态表）
+        this.statusData = data.properties.map(property => ({
+          name: property.propertyKey,
+          info: property.propertyValue
+        }))
+
+        // 处理事件（对应事件表）
+        this.eventData = data.events.map(event => ({
+          name: event.eventType,
+          description: `事件 ID: ${event.eventId}`
+        }))
+
+        // 处理服务（对应服务表）
+        this.serviceData = data.services.map(service => ({
+          name: service.serviceName,
+          description: `服务 ID: ${service.serviceId}`
+        }))
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
     }
   },
   mounted () {
     setTimeout(() => {
       this.initMeta()
+      this.fetchData()
     }, 1000)
   }
 }
