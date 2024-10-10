@@ -32,7 +32,6 @@
         :columns="socialColumns"
         :dataSource="filteredData"
         row-key="id"
-        :pagination="false"
         :scroll="{ y: 300 }"
       />
 
@@ -43,35 +42,21 @@
 import axios from 'axios'
 
 export default {
-  name: 'TableList',
+  name: 'SocialResource',
 
   data () {
     return {
-      visible: false,
-      confirmLoading: false,
-      mdl: null,
-      advanced: false,
       queryId: '',
-      queryStatus: '',
+      queryStatus: '0',
       socialColumns: [
-        { title: '资源编号', dataIndex: 'resourceId' },
-        { title: '资源类型', dataIndex: 'resourceType' },
-        { title: '资源描述', dataIndex: 'description' },
-        { title: '资源状态', dataIndex: 'state' },
-        { title: '更新时间', dataIndex: 'lastUpdateTime' }
+        { title: '资源编号', dataIndex: 'resourceId', width: 100 },
+        { title: '资源类型', dataIndex: 'resourceType', width: 150 },
+        { title: '资源描述', dataIndex: 'description', width: 200 },
+        { title: '资源状态', dataIndex: 'state', width: 100 },
+        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 }
       ],
       socialData: [],
-      selectedRowKeys: [],
-      selectedRows: [],
       filteredData: []
-    }
-  },
-  computed: {
-    rowSelection () {
-      return {
-        selectedRowKeys: this.selectedRowKeys,
-        onChange: this.onSelectChange
-      }
     }
   },
   methods: {
@@ -87,17 +72,16 @@ export default {
         console.error('获取数据时发生错误:', error)
       }
     },
+    // 查询并过滤数据
     filterData () {
-      // 过滤数据并更新 filteredData
+      // 根据输入的资源编号和状态进行独立过滤
       this.filteredData = this.socialData.filter(item => {
-        // 检查资源编号是否匹配
         const matchesId = !this.queryId || (item.resourceId && item.resourceId.includes(this.queryId))
-        // 检查资源状态是否匹配
         const matchesStatus = this.queryStatus === '0' || (item.state && item.state === this.queryStatus)
-        // 返回匹配条件
         return matchesId && matchesStatus
       })
-      // 如果没有匹配的结果，则确保 filteredData 是空数组
+
+      // 如果没有匹配的结果，确保显示空数组
       if (this.filteredData.length === 0) {
         this.filteredData = []
       }
@@ -106,28 +90,8 @@ export default {
       this.queryId = ''
       this.queryStatus = '0' // 重置为默认值
       this.filteredData = this.socialData // 重置为全部数据
-    },
-    handleAdd () {
-      this.mdl = null
-      this.visible = true
-    },
-    handleEdit (record) {
-      this.mdl = { ...record }
-      this.visible = true
-    },
-    handleOk () {
-      // 表单提交逻辑
-    },
-    handleCancel () {
-      this.visible = false
-    },
-    onSelectChange (selectedRowKeys, selectedRows) {
-      this.selectedRowKeys = selectedRowKeys
-      this.selectedRows = selectedRows
-    },
-    toggleAdvanced () {
-      this.advanced = !this.advanced
     }
+
   },
   created () {
     const projectId = '1'
@@ -135,3 +99,8 @@ export default {
   }
 }
 </script>
+<style scoped>
+.a-form-item {
+  height: 50px; /* 调整表单项的高度 */
+}
+</style>

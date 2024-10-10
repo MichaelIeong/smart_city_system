@@ -12,36 +12,24 @@
 
     <template v-slot:menuHeaderRender>
       <div>
-        <img src="@/assets/Fudan_University_Logo.svg" />
+        <img src="@/assets/Fudan_University_Logo.svg" alt="icon" />
         <h1>{{ title }}</h1>
       </div>
     </template>
-    <!-- 1.0.0+ 版本 pro-layout 提供 API,
-          增加 Header 左侧内容区自定义
-    -->
+
+    <!-- 自定义 Header 左侧内容 -->
     <template v-slot:headerContentRender>
       <div>
-        <a-select
-          v-model="selectedOption"
-          style="margin-left: 24px; width: 200px;"
-          placeholder="请选择"
-        >
-          <a-select-option value="option1">选项1</a-select-option>
-          <a-select-option value="option2">选项2</a-select-option>
-          <a-select-option value="option3">选项3</a-select-option>
-        </a-select>
+        <a-button type="primary" @click="navigateToProjectSelection" style="margin-left: 24px;">
+          项目选择
+        </a-button>
       </div>
     </template>
 
-    <!--    <setting-drawer v-if="isDev" :settings="settings" @change="handleSettingChange">-->
-    <!--      <div style="margin: 12px 0;">-->
-    <!--        This is SettingDrawer custom footer content.-->
-    <!--      </div>-->
-    <!--    </setting-drawer>-->
     <template v-slot:rightContentRender>
       <right-content :top-menu="settings.layout === 'topmenu'" :is-mobile="isMobile" :theme="settings.theme" />
     </template>
-    <!-- custom footer / 自定义Footer -->
+
     <template v-slot:footerRender>
       <global-footer />
     </template>
@@ -71,50 +59,35 @@ export default {
   },
   data () {
     return {
-      // preview.pro.antdv.com only use.
       isProPreviewSite: process.env.VUE_APP_PREVIEW === 'true' && process.env.NODE_ENV !== 'development',
-      // end
       isDev: process.env.NODE_ENV === 'development' || process.env.VUE_APP_PREVIEW === 'true',
-
-      // base
       menus: [],
-      // 侧栏收起状态
       collapsed: false,
       title: defaultSettings.title,
       settings: {
-        // 布局类型
-        layout: defaultSettings.layout, // 'sidemenu', 'topmenu'
-        // CONTENT_WIDTH_TYPE
+        layout: defaultSettings.layout,
         contentWidth: defaultSettings.layout === 'sidemenu' ? CONTENT_WIDTH_TYPE.Fluid : defaultSettings.contentWidth,
-        // 主题 'dark' | 'light'
         theme: defaultSettings.navTheme,
-        // 主色调
         primaryColor: defaultSettings.primaryColor,
         fixedHeader: defaultSettings.fixedHeader,
         fixSiderbar: defaultSettings.fixSiderbar,
         colorWeak: defaultSettings.colorWeak,
-
         hideHintAlert: false,
         hideCopyButton: false
       },
-      // 媒体查询
       query: {},
-
-      // 是否手机模式
       isMobile: false
     }
   },
   computed: {
     ...mapState({
-      // 动态主路由
       mainMenu: state => state.permission.addRouters
     })
   },
   created () {
-  const routes = asyncRouterMap.find((item) => item.path === '/')
-  // const routes = this.mainMenu.find((item) => item.path === '/')
-  this.menus = (routes && routes.children) || []
-},
+    const routes = asyncRouterMap.find((item) => item.path === '/')
+    this.menus = (routes && routes.children) || []
+  },
   mounted () {
     const userAgent = navigator.userAgent
     if (userAgent.indexOf('Edge') > -1) {
@@ -126,8 +99,6 @@ export default {
       })
     }
 
-    // first update color
-    // TIPS: THEME COLOR HANDLER!! PLEASE CHECK THAT!!
     if (process.env.NODE_ENV !== 'production' || process.env.VUE_APP_PREVIEW === 'true') {
       updateTheme(this.settings.primaryColor)
     }
@@ -144,28 +115,13 @@ export default {
         this.isMobile = true
         this.collapsed = false
         this.settings.contentWidth = CONTENT_WIDTH_TYPE.Fluid
-        // this.settings.fixSiderbar = false
       }
     },
     handleCollapse (val) {
       this.collapsed = val
     },
-    handleSettingChange ({ type, value }) {
-      console.log('type', type, value)
-      type && (this.settings[type] = value)
-      switch (type) {
-        case 'contentWidth':
-          this.settings[type] = value
-          break
-        case 'layout':
-          if (value === 'sidemenu') {
-            this.settings.contentWidth = CONTENT_WIDTH_TYPE.Fluid
-          } else {
-            this.settings.fixSiderbar = false
-            this.settings.contentWidth = CONTENT_WIDTH_TYPE.Fixed
-          }
-          break
-      }
+    navigateToProjectSelection () {
+      this.$router.push({ path: '/user/project-selection' })
     }
   }
 }

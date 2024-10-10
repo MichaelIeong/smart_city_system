@@ -22,7 +22,9 @@ public class ProjectInfo {
     private String projectName;   // 项目的名称
 
     @Column
-    private String projectImage;   // 项目的图片
+    @Lob // 使用 @Lob 注解来指定这是一个大对象字段
+    private byte[] thumbnail; // 用于存储缩略图的二进制数据
+
 
     @ToString.Exclude
     @JsonIgnore

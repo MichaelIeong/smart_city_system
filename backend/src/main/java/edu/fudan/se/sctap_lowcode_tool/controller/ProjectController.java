@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/projects")
 @Tag(name = "ProjectController", description = "项目控制器")
@@ -51,13 +53,6 @@ public class ProjectController {
         return projectName != null ? ResponseEntity.ok(projectName) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{projectId}/image")
-    @Operation(summary = "查询项目预览图片", description = "获取指定项目的预览图片。")
-    public ResponseEntity<String> getProjectImage(@PathVariable int projectId) {
-        String projectImage = projectService.getProjectPreview(projectId);
-        return projectImage != null ? ResponseEntity.ok(projectImage) : ResponseEntity.notFound().build();
-    }
-
     @GetMapping("/allProjects")
     @Operation(summary = "获取所有项目信息", description = "获取所有项目的详细信息。")
     public ResponseEntity<Iterable<ProjectInfo>> getAllProjects() {
@@ -77,10 +72,5 @@ public class ProjectController {
         return projectService.exportProjects()
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(500).body("Error generating JSON"));
-    }
-
-    @GetMapping
-    public ResponseEntity<String> hello() {
-        return ResponseEntity.ok("Hello, World!");
     }
 }

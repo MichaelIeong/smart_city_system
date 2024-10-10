@@ -4,17 +4,14 @@
       <div class="table-page-search-wrapper">
         <a-form layout="inline">
           <a-row :gutter="48">
-            <!-- 资源编号 -->
             <a-col :md="8" :sm="24">
               <a-form-item label="资源编号">
                 <a-input v-model="queryId" placeholder="请输入待查找资源编号" />
               </a-form-item>
             </a-col>
-
-            <!-- 资源状态下拉框 -->
             <a-col :md="8" :sm="24">
               <a-form-item label="使用状态">
-                <a-select v-model="queryStatus" placeholder="请选择资源使用状态" default-value="0">
+                <a-select v-model="queryStatus" placeholder="请选择资源使用状态" default-value="0" :style="{ height: '40px' }">
                   <a-select-option value="0">全部</a-select-option>
                   <a-select-option value="正常">正常</a-select-option>
                   <a-select-option value="异常">异常</a-select-option>
@@ -22,7 +19,6 @@
               </a-form-item>
             </a-col>
 
-            <!-- 查询与重置按钮 -->
             <a-col :md="!advanced && 8 || 24" :sm="24">
               <span class="table-page-search-submitButtons" :style="advanced && { float: 'right', overflow: 'hidden' } || {}">
                 <a-button type="primary" @click="filterData">查询</a-button>
@@ -33,14 +29,13 @@
         </a-form>
       </div>
 
-      <!-- 表格显示 -->
       <a-table
         :columns="cyberColumns"
         :dataSource="filteredData"
-        :pagination="false"
         row-key="id"
         :scroll="{ y: 300 }"
       />
+
     </a-card>
   </page-header-wrapper>
 </template>
@@ -52,58 +47,76 @@ export default {
   name: 'CyberResources',
   data () {
     return {
-      queryId: '', // 输入的资源编号
-      queryStatus: '0', // 选择的资源状态，默认显示全部
+      queryId: '',
+      queryStatus: '0',
+      advanced: false,
+      mdl: null,
       cyberColumns: [
-        { title: '资源编号', dataIndex: 'resourceId' },
-        { title: '资源类型', dataIndex: 'resourceType' },
-        { title: '资源描述', dataIndex: 'description' },
-        { title: '资源状态', dataIndex: 'state' },
-        { title: '更新时间', dataIndex: 'lastUpdateTime' }
+        { title: '资源编号', dataIndex: 'resourceId', width: 100 },
+        { title: '资源类型', dataIndex: 'resourceType', width: 150 },
+        { title: '资源描述', dataIndex: 'description', width: 200 },
+        { title: '资源状态', dataIndex: 'state', width: 100 },
+        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 }
       ],
-      cyberData: [], // 从后端获取的原始数据
-      filteredData: [] // 过滤后的数据
+      cyberData: [],
+      filteredData: [],
+      pagination: { // 分页相关数据
+        current: 1, // 当前页码
+        pageSize: 10, // 每页显示多少条数据
+        total: 0, // 数据总数
+        showSizeChanger: true, // 是否允许选择每页显示条数
+        showQuickJumper: true, // 是否允许快速跳转到某一页
+        pageSizeOptions: ['10', '20', '50', '100'] // 可选的每页条数选项
+      },
+      selectedRowKeys: [],
+      selectedRows: []
     }
   },
   methods: {
-    // 获取数据
     async fetchData (id) {
       try {
         const response = await axios.get(`http://localhost:8080/api/cyberResources/project/${id}`)
-        console.log('API response data:', response.data)
-        this.cyberData = response.data // 将数据存储在 cyberData 中
-        this.filteredData = response.data // 初始化 filteredData 为全部数据
+        this.cyberData = response.data
+        this.filteredData = response.data.slice(0, this.pagination.pageSize) // 初始化第一页数据
+        this.pagination.total = response.data.length // 更新总数
       } catch (error) {
         console.error('获取数据时发生错误:', error)
       }
     },
-
-    // 查询并过滤数据
     filterData () {
-      // 根据输入的资源编号和状态进行独立过滤
-      this.filteredData = this.cyberData.filter(item => {
+      // 过滤数据
+      const filtered = this.cyberData.filter(item => {
         const matchesId = !this.queryId || (item.resourceId && item.resourceId.includes(this.queryId))
         const matchesStatus = this.queryStatus === '0' || (item.state && item.state === this.queryStatus)
         return matchesId && matchesStatus
       })
 
-      // 如果没有匹配的结果，确保显示空数组
-      if (this.filteredData.length === 0) {
-        this.filteredData = []
-      }
+      // 更新分页后的数据
+      this.pagination.total = filtered.length // 更新匹配到的数据总数
+      const start = (this.pagination.current - 1) * this.pagination.pageSize
+      const end = start + this.pagination.pageSize
+      this.filteredData = filtered.slice(start, end) // 更新显示的当前页数据
     },
-
-    // 重置查询条件
     resetQueryParam () {
-      this.queryId = '' // 清空资源编号输入框
-      this.queryStatus = '0' // 重置状态为 "全部"
-      this.filteredData = this.cyberData // 重置为全部数据
+      this.queryId = ''
+      this.queryStatus = '0' // 重置为默认值
+      this.filteredData = this.cyberData.slice(0, this.pagination.pageSize) // 重置为第一页
+      this.pagination.current = 1 // 重置页码为1
+    },
+    handleTableChange (pagination) {
+      // 处理分页切换
+      this.pagination = pagination
+      this.filterData() // 重新过滤并显示对应页码的数据
     }
   },
-
   created () {
     const projectId = '1'
-    this.fetchData(projectId) // 页面加载时获取数据
+    this.fetchData(projectId)
   }
 }
 </script>
+<style scoped>
+.a-form-item {
+  height: 50px; /* 调整表单项的高度 */
+}
+</style>
