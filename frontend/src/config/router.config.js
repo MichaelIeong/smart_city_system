@@ -10,16 +10,16 @@ export const asyncRouterMap = [{
   name: 'index',
   component: BasicLayout,
   meta: { title: 'menu.home' },
-  redirect: '/spacescene',
+  redirect: '/space-scene',
 
   children: [
     // 场景展示
     {
-      path: '/spacescene',
-      name: 'spacescene',
+      path: '/space-scene',
+      name: 'space-scene',
       component: () => import('@/views/list/SpaceDemo'),
       meta: {
-        title: 'menu.spacescene',
+        title: 'menu.space-scene',
         keepAlive: true,
         icon: 'table',
         permission: ['dashboard']
