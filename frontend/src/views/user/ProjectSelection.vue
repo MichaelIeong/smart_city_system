@@ -4,7 +4,9 @@
 
     <!-- 新增项目按钮的容器 -->
     <div class="button-wrapper">
-      <button class="add-project-button" @click="addNewProject">新增项目</button>
+      <button class="add-project-button" @click="triggerFileInput">新增项目</button>
+      <!-- 隐藏的文件输入框 -->
+      <input type="file" ref="fileInput" @change="handleFileChange" style="display: none;" />
     </div>
 
     <!-- 项目卡片的容器 -->
@@ -50,7 +52,9 @@ export default {
     async fetchProjects () {
       try {
         // 向后端发起请求，获取所有项目
-        const response = await axios.get('http://localhost:8080/api/projects/allProjects')
+        const response = await axios.get(
+          'http://localhost:8080/api/projects/allProjects'
+        )
         const fetchedProjects = response.data
 
         // 检查如果数据为空
@@ -59,7 +63,7 @@ export default {
         }
 
         // 将本地图片与获取的项目数据结合
-        this.allProjects = fetchedProjects.map(project => {
+        this.allProjects = fetchedProjects.map((project) => {
           // 判断 projectId 是否为 1 或 2 并设置本地图片
           if (project.projectId === 1) {
             project.image = require('@/assets/commercial.jpg') // ID 为 1 使用 commercial.jpg
@@ -74,11 +78,26 @@ export default {
       }
     },
 
-    // 新增项目的按钮点击事件
-    addNewProject () {
-      console.log('点击了新增项目按钮')
-      // 这里可以添加逻辑来跳转到新增项目的页面或弹出模态框
-      // 例如：this.$router.push('/newProject');
+    // 新增项目的按钮点击事件，触发文件选择框
+    triggerFileInput () {
+      // 确保文件输入框已经渲染好后触发点击
+      this.$nextTick(() => {
+        if (this.$refs.fileInput) {
+          console.log('文件选择框已找到，准备触发点击')
+          this.$refs.fileInput.click()
+        } else {
+          console.error('文件选择框不存在')
+        }
+      })
+    },
+
+    // 处理文件选择事件
+    handleFileChange (event) {
+      const file = event.target.files[0]
+      if (file) {
+        console.log('已选择文件:', file.name)
+        // 这里可以执行文件上传逻辑
+      }
     }
   }
 }
