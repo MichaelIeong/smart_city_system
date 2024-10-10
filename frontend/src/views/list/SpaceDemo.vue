@@ -9,19 +9,19 @@
 
       <!-- 下拉框部分 -->
       <a-row :gutter="16" justify="center" align="middle" class="select-row">
-        <a-col :span="8">
+        <!-- <a-col :span="8"> -->
           <a-select
             v-model="selectedBuilding"
-            placeholder="请选择建筑"
+            placeholder="请选择空间"
             style="width: 100%"
             allow-clear
             @change="change(selectedBuilding)"
           >
             <a-select-option value="0">D2地下车库</a-select-option>
-            <a-select-option value="1">建筑二</a-select-option>
-            <a-select-option value="2">建筑三</a-select-option>
+            <a-select-option value="1">空间二</a-select-option>
+            <a-select-option value="2">空间三</a-select-option>
           </a-select>
-        </a-col>
+        <!-- </a-col>
         <a-col :span="8">
           <a-select
             v-model="selectedFloor"
@@ -46,7 +46,7 @@
             <a-select-option value="room2">房间二</a-select-option>
             <a-select-option value="room3">房间三</a-select-option>
           </a-select>
-        </a-col>
+        </a-col> -->
       </a-row>
 
       <!-- 下拉框和表格之间的留白 -->
