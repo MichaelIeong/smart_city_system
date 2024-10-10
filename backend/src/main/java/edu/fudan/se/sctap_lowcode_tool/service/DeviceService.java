@@ -1,19 +1,27 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
+import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
-public interface DeviceService {
-    DeviceInfo saveOrUpdateDevice(DeviceInfo deviceInfo); // 保存或更新设备信息
+@Service
+public class DeviceService {
 
-    boolean deleteDevice(int deviceID); // 删除设备
+    @Autowired
+    private DeviceRepository deviceRepository;
 
-    Optional<DeviceInfo> findById(int deviceID); // 根据ID查找设备
+    public Optional<DeviceResponse> findById(int id) {
+        return deviceRepository.findById(id).map(DeviceResponse::new);
+    }
 
-    Iterable<DeviceInfo> findAll(); // 获取所有设备
+    public List<DeviceResponse> findAllByProjectId(int projectId) {
+        return deviceRepository.findAllByProjectId(projectId)
+                .stream().map(DeviceResponse::new).toList();
+    }
 
-    boolean importDevices(String json);
 
-    Optional<String> exportDevices();
 }

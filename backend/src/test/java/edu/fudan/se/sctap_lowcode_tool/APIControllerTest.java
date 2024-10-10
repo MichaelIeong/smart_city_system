@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,8 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class ResourceControllerTest {
+public class APIControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,11 +50,8 @@ public class ResourceControllerTest {
         this.token = objectMapper.readTree(jsonResponse).get("token").asText();
     }
 
-    @Test
-    public void cyberControllerTest() throws Exception {
-        String result = mockMvc.perform(get("/api/cyberResources/project/1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
+    private void printJsonResponse(ResultActions resultActions) throws UnsupportedEncodingException, JsonProcessingException {
+        var result = resultActions
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
@@ -62,16 +62,56 @@ public class ResourceControllerTest {
     }
 
     @Test
-    public void socialControllerTest() throws Exception {
-        String result = mockMvc.perform(get("/api/socialResources/project/1")
+    public void getCyberResourcesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/cyberResources/project/1")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
 
-        Object json = objectMapper.readValue(result, Object.class);
-        String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-        System.out.println(prettyJson);
+    @Test
+    public void getSocialResourcesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/socialResources/project/1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getDeviceTypesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/deviceTypes?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getAllSpacesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/spaces?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getDeviceDetailById() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/devices/1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getDevicesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/devices?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
     }
 }

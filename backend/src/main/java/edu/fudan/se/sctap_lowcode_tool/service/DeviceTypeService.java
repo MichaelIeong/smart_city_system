@@ -1,17 +1,28 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeResponse;
+import edu.fudan.se.sctap_lowcode_tool.repository.DeviceTypeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
-public interface DeviceTypeService {
-    DeviceTypeInfo saveOrUpdateDeviceType(DeviceTypeInfo deviceTypeInfo); // 保存或更新设备类型信息
+@Service
+public class DeviceTypeService {
 
-    boolean deleteType(int deviceID); // 删除设备类型
+    @Autowired
+    private DeviceTypeRepository deviceTypeRepository;
 
-    Optional<DeviceTypeInfo> findById(int deviceID); // 根据ID查找设备类型
+    public Optional<DeviceTypeResponse> getDeviceTypeById(int id) {
+        return deviceTypeRepository.findById(id).map(DeviceTypeResponse::new);
+    }
 
-    Boolean getTypeIsSensor(int deviceID); // 获取设备类型是否为传感器
+    public List<DeviceTypeResponse> getDevicesByProjectId(int projectId) {
+        return deviceTypeRepository.findByProjectInfoProjectId(projectId)
+                .stream()
+                .map(DeviceTypeResponse::new)
+                .toList();
+    }
 
-    Iterable<DeviceTypeInfo> findAll(); // 获取所有设备类型
 }
