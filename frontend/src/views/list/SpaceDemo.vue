@@ -230,12 +230,14 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  overflow-y: auto;
 }
 
 .space-demo-container {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr 3fr;
   height: 100vh;
+  overflow: hidden;
 }
 
 #three-container {
@@ -253,6 +255,7 @@ html, body {
   flex-direction: column;
   padding-left: 50px;
   padding-right: 50px;
+  overflow-y: auto;
 }
 
 .select-row {
