@@ -42,6 +42,12 @@ public class SpaceInfo {
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<DeviceInfo> spaceDevices = new HashSet<>();  // 空间内的设备
 
+    @OneToMany(mappedBy = "parentingSpace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<EventInfo> events = new HashSet<>();   // 空间的事件
+
+    @OneToMany(mappedBy = "parentingSpace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ServiceInfo> services = new HashSet<>();   // 空间的服务
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "adjacent_space",

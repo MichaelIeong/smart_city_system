@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -47,4 +48,16 @@ public class DeviceInfo {
     private float coordinateY; // 设备的纵坐标
 
     private float coordinateZ; // 设备的Z轴坐标
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DeviceInfo that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(deviceId, that.deviceId) && Objects.equals(deviceName, that.deviceName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, deviceId, deviceName);
+    }
 }

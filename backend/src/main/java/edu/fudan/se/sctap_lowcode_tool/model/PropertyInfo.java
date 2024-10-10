@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.ToString;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -34,4 +35,15 @@ public class PropertyInfo {
     @OneToMany(mappedBy = "property", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<PropertySpace> parentingSpaces = new HashSet<>();   // 属性所属的空间
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PropertyInfo that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(propertyId, that.propertyId) && Objects.equals(propertyKey, that.propertyKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, propertyId, propertyKey);
+    }
 }
