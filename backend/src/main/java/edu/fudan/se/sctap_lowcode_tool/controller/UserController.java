@@ -35,14 +35,14 @@ public class UserController {
     }
 
     // 注册接口，接收用户名和密码
-    @Operation(summary = "用户登录", description = "登录，验证后返回token和projectList")
+    @Operation(summary = "用户注册", description = "注册用户，成功返回注册成功，失败返回注册失败")
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody RegisterRequest registerRequest) {
         try {
             userService.register(registerRequest.getUsername(), registerRequest.getPassword());
-            return ResponseEntity.ok("用户注册成功");
+            return ResponseEntity.ok("Register success");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("注册失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Register failed: " + e.getMessage());
         }
     }
 }
