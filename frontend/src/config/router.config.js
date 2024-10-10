@@ -10,9 +10,21 @@ export const asyncRouterMap = [{
   name: 'index',
   component: BasicLayout,
   meta: { title: 'menu.home' },
-  redirect: '/resource/physical-resource',
+  redirect: '/spacescene',
 
   children: [
+    // 场景展示
+    {
+      path: '/spacescene',
+      name: 'spacescene',
+      component: () => import('@/views/list/SpaceDemo'),
+      meta: {
+        title: 'menu.spacescene',
+        keepAlive: true,
+        icon: 'table',
+        permission: ['dashboard']
+      }
+    },
     // 资源管理
     {
       path: '/resource',
@@ -51,21 +63,6 @@ export const asyncRouterMap = [{
           }
         ]
 
-    }, // 场景展示
-    {
-      path: '/spacescene',
-      redirect: '/spacescene/spacescene-list',
-      component: RouteView,
-      meta: { title: 'menu.spacescene', keepAlive: true, icon: 'table', permission: ['dashboard'] },
-      children: [
-        {
-          path: '/spacescene/spacesceneDemo',
-          name: 'SpaceDemo',
-          hideChildrenInMenu: true,
-          component: () => import('@/views/list/SpaceDemo'),
-          meta: { title: 'menu.spacescene.list', keepAlive: true, permission: ['table'] }
-        }
-      ]
     }, // 事件融合
     {
       path: '/event-fusion',
@@ -78,7 +75,6 @@ export const asyncRouterMap = [{
     {
       path: '/service-group',
       name: 'service-group',
-      // component: RouteView,
       component: () => import('@/views/list/ServiceCompositionList'),
       meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
     },
@@ -200,6 +196,7 @@ export const asyncRouterMap = [{
         }
       ]
     },
+
     // Exception
     {
       path: '/exception',

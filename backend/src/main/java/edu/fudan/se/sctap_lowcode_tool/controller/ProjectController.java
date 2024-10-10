@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/projects")
 @Tag(name = "ProjectController", description = "项目控制器")
@@ -49,13 +51,6 @@ public class ProjectController {
     public ResponseEntity<String> getProjectName(@PathVariable int projectId) {
         String projectName = projectService.getProjectName(projectId);
         return projectName != null ? ResponseEntity.ok(projectName) : ResponseEntity.notFound().build();
-    }
-
-    @GetMapping("/{projectId}/image")
-    @Operation(summary = "查询项目预览图片", description = "获取指定项目的预览图片。")
-    public ResponseEntity<String> getProjectImage(@PathVariable int projectId) {
-        String projectImage = projectService.getProjectPreview(projectId);
-        return projectImage != null ? ResponseEntity.ok(projectImage) : ResponseEntity.notFound().build();
     }
 
     @GetMapping("/allProjects")
