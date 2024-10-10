@@ -4,6 +4,8 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Objects;
+
 @Entity
 @Data
 public class PropertySpace {
@@ -23,10 +25,22 @@ public class PropertySpace {
     private String propertyValue;
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PropertySpace that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(propertyValue, that.propertyValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, propertyValue);
+    }
+
+    @Override
     public String toString() {
         return "PropertySpace{" +
-                "property=" + property.getPropertyKey() +
-                ", space=" + space.getSpaceName() +
+                "property='" + property.getPropertyKey() + "'" +
+                ", space='" + space.getSpaceName() + "'" +
                 ", propertyValue='" + propertyValue + '\'' +
                 '}';
     }

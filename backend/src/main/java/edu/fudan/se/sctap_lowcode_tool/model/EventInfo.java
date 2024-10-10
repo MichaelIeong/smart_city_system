@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "events",
         uniqueConstraints = {@UniqueConstraint(
@@ -33,4 +35,15 @@ public class EventInfo {
     @Column(nullable = false)
     private String eventType; // 事件类型, 例如“温度过高”
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof EventInfo eventInfo)) return false;
+        return Objects.equals(id, eventInfo.id) && Objects.equals(eventId, eventInfo.eventId) && Objects.equals(eventType, eventInfo.eventType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, eventId, eventType);
+    }
 }

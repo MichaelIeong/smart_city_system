@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "services",
         uniqueConstraints = {@UniqueConstraint(
@@ -28,4 +30,15 @@ public class ServiceInfo {
     @Column(nullable = false)
     private String serviceName; // 服务名称, 例如“会议模式”
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ServiceInfo that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(serviceId, that.serviceId) && Objects.equals(serviceName, that.serviceName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, serviceId, serviceName);
+    }
 }
