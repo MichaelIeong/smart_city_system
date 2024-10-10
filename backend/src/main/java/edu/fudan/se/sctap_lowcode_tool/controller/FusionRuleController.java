@@ -2,11 +2,9 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorData;
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
-import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleService;
+import edu.fudan.se.sctap_lowcode_tool.service.ProjectService;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,10 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @CrossOrigin
@@ -31,6 +26,9 @@ public class FusionRuleController {
 
     @Autowired
     private SpaceService spaceService;
+
+    @Autowired
+    private ProjectService projectService;
 
     @Operation(summary = "上传新的规则", description = "用户在node-red构建好规则，传给后端，加入到数据库")
     @PostMapping("/uploadrule")
@@ -70,7 +68,8 @@ public class FusionRuleController {
     public ResponseEntity<?> getSensorData(@PathVariable int projectId) {
         //location space表/device/type/function
         //现根据id找到空间列表
-        List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(projectId);
+        Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
+        List<SpaceInfo> spaceInfoList = spaceService.findByProjectInfo(projectInfo.get());
         List<SensorData> sensorDataList = new ArrayList<>();
         for(SpaceInfo spaceInfo : spaceInfoList){
             //获取该空间中的device/deviceType
@@ -106,8 +105,9 @@ public class FusionRuleController {
     @GetMapping("/operator")
     public ResponseEntity<?> getOperatorData(@PathVariable int projectId) {
         //location space表/device/type/function
-        //现根据id找到空间列表
-        List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(projectId);
+        //现根据peojectid找到projectinfo
+        Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
+        List<SpaceInfo> spaceInfoList = spaceService.findByProjectInfo(projectInfo.get());
         List<SensorData> sensorDataList = new ArrayList<>();
         for(SpaceInfo spaceInfo : spaceInfoList){
             //获取该空间中的device/deviceType

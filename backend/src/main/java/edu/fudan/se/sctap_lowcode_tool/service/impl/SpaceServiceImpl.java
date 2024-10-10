@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service.impl;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
@@ -103,7 +104,7 @@ public class SpaceServiceImpl implements SpaceService {
     }
 
     @Override
-    public List<SpaceInfo> findSpacesByProjectId(int projectId){
-        return spaceRepository.findByProjectId(projectId);
+    public List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo){
+        return spaceRepository.findByProjectInfo(projectInfo);
     }
 }

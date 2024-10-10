@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 
 import java.util.List;
@@ -26,5 +27,5 @@ public interface SpaceService {
 
     boolean removeDeviceFromSpace(int spaceId, int deviceId);
 
-    List<SpaceInfo> findSpacesByProjectId(int projectId);
+    List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo);
 }
