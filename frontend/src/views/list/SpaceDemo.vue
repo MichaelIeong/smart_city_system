@@ -11,15 +11,19 @@
       <a-row :gutter="16" justify="center" align="middle" class="select-row">
         <!-- <a-col :span="8"> -->
         <a-select
-          v-model="selectedBuilding"
+          v-model="selectedSpace"
           placeholder="请选择空间"
           style="width: 100%"
           allow-clear
-          @change="change(selectedBuilding)"
+          @change="changeSpace(selectedSpace)"
         >
-          <a-select-option value="0">D2地下车库</a-select-option>
-          <a-select-option value="1">空间二</a-select-option>
-          <a-select-option value="2">空间三</a-select-option>
+          <a-select-option
+            v-for="space in spaces"
+            :key="space.id"
+            :value="space.id"
+          >
+            {{ space.spaceName }}
+          </a-select-option>
         </a-select>
         <!-- </a-col>
         <a-col :span="8">
@@ -106,9 +110,8 @@ export default {
         1: '/Park_e50d76e1b0bd4a91869076afc36e6a01/graphic.glb',
         2: '/Park_e50d76e1b0bd4a91869076afc36e6a01/Building_48b5fb64ad0340a1b2121478b20a9369/graphic.glb'
       },
-      selectedBuilding: '0',
-      selectedFloor: undefined,
-      selectedRoom: undefined,
+      selectedSpace: undefined,
+      spaces: [],
 
       // 表格1: 属性
       propertyColumns: [
@@ -186,10 +189,10 @@ export default {
       }).then((app) => {
         app.amount('three-container')
         this.meta = app
-        this.change('0')
+        this.changeDemo('0')
       })
     },
-    change (type) {
+    changeDemo (type) {
       return this.meta.render(this.FloorMap[type], true).then(() => {
         console.log('场景渲染完成.')
       })
@@ -226,11 +229,23 @@ export default {
       } catch (error) {
         console.error('Error fetching data:', error)
       }
+    },
+    async fetchSpaces () {
+      try {
+        const response = await axios.get('http://localhost:8080/api/spaces?project=1')
+        this.spaces = response.data
+      } catch (error) {
+        console.error('Error fetching spaces:', error)
+      }
+    },
+    changeSpace (selectedSpace) {
+      console.log('选中的空间 ID:', selectedSpace)
     }
   },
   mounted () {
     setTimeout(() => {
       this.initMeta()
+      this.fetchSpaces()
       this.fetchData()
     }, 1000)
   }
