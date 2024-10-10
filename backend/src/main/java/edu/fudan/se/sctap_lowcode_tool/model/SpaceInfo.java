@@ -32,7 +32,7 @@ public class SpaceInfo {
     @Column(nullable = false)
     private String spaceName;   // 空间的名称
 
-    private String type;   // 空间的类型，例如“卧室”、“客厅”
+    private String fixedProperties;   // 空间的固定属性，用JSON格式存储，例如"{ "面积"："100平方米", "车位总数": "100" }"
 
     private String description;   // 空间的描述，例如“卧室1”
 
@@ -41,6 +41,12 @@ public class SpaceInfo {
 
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<DeviceInfo> spaceDevices = new HashSet<>();  // 空间内的设备
+
+    @OneToMany(mappedBy = "parentingSpace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<EventInfo> events = new HashSet<>();   // 空间的事件
+
+    @OneToMany(mappedBy = "parentingSpace", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ServiceInfo> services = new HashSet<>();   // 空间的服务
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
