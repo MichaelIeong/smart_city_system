@@ -15,7 +15,7 @@
           placeholder="请选择空间"
           style="width: 100%"
           allow-clear
-          @change="changeSpace(selectedSpace)"
+          @change="change(selectedSpace)"
         >
           <a-select-option
             v-for="space in spaces"
@@ -25,32 +25,7 @@
             {{ space.spaceName }}
           </a-select-option>
         </a-select>
-        <!-- </a-col>
-        <a-col :span="8">
-          <a-select
-            v-model="selectedFloor"
-            placeholder="请选择楼层"
-            style="width: 100%"
-            allow-clear
-          >
-            <a-select-option value="floor1">一楼</a-select-option>
-            <a-select-option value="floor2">二楼</a-select-option>
-            <a-select-option value="floor3">三楼</a-select-option>
-            <a-select-option value="floor3">负一楼（车库）</a-select-option>
-          </a-select>
-        </a-col>
-        <a-col :span="8">
-          <a-select
-            v-model="selectedRoom"
-            placeholder="请选择房间"
-            style="width: 100%"
-            allow-clear
-          >
-            <a-select-option value="room1">房间一</a-select-option>
-            <a-select-option value="room2">房间二</a-select-option>
-            <a-select-option value="room3">房间三</a-select-option>
-          </a-select>
-        </a-col> -->
+        <!-- </a-col>-->
       </a-row>
 
       <!-- 下拉框和表格之间的留白 -->
@@ -192,14 +167,22 @@ export default {
         this.changeDemo('0')
       })
     },
+    change (selectedSpace) {
+      this.changeDemo(selectedSpace)
+      this.changeSpace(selectedSpace)
+      this.fetchData(selectedSpace)
+    },
+    changeSpace (selectedSpace) {
+      console.log('选中的空间 ID:', selectedSpace)
+    },
     changeDemo (type) {
       return this.meta.render(this.FloorMap[type], true).then(() => {
         console.log('场景渲染完成.')
       })
     },
-    async fetchData () {
+    async fetchData (spaceID) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/spaces/1`)
+        const response = await axios.get(`http://localhost:8080/api/spaces/${spaceID}`)
         console.log('response data:', response.data)
         const data = response.data
 
@@ -230,22 +213,19 @@ export default {
         console.error('Error fetching data:', error)
       }
     },
-    async fetchSpaces () {
+    async fetchSpaces (spaceID) {
       try {
-        const response = await axios.get('http://localhost:8080/api/spaces?project=1')
+        const response = await axios.get(`http://localhost:8080/api/spaces?project=${spaceID}`)
         this.spaces = response.data
       } catch (error) {
         console.error('Error fetching spaces:', error)
       }
-    },
-    changeSpace (selectedSpace) {
-      console.log('选中的空间 ID:', selectedSpace)
     }
   },
   mounted () {
     setTimeout(() => {
       this.initMeta()
-      this.fetchSpaces()
+      this.fetchSpaces(1)
       this.fetchData()
     }, 1000)
   }
