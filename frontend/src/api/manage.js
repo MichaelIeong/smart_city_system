@@ -5,7 +5,7 @@ const api = {
   project: 'api/import/upload',
   user: '/user',
   role: '/role',
-  rule: '/fusion/getRuleList',
+  rule: '/api/fusion/getRuleList',
   service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
@@ -23,11 +23,14 @@ export function getUserList (parameter) {
   })
 }
 
-export function postProject (parameter) {
+export function postProject (formData) {
   return request({
-    url: api.project,
+    url: api.project, // 确保 api.project 指向正确的后端 /upload 路径
     method: 'post',
-    params: parameter
+    data: formData, // 使用 data 而不是 params 来发送 FormData
+    headers: {
+      'Content-Type': 'multipart/form-data' // 设置 multipart/form-data 头
+    }
   })
 }
 

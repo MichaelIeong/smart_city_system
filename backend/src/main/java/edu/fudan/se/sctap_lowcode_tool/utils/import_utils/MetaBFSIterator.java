@@ -5,10 +5,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.import_json.meta.Meta;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * The {@code MetaBFSIterator} class implements a breadth-first search (BFS) iterator for traversing
@@ -30,19 +27,48 @@ public class MetaBFSIterator implements Iterator<Meta> {
      */
     public MetaBFSIterator(Path basePath, Path relativePath) throws IOException, ParseException {
         try {
+//            Queue<Path> waitingQueue = new LinkedList<>();
+//            waitingQueue.add(relativePath);
+//
+//            while (!waitingQueue.isEmpty()) {
+//                Path currentMetaPathRelative = waitingQueue.poll();
+//                Path currentMetaPath = basePath.resolve(currentMetaPathRelative);
+//                Meta currentMeta = ImportFileParser.parseMeta(currentMetaPath);
+//                queue.add(currentMeta);
+//                List<Path> childrenMetaPaths = currentMeta.getChildrenSpaces().stream()
+//                        .map(Meta::MetaUri)
+//                        .map(Path::of)
+//                        .toList();
+//                waitingQueue.addAll(childrenMetaPaths);
+//            }
             Queue<Path> waitingQueue = new LinkedList<>();
+            Set<Path> visitedPaths = new HashSet<>(); // 记录已访问的路径
             waitingQueue.add(relativePath);
 
             while (!waitingQueue.isEmpty()) {
                 Path currentMetaPathRelative = waitingQueue.poll();
+                if (visitedPaths.contains(currentMetaPathRelative)) {
+                    continue;
+                }
+                visitedPaths.add(currentMetaPathRelative);
+
                 Path currentMetaPath = basePath.resolve(currentMetaPathRelative);
-                Meta currentMeta = ImportFileParser.parseMeta(currentMetaPath);
+                String metaPathString = currentMetaPath.toString();
+                String modifiedPathString = metaPathString.replaceAll("/Floor[^/]*", "");
+                Path modifiedRootMetaRelativePath = Path.of(modifiedPathString);
+                Meta currentMeta = ImportFileParser.parseMeta(modifiedRootMetaRelativePath);
                 queue.add(currentMeta);
+
                 List<Path> childrenMetaPaths = currentMeta.getChildrenSpaces().stream()
                         .map(Meta::MetaUri)
                         .map(Path::of)
                         .toList();
-                waitingQueue.addAll(childrenMetaPaths);
+
+                for (Path childPath : childrenMetaPaths) {
+                    if (!visitedPaths.contains(childPath)) {
+                        waitingQueue.add(childPath);
+                    }
+                }
             }
         } catch (ParseException e) {
             throw e;
