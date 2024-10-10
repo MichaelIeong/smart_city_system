@@ -101,4 +101,9 @@ public class SpaceServiceImpl implements SpaceService {
         }
         return false;
     }
+
+    @Override
+    public List<SpaceInfo> findSpacesByProjectId(int projectId){
+        return spaceRepository.findByProjectId(projectId);
+    }
 }
