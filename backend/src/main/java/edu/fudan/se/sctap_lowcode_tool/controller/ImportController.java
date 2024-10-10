@@ -18,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Path;
 import java.util.UUID;
 
+// TODO: remove this file, move the method into FileController
+
 @RestController
 @RequestMapping("/api/import")
 @Tag(name = "ImportController", description = "导入管理控制器")
