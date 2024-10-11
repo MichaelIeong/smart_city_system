@@ -122,4 +122,32 @@ public class APIControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
         ));
     }
+
+    @Test
+    public void getAllEventsByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/events?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getAllServicesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/services?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
+    @Test
+    public void getAllPropertiesByProjectId() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                get("/api/properties?project=1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ));
+    }
+
 }
