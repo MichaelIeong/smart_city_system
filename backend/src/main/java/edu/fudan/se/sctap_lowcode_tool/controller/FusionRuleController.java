@@ -66,10 +66,13 @@ public class FusionRuleController {
     @Operation(summary = "获取sensor节点数据", description = "联合查询传给前端")
     @GetMapping("/sensor/{projectId}")
     public ResponseEntity<?> getSensorData(@PathVariable int projectId) {
+        System.out.println(projectId);
         //location space表/device/type/function
         //现根据id找到空间列表
-        Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
-        List<SpaceInfo> spaceInfoList = spaceService.findByProjectInfo(projectInfo.get());
+        Optional<ProjectInfo> projectInfo = projectService.findById(1);
+        System.out.println(projectInfo);
+        List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(1);
+        System.out.println(spaceInfoList);
         List<SensorData> sensorDataList = new ArrayList<>();
         for(SpaceInfo spaceInfo : spaceInfoList){
             //获取该空间中的device/deviceType
