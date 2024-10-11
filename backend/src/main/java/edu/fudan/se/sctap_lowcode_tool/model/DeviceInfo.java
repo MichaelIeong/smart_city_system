@@ -36,9 +36,11 @@ public class DeviceInfo {
     private DeviceTypeInfo deviceType;   // 设备的类型
 
     @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<StateDevice> states;   // 设备的状态
 
     @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
     private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}

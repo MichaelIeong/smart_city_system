@@ -36,12 +36,15 @@ public class DeviceTypeInfo {
     private Boolean isSensor;   // 是否为传感器
 
     @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<StateDeviceType> states = new HashSet<>();   // 设备类型的状态
 
     @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<ActuatingFunctionDeviceType> actuatingFunctions = new HashSet<>();   // 设备类型的执行功能
 
     @OneToMany(mappedBy = "deviceType", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<DeviceInfo> devices = new HashSet<>();   // 设备实例
 
     @Override
