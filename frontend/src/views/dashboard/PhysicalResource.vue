@@ -22,8 +22,8 @@
           >
             <a-row :gutter="24">
               <a-col :span="12">
-                <a-form-item label="设备类型编号">
-                  <a-input v-model="newDeviceType.deviceTypeId" placeholder="输入设备类型编号" />
+                <a-form-item label="设备类型序号">
+                  <a-input v-model="newDeviceType.deviceTypeId" placeholder="输入设备类型序号" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
@@ -34,13 +34,13 @@
             </a-row>
             <a-row :gutter="24">
               <a-col :span="12">
-                <a-form-item label="是否为传感器">
-                  <a-input v-model="newDeviceType.isSensor" placeholder="是否为传感器" />
+                <a-form-item label="设备种类">
+                  <a-input v-model="newDeviceType.isSensor" placeholder="输入设备种类" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
-                <a-form-item label="可调节状态">
-                  <a-input v-model="newDeviceType.actuatingFunctions" placeholder="输入可调节状态" />
+                <a-form-item label="设备类型能力">
+                  <a-input v-model="newDeviceType.actuatingFunctions" placeholder="输入设备类型能力" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -111,8 +111,8 @@
         <a-row :gutter="16">
           <!-- 第一行：两个输入框 -->
           <a-col :span="8">
-            <a-form-item label="设备编号">
-              <a-input v-model="newDeviceInstance.deviceId" placeholder="输入设备编号" />
+            <a-form-item label="设备序号">
+              <a-input v-model="newDeviceInstance.deviceId" placeholder="输入设备序号" />
             </a-form-item>
           </a-col>
           <a-col :span="8">
@@ -159,20 +159,20 @@ export default {
       isDeviceInstanceModalVisible: false,
       filteredDeviceInstances: [], // 过滤后的设备实例数据
       deviceTypeColumns: [
-        { title: '设备类型编号', dataIndex: 'deviceTypeId', key: 'deviceTypeId' },
+        { title: '设备类型序号', dataIndex: 'deviceTypeId', key: 'deviceTypeId' },
         { title: '设备类型名称', dataIndex: 'deviceTypeName', key: 'deviceTypeName' },
-        { title: '是否为传感器', dataIndex: 'isSensor', key: 'isSensor' },
-        { title: '可调节状态', dataIndex: 'actuatingFunctions', key: 'actuatingFunctions' }
+        { title: '设备种类', dataIndex: 'isSensor', key: 'isSensor' },
+        { title: '设备类型能力', dataIndex: 'actuatingFunctions', key: 'actuatingFunctions' }
       ],
 
       deviceTypes: [], // 后端获取的设备类型列表
 
       deviceInstanceColumns: [
-        { title: '设备编号', dataIndex: 'deviceId', key: 'deviceId' },
-        { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName' },
-        { title: '设备坐标', dataIndex: 'coordinate', key: 'coordinate' },
-        { title: '设备详情', dataIndex: 'fixedProperties', key: 'fixedProperties' },
-        { title: '设备状态', dataIndex: 'states', key: 'states' }
+        { title: '设备序号', dataIndex: 'deviceId', key: 'deviceId', width: 100 },
+        { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 150 },
+        { title: '设备坐标', dataIndex: 'coordinate', key: 'coordinate', width: 150 },
+        { title: '设备状态', dataIndex: 'states', key: 'states', width: 100 },
+        { title: '设备详情', dataIndex: 'fixedProperties', key: 'fixedProperties', width: 200 }
       ],
 
       deviceInstances: [], // 后端获取的设备实例列表
@@ -213,7 +213,8 @@ export default {
           coordinate: `${device.coordinate.x}, ${device.coordinate.y}, ${device.coordinate.z}`, // 坐标格式化为字符串
           fixedProperties: this.parseFixedProperties(device.fixedProperties), // 解析 JSON 字符串
           states: this.parseStates(device.states), // 解析设备状态数组
-          deviceTypeName: device.deviceTypeName // 确保这个属性存在
+          deviceTypeName: device.deviceTypeName, // 确保这个属性存在
+          deviceTypeId: device.deviceTypeId
         }))
         // 初始化 filteredDeviceInstances
         this.filteredDeviceInstances = [...this.deviceInstances]
@@ -310,7 +311,7 @@ export default {
         this.deviceTypes = deviceData.map(device => ({
           deviceTypeId: device.deviceTypeId,
           deviceTypeName: device.deviceTypeName,
-          isSensor: device.isSensor ? '是' : '否', // 映射布尔值为中文
+          isSensor: device.isSensor ? '传感器' : '其他', // 映射布尔值为中文
           actuatingFunctions: device.actuatingFunctions.map(func => func.name).join(', ') // 映射多个功能名称为字符串
         }))
       } catch (error) {
