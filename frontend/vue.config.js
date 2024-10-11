@@ -147,14 +147,4 @@ if (process.env.VUE_APP_PREVIEW === 'true') {
   vueConfig.configureWebpack.plugins.push(createThemeColorReplacerPlugin())
 }
 
-module.exports = {
-  devServer: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      }
-    }
-  }
-}
-
+module.exports = vueConfig
