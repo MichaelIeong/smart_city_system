@@ -84,9 +84,7 @@
 
         <span slot="action" slot-scope="text, record">
           <template>
-            <a @click="handleEdit(record)">配置</a>
-            <a-divider type="vertical"/>
-            <a @click="handleEdit(record)">订阅</a>
+            <a @click="handleEdit(record)">编辑</a>
             <a-divider type="vertical"/>
             <a @click="deleteRule(record)">删除</a>
           </template>
