@@ -301,8 +301,6 @@ export default {
       }
     },
     loadData () {
-      console.log(99999)
-      // const requestParameters = Object.assign({}, this.queryParam)
       return getRuleList()
           .then(res => {
             console.log('Data received:', res)
