@@ -204,7 +204,7 @@ export default {
     async fetchDeviceData () {
       try {
         // 从 localStorage 获取保存的 projectId
-        const projectId = localStorage.getItem('selectedProjectId')
+        const projectId = localStorage.getItem('project_id')
 
         // 发起带有 projectId 的 API 请求
         const response = await axios.get(`http://localhost:8080/api/devices`, {
@@ -316,7 +316,7 @@ export default {
       this.loading = true
       try {
         // 从 localStorage 获取保存的 projectId
-        const projectId = localStorage.getItem('selectedProjectId')
+        const projectId = localStorage.getItem('project_id')
 
         // 发起带有 projectId 的 API 请求
         const response = await axios.get('http://localhost:8080/api/deviceTypes', {
