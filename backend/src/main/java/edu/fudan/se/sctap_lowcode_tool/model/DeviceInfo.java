@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
 
@@ -50,6 +51,8 @@ public class DeviceInfo {
     private float coordinateY; // 设备的纵坐标
 
     private float coordinateZ; // 设备的Z轴坐标
+
+    private LocalDateTime lastUpdateTime;  // 设备最后更新时间
 
     @Override
     public boolean equals(Object o) {
