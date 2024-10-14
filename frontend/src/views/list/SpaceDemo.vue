@@ -50,6 +50,8 @@
               pagination="{false}"
             />
           </a-col>
+        </a-row>
+        <a-row justify="center" gutter="{16}">
           <!-- 第二行：事件表和服务表 -->
           <a-col :span="12">
             <a-table
@@ -213,9 +215,9 @@ export default {
         console.error('Error fetching data:', error)
       }
     },
-    async fetchSpaces (spaceID) {
+    async fetchSpaces (projectID) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/spaces?project=${spaceID}`)
+        const response = await axios.get(`http://localhost:8080/api/spaces?project=${projectID}`)
         this.spaces = response.data
       } catch (error) {
         console.error('Error fetching spaces:', error)
@@ -277,17 +279,36 @@ html, body {
 }
 
 .table-container {
-  display: flex;
-  justify-content: space-between; /* 平均分配空间 */
-  margin: 20px 0; /* 上下间距 */
+  position: relative;
+  height: 400px; /* 根据需要调整容器高度 */
 }
 
-.table-container .ant-table {
-  margin-right: 15px; /* 每个表格右侧留白 */
+.property-table {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48%; /* 占据容器的一半宽度 */
 }
 
-.table-container .ant-table:last-child {
-  margin-right: 0; /* 最后一个表格右侧不留白 */
+.status-table {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48%; /* 占据容器的一半宽度 */
+}
+
+.event-table {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 48%; /* 占据容器的一半宽度 */
+}
+
+.service-table {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 48%; /* 占据容器的一半宽度 */
 }
 
 </style>
