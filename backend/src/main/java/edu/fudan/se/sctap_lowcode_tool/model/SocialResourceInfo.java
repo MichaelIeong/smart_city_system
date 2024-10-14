@@ -33,6 +33,8 @@ public class SocialResourceInfo {
 
     private String description;   // 资源描述
 
+    private String details;
+
     private String state;  // 资源状态
 
     private LocalDateTime lastUpdateTime;  // 资源最后更新时间

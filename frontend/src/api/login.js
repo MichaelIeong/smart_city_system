@@ -12,7 +12,9 @@ const userApi = {
   UserInfo: '/user/info',
   UserMenu: '/user/nav',
   accessToken: '/token-api/token/',
-  myProfile: '/rest-auth/myprofile/'
+  myProfile: '/rest-auth/myprofile/',
+  // get project list
+  projects: '/api/projects/allProjects'
 }
 
 /**
@@ -104,6 +106,14 @@ export function getAccessToken (parameter) {
 export function getMyProfile () {
   return request({
     url: userApi.myProfile,
+    method: 'get'
+  })
+}
+
+// Get project list
+export function getProjects () {
+  return request({
+    url: userApi.projects,
     method: 'get'
   })
 }

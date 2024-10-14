@@ -134,9 +134,9 @@ export const appOptions = [
 // ======================
 export const locationPrepositionOptions = [
     { value: 'is', label: 'is' },
-    { value: 'contain', label: 'contain' },
-    { value: 'adjacentTo', label: 'adjacentTo' },
-    { value: 'reachableTo', label: 'reachableTo' }
+    // { value: 'contain', label: 'contain' },
+    { value: 'adjacentTo', label: 'adjacentTo' }
+    // { value: 'reachableTo', label: 'reachableTo' }
 ]
 
 export const objectIdOptions = [

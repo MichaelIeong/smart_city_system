@@ -116,30 +116,13 @@ import CreateForm from './modules/CreateForm'
 
 const columns = [
   {
-    title: '规则编号',
-    dataIndex: 'ruleId'
-  },
-  {
     title: '规则名称',
     dataIndex: 'ruleName',
     scopedSlots: { customRender: 'ruleName' }
   },
   {
-    title: '服务调用次数',
-    dataIndex: 'callCount',
-    sorter: true,
-    needTotal: true,
-    customRender: (text) => text + ' 次'
-  },
-  {
-    title: '状态',
-    dataIndex: 'ruleStatus',
-    scopedSlots: { customRender: 'ruleStatus' }
-  },
-  {
-    title: '更新时间',
-    dataIndex: 'projectName',
-    sorter: true
+    title: '规则编号',
+    dataIndex: 'ruleId'
   },
   {
     title: '操作',
@@ -318,8 +301,6 @@ export default {
       }
     },
     loadData () {
-      console.log(99999)
-      // const requestParameters = Object.assign({}, this.queryParam)
       return getRuleList()
           .then(res => {
             console.log('Data received:', res)

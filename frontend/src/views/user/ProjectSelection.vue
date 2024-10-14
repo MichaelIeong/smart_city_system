@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { getProjects } from '@/api/login'
 
 export default {
   data () {
@@ -45,27 +45,17 @@ export default {
   methods: {
     // 用户点击项目时，选择该项目并保存到 localStorage
     selectProject (projectId) {
-      localStorage.setItem('selectedProjectId', projectId) // 保存选择的项目ID
+      localStorage.setItem('project_id', projectId) // 保存选择的项目ID
       this.$router.push({ path: '/space-scene' })
     },
 
     // 获取所有项目数据
     async fetchProjects () {
       try {
-        // 向后端发起请求，获取所有项目
-        const response = await axios.get(
-          'http://localhost:8080/api/projects/allProjects'
-        )
-        const fetchedProjects = response.data
-
-        // 检查如果数据为空
-        if (!fetchedProjects || fetchedProjects.length === 0) {
-          console.warn('API 返回的数据为空或格式不正确')
-        }
+        const fetchedProjects = await getProjects()
 
         // 将本地图片与获取的项目数据结合
         this.allProjects = fetchedProjects.map((project) => {
-          // 判断 projectId 是否为 1 或 2 并设置本地图片
           if (project.projectId === 1) {
             project.image = require('@/assets/commercial.jpg') // ID 为 1 使用 commercial.jpg
           } else if (project.projectId === 2) {
@@ -74,8 +64,7 @@ export default {
           return project
         })
       } catch (error) {
-        // 打印错误信息到控制台
-        console.error('从API获取项目数据失败:', error)
+        console.error('从 API 获取项目数据失败:', error)
       }
     },
 

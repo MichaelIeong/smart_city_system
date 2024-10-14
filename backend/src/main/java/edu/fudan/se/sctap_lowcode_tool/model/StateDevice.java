@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 @Entity
 @Table(name = "state_devices")
@@ -14,6 +15,7 @@ public class StateDevice {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id", nullable = false)
+    @ToString.Exclude
     private DeviceInfo device;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -33,9 +33,14 @@
         :dataSource="filteredData"
         row-key="id"
         :scroll="{ y: 300 }"
-      />
+      >
+        <template #action="{ record }">
+          <a @click="showDetails(record)">详情</a>
+        </template>
+      </a-table>
 
-    </a-card></page-header-wrapper>
+    </a-card>
+  </page-header-wrapper>
 </template>
 
 <script>
@@ -53,52 +58,51 @@ export default {
         { title: '资源类型', dataIndex: 'resourceType', width: 150 },
         { title: '资源描述', dataIndex: 'description', width: 200 },
         { title: '资源状态', dataIndex: 'state', width: 100 },
-        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 }
+        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 },
+        { title: '操作', key: 'action', scopedSlots: { customRender: 'action' }, width: 100 } // 添加动作列
       ],
       socialData: [],
       filteredData: []
     }
   },
   methods: {
-    // 定义一个方法来获取数据
     async fetchData (id) {
       try {
         const response = await axios.get(`http://localhost:8080/api/socialResources/project/${id}`)
-        console.log('API response data:', response.data) // 调试信息，查看数据是否正确返回
-        this.socialData = response.data // 确保将 API 返回的数据赋值给 cyberData
-        this.filteredData = response.data // 初始化 filteredData 为全部数据
-        console.log('cyberData after assignment:', this.socialData) // 查看数据是否成功赋值给 cyberData
+        console.log('API response data:', response.data)
+        this.socialData = response.data
+        this.filteredData = response.data
       } catch (error) {
         console.error('获取数据时发生错误:', error)
       }
     },
-    // 查询并过滤数据
     filterData () {
-      // 根据输入的资源编号和状态进行独立过滤
       this.filteredData = this.socialData.filter(item => {
         const matchesId = !this.queryId || (item.resourceId && item.resourceId.includes(this.queryId))
         const matchesStatus = this.queryStatus === '0' || (item.state && item.state === this.queryStatus)
         return matchesId && matchesStatus
       })
-
-      // 如果没有匹配的结果，确保显示空数组
       if (this.filteredData.length === 0) {
         this.filteredData = []
       }
     },
     resetQueryParam () {
       this.queryId = ''
-      this.queryStatus = '0' // 重置为默认值
-      this.filteredData = this.socialData // 重置为全部数据
+      this.queryStatus = '0'
+      this.filteredData = this.socialData
+    },
+    showDetails (record) {
+      // 这里添加显示详情的逻辑
+      console.log('显示详情:', record)
     }
-
   },
   created () {
     const projectId = '1'
-    this.fetchData(projectId) // 调用方法获取数据
+    this.fetchData(projectId)
   }
 }
 </script>
+
 <style scoped>
 .a-form-item {
   height: 50px; /* 调整表单项的高度 */

@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class APIControllerTest {
+public class AppRuleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,97 +57,75 @@ public class APIControllerTest {
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        Object json = objectMapper.readValue(result, Object.class);
-        String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-        System.out.println(prettyJson);
+        System.out.println(resultActions.andReturn().getResponse().getStatus());
+
+        if (!result.isEmpty()) {
+            Object json = objectMapper.readValue(result, Object.class);
+            String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+            System.out.println(prettyJson);
+        } else {
+            System.out.println("[Empty Response]");
+        }
     }
 
     @Test
-    public void getCyberResourcesByProjectId() throws Exception {
+    public void queryAll() throws Exception {
         printJsonResponse(mockMvc.perform(
-                get("/api/cyberResources/project/1")
+                get("/api/taps?project=1")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
         ));
     }
 
     @Test
-    public void getSocialResourcesByProjectId() throws Exception {
+    public void queryById() throws Exception {
         printJsonResponse(mockMvc.perform(
-                get("/api/socialResources/project/1")
+                get("/api/taps/1")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
         ));
     }
 
     @Test
-    public void getDeviceTypesByProjectId() throws Exception {
+    public void create() throws Exception {
+        AppRuleRequest ruleRequest = new AppRuleRequest(
+                1, "description", "{}"
+        );
         printJsonResponse(mockMvc.perform(
-                get("/api/deviceTypes?project=1")
+                MockMvcRequestBuilders.post("/api/taps")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(ruleRequest))
+        ));
+    }
+
+    @Test
+    public void update() throws Exception {
+        AppRuleRequest ruleRequest = new AppRuleRequest(
+                1, "description", "{}"
+        );
+        printJsonResponse(mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/taps/1")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(ruleRequest))
+        ));
+    }
+
+    @Test
+    public void delete() throws Exception {
+        printJsonResponse(mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/taps/1")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
         ));
     }
 
     @Test
-    public void getDeviceDetailById() throws Exception {
+    public void batchDelete() throws Exception {
         printJsonResponse(mockMvc.perform(
-                get("/api/devices/1")
+                MockMvcRequestBuilders.delete("/api/taps?id=1,2,3")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
-    public void getDevicesByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/devices?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
-    public void getAllSpacesByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/spaces?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-    @Test
-    public void getSpaceDetail() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/spaces/1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
-    public void getAllEventsByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/events?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
-    public void getAllServicesByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/services?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-        ));
-    }
-
-    @Test
-    public void getAllPropertiesByProjectId() throws Exception {
-        printJsonResponse(mockMvc.perform(
-                get("/api/properties?project=1")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
         ));
     }
 

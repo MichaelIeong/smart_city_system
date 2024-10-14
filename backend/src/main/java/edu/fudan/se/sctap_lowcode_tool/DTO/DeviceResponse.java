@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.DTO;
 
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -14,6 +15,7 @@ public final class DeviceResponse {
     public final String deviceTypeName;
     public final String fixedProperties;
     public final Coordinate coordinate;
+    public final LocalDateTime lastUpdateTime;
     public final List<DeviceState> states;
     public final List<DeviceFunction> functions;
     public DeviceResponse(DeviceInfo deviceInfo) {
@@ -23,6 +25,7 @@ public final class DeviceResponse {
         this.deviceTypeId = deviceInfo.getDeviceType().getDeviceTypeId();
         this.deviceTypeName = deviceInfo.getDeviceType().getDeviceTypeName();
         this.fixedProperties = deviceInfo.getFixedProperties();
+        this.lastUpdateTime = deviceInfo.getLastUpdateTime();
         this.coordinate = new Coordinate(
                 deviceInfo.getCoordinateX(),
                 deviceInfo.getCoordinateY(),
@@ -39,21 +42,6 @@ public final class DeviceResponse {
                 actuatingFunction.getActuatingFunction().getParams(),
                 actuatingFunction.getUrl()
         )).toList();
-    }
-
-    @Override
-    public String toString() {
-        return "DeviceResponse{" +
-                "id=" + id +
-                ", deviceId='" + deviceId + '\'' +
-                ", deviceName='" + deviceName + '\'' +
-                ", deviceTypeId='" + deviceTypeId + '\'' +
-                ", deviceTypeName='" + deviceTypeName + '\'' +
-                ", fixedProperties='" + fixedProperties + '\'' +
-                ", coordinate=" + coordinate +
-                ", states=" + states +
-                ", functions=" + functions +
-                '}';
     }
 
     public record Coordinate(float x, float y, float z) {

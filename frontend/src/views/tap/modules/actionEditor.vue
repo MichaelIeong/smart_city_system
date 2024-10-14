@@ -1,8 +1,8 @@
 <template>
   <div>
-    <h2 class="title">Action</h2>
+    <h2 class="title">动作</h2>
     <el-alert
-      title="Execute the corresponding action according to the current and previous conditions."
+      title="根据当前和之前的条件执行相应的动作。"
       type="success"
       :closable="false">
     </el-alert>
@@ -16,12 +16,14 @@
             </el-button>
             <el-button size="mini" icon="el-icon-delete" @click="removeItem(i)"></el-button>
           </template>
-          <el-descriptions-item label="action_name">{{ t.action.action_name }}
+          <el-descriptions-item label="服务名称" :labelStyle="labelStyle">{{ t.action.action_name }}
           </el-descriptions-item>
-          <el-descriptions-item label="conditions">
+          <el-descriptions-item label="条件判断" :labelStyle="labelStyle">
+            <span v-if="t.history_condition.length > 0">history:</span>
             <span v-for="(c, index) in t.history_condition" :key="'hc' + index">
               {{ `${index === 0 ? 'where ' : c.logicalOperator} ${c.name} ${c.comparator} ${c.value}` }}
             </span>
+            <span v-if="t.current_condition.length > 0">current:</span>
             <span v-for="(c, index) in t.current_condition" :key="'cc' + index">
               {{ `${index === 0 ? 'where ' : c.logicalOperator}
               ${c.location.locationPreposition}_${c.location.location}.${c.property.join('.')} ${c.comparator}
@@ -29,12 +31,12 @@
               }}
             </span>
           </el-descriptions-item>
-          <el-descriptions-item label="location">
+          <el-descriptions-item label="动作位置" :labelStyle="labelStyle">
             <span v-for="(loc, index) in t.action.action_location" :key="index">
               {{ `${loc.locationPreposition} ${loc.location},` }}
             </span>
           </el-descriptions-item>
-          <el-descriptions-item label="action_param">{{ t.action.action_param }}
+          <el-descriptions-item label="动作参数" :labelStyle="labelStyle">{{ t.action.action_param }}
           </el-descriptions-item>
         </el-descriptions>
 
@@ -43,17 +45,17 @@
     <!-- 添加按钮和配置对话框 -->
     <el-card style="display: flex;align-content: center;justify-content: center;" class="card-margin">
       <el-button type="text" @click="openEditor()">
-        <i class="el-icon-circle-plus" style="font-size: 25px;"> Add Action</i>
+        <i class="el-icon-circle-plus" style="font-size: 25px;">新增动作</i>
       </el-button>
-      <el-dialog title="Action" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
+      <el-dialog title="动作" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
         <el-form :model="item_now" label-width="auto">
 
           <div>
-            Conditional judgement
+            条件判断
           </div>
           <!-- history condition -->
-          <el-button type="primary" size="mini" @click="addHistoryCondition">Add History Condition</el-button>
-          <el-form-item v-for="(c, i) in item_now.history_condition" label="history_condition" :key="'hc' + i">
+          <el-button type="primary" size="mini" @click="addHistoryCondition">新增历史条件</el-button>
+          <el-form-item v-for="(c, i) in item_now.history_condition" label="历史条件" :key="'hc' + i">
             <span v-if="i === 0">Where </span>
             <el-select v-if="i > 0" v-model="c.logicalOperator" filterable style="width: 60px;">
               <el-option
@@ -80,8 +82,8 @@
           </el-form-item>
 
           <!-- current condition -->
-          <el-button type="primary" size="mini" @click="addCurrentCondition">Add Current Condition</el-button>
-          <el-form-item label="current_condition" v-for="(c, i) in item_now.current_condition" :key="'cc' + i">
+          <el-button type="primary" size="mini" @click="addCurrentCondition">新增当前条件</el-button>
+          <el-form-item label="当前条件" v-for="(c, i) in item_now.current_condition" :key="'cc' + i">
             <span v-if="i === 0">Where </span>
             <el-select v-if="i > 0" v-model="c.logicalOperator" filterable placeholder="Operator" style="width: 60px;">
               <el-option
@@ -91,11 +93,11 @@
                 :value="item.value">
               </el-option>
             </el-select>
-            <LocationInput v-model="c.location" />
+            <LocationInput v-model="c.location" :allowCurrentPosition="true"/>
 
             <el-cascader
               v-model="c.property"
-              :options="LocationPropertyOptions"
+              :options="propertyOptionList"
               :props="{ expandTrigger: 'hover' }"
               clearable
               filterable
@@ -112,22 +114,22 @@
 
           <el-divider></el-divider>
           <div>
-            Action selection
+            动作选择
           </div>
 
-          <el-form-item label="action_name">
+          <el-form-item label="服务名称">
             <el-select v-model="item_now.action.action_name" placeholder="">
-              <el-option v-for="(ac, i) in actionOptions" :key="i" :label="ac.label" :value="ac.value"></el-option>
+              <el-option v-for="(ac, i) in serviceOptionList" :key="i" :label="ac.label" :value="ac.value"></el-option>
             </el-select>
           </el-form-item>
 
-          <el-button type="primary" size="mini" @click="addLocation">Add Action Location</el-button>
-          <el-form-item v-for="(loc, i) in item_now.action.action_location" label="action_location" :key="'loc' + i">
-            <LocationInput :value="loc"></LocationInput>
+          <el-button type="primary" size="mini" @click="addLocation">新增动作位置</el-button>
+          <el-form-item v-for="(loc, i) in item_now.action.action_location" label="动作位置" :key="'loc' + i">
+            <LocationInput :value="loc" :allowCurrentPosition="true"></LocationInput>
             <el-button @click.prevent="removeLocation(loc)" icon="el-icon-delete" type="text"></el-button>
           </el-form-item>
 
-          <el-form-item label="action_param">
+          <!-- <el-form-item label="动作参数">
             <el-select
               v-model="item_now.action.action_param"
               multiple
@@ -142,12 +144,18 @@
                 :value="item.result_name">
               </el-option>
             </el-select>
+          </el-form-item> -->
+          <el-form-item label="动作参数">
+            <el-input
+              v-model="item_now.action.action_param"
+              placeholder="请输入动作参数">
+            </el-input>
           </el-form-item>
 
         </el-form>
         <div slot="footer">
-          <el-button @click="cancelUpdateItem">Cancel</el-button>
-          <el-button type="primary" @click="updateItem">Confirm</el-button>
+          <el-button @click="cancelUpdateItem">取消</el-button>
+          <el-button type="primary" @click="updateItem">确认</el-button>
         </div>
       </el-dialog>
     </el-card>
@@ -155,9 +163,10 @@
 </template>
 
 <script>
-import { eventTypeNameOptions, locationOptions, actionOptions, comparatorOptions, logicalOperatorOptions, LocationPropertyOptions } from './data.js'
+import { eventTypeNameOptions, locationOptions, comparatorOptions, logicalOperatorOptions } from './data.js'
 import LocationInput from './locationInput.vue'
 import bus from './bus'
+import { getProperties, getServices } from '@/api/manage.js'
 
 const defaultItem = {
   current_condition: [],
@@ -165,7 +174,7 @@ const defaultItem = {
   action: {
     action_name: '',
     action_location: [],
-    action_param: []
+    action_param: ''
   }
 }
 
@@ -194,16 +203,23 @@ export default {
 
       eventTypeNameOptions,
       locationOptions,
-      actionOptions,
+      // actionOptions,
       comparatorOptions,
       logicalOperatorOptions,
-      LocationPropertyOptions
+      // LocationPropertyOptions
+      propertyOptionList: [],
+      serviceOptionList: [],
+      labelStyle: { 'width': '80px' } // 表单样式 (标签列宽固定)
     }
   },
   mounted () {
     this.resultList = this.value
     this.actionLocationOptions.push({ value: 'trigger_location', label: 'trigger_location' })
     this.actionLocationOptions.push(...this.locationOptions)
+  },
+  created () {
+    this.getPropertyList()
+    this.getServiceList()
   },
   watch: {
     'historyLength': {
@@ -250,7 +266,7 @@ export default {
         const action = {
           action_name: item.action.action_name,
           action_location: actionLocation,
-          action_param: item.action.action_param.join(',')
+          action_param: item.action.action_param
         }
         finalResult.push({
           history_condition: historyCondition,
@@ -260,6 +276,115 @@ export default {
       })
       // console.log(finalResult);
       return finalResult
+    },
+    showResult (action) {
+      if (!action) return
+      const list = []
+      action.forEach(aItem => {
+        const item = {}
+        item.action = this.dealAction(aItem.action)
+        item.history_condition = this.dealHistoryConditionString(aItem.history_condition)
+        item.current_condition = this.dealCurrentConditionString(aItem.current_condition)
+        list.push(item)
+        console.log(item)
+      })
+      list.forEach(item => {
+        this.resultList.push(item)
+      })
+    },
+    dealAction (action) {
+      const result = {}
+      result.action_name = action.action_name
+      result.action_param = action.action_param
+      result.action_location = []
+      action.action_location.forEach(loc => {
+        const [locationPreposition, ...locationParts] = loc.split(' ')
+        const location = {
+          locationPreposition: locationPreposition === 'is' ? 'is' : locationPreposition,
+          location: locationParts.join(' ')
+        }
+        result.action_location.push(location)
+      })
+      return result
+    },
+    dealHistoryConditionString (string) {
+      const result = []
+      const conditions = string.split(/([|&])/)
+      let logicalOperator = null
+      conditions.forEach(part => {
+        if (part === '&') {
+          logicalOperator = 'and'
+        } else if (part === '|') {
+          logicalOperator = 'or'
+        } else {
+          // 匹配 name、comparator 和 value
+          const match = part.match(/^(\w+)([><=])(\w+)$/)
+          if (match) {
+            const [, name, comparator, value] = match
+            result.push({
+              name,
+              comparator,
+              value,
+              logicalOperator: logicalOperator || 'or' // 默认用 'or'
+            })
+            logicalOperator = null // 重置逻辑符号
+          }
+        }
+      })
+      return result
+    },
+    dealCurrentConditionString (string) {
+      const result = []
+      const conditions = string.split(/([|&])/)
+      let logicalOperator = null
+      conditions.forEach(part => {
+        if (part === '&') {
+          logicalOperator = 'and'
+        } else if (part === '|') {
+          logicalOperator = 'or'
+        } else {
+          // 匹配 location、property、comparator 和 value
+          const match = part.match(/^([\w_]+)\.(.+?)([><=])(\w+)$/)
+          if (match) {
+            const [, locationPart, propertyStr, comparator, value] = match
+            // 解析 locationPart
+            const [locationPreposition, location] = locationPart.includes('_')
+            ? [locationPart.split('_', 1)[0], locationPart.split('_').slice(1).join('_')]
+            : ['is', locationPart]
+            const property = propertyStr.split('.')
+            result.push({
+              location: {
+                locationPreposition,
+                location
+              },
+              property,
+              comparator,
+              value,
+              logicalOperator: logicalOperator || 'or' // 默认用 'or'
+            })
+            logicalOperator = null // 重置逻辑符号
+          }
+        }
+      })
+      return result
+    },
+    getPropertyList () {
+      const projectId = 1 // TODO: true projectId
+      getProperties(projectId).then(res => {
+        this.propertyOptionList = res.map(property => ({
+          value: property.propertyId,
+          label: property.propertyKey
+        }))
+      })
+    },
+    getServiceList () {
+      const projectId = 1 // TODO: true projectId
+      getServices(projectId).then(res => {
+        this.serviceOptionList = res.map(service => ({
+          value: service.serviceId,
+          label: service.serviceName
+        }))
+      })
     },
     refresh () {
       this.$forceUpdate()

@@ -34,7 +34,11 @@
         :dataSource="filteredData"
         row-key="id"
         :scroll="{ y: 300 }"
-      />
+      >
+        <template #action="{ record }">
+          <a @click="showDetails(record)">详情</a>
+        </template>
+      </a-table>
 
     </a-card>
   </page-header-wrapper>
@@ -56,7 +60,8 @@ export default {
         { title: '资源类型', dataIndex: 'resourceType', width: 150 },
         { title: '资源描述', dataIndex: 'description', width: 200 },
         { title: '资源状态', dataIndex: 'state', width: 100 },
-        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 }
+        { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 },
+        { title: '操作', key: 'action', scopedSlots: { customRender: 'action' }, width: 100 }
       ],
       cyberData: [],
       filteredData: [],
@@ -107,6 +112,10 @@ export default {
       // 处理分页切换
       this.pagination = pagination
       this.filterData() // 重新过滤并显示对应页码的数据
+    },
+    showDetails (record) {
+      // 这里添加显示详情的逻辑
+      console.log('显示详情:', record)
     }
   },
   created () {

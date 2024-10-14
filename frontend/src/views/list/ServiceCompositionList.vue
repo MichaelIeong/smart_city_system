@@ -102,37 +102,19 @@
 <script>
 import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
-// import { getServiceList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
 
 const columns = [
   {
-    title: '服务编号',
-    dataIndex: 'ruleId'
-  },
-  {
     title: '服务名称',
     dataIndex: 'ruleName',
     scopedSlots: { customRender: 'ruleName' }
   },
   {
-    title: '服务调用次数',
-    dataIndex: 'callCount',
-    sorter: true,
-    needTotal: true,
-    customRender: (text) => text + ' 次'
-  },
-  {
-    title: '状态',
-    dataIndex: 'ruleStatus',
-    scopedSlots: { customRender: 'ruleStatus' }
-  },
-  {
-    title: '更新时间',
-    dataIndex: 'projectName',
-    sorter: true
+    title: '服务编号',
+    dataIndex: 'ruleId'
   },
   {
     title: '操作',

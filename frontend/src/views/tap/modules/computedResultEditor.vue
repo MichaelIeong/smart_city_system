@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="title">Scenario Computing</h2>
+    <h2 class="title">历史条件计算</h2>
     <!-- list 配置结果-->
     <div v-for="(t, i) in resultList" :key="i">
       <el-card style="" class="card-margin">
@@ -10,26 +10,26 @@
             </el-button>
             <el-button size="mini" icon="el-icon-delete" @click="removeItem(i)"></el-button>
           </template>
-          <el-descriptions-item label="function_name">{{ t.function_name }}</el-descriptions-item>
-          <el-descriptions-item label="param">{{ t.param }}</el-descriptions-item>
-          <el-descriptions-item label="result_name">{{ t.result_name }}</el-descriptions-item>
+          <el-descriptions-item label="函数名称" :labelStyle="labelStyle">{{ t.function_name }}</el-descriptions-item>
+          <el-descriptions-item label="参数" :labelStyle="labelStyle">{{ t.param }}</el-descriptions-item>
+          <el-descriptions-item label="结果名称" :labelStyle="labelStyle">{{ t.result_name }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
     </div>
     <!-- 添加按钮和配置对话框 -->
     <el-card style="display: flex;align-content: center;justify-content: center;" class="card-margin">
       <el-button type="text" @click="openEditor()">
-        <i class="el-icon-circle-plus" style="font-size: 25px;"> Add Computing</i>
+        <i class="el-icon-circle-plus" style="font-size: 25px;">新增历史条件计算</i>
       </el-button>
-      <el-dialog title="Scenario Computing" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
+      <el-dialog title="历史条件计算" :visible.sync="dialogEditorVisible" @close="cancelUpdateItem">
         <el-form :model="item_now" label-width="auto">
-          <el-form-item label="function_name">
+          <el-form-item label="函数名称">
             <el-select v-model="item_now.function_name" placeholder="">
               <el-option v-for="item in functionOptions" :key="item.value" :label="item.label" :value="item.value">
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="param">
+          <el-form-item label="参数">
             <el-select
               v-model="item_now.param"
               multiple
@@ -41,13 +41,13 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="result_name">
+          <el-form-item label="结果名称">
             <el-input v-model="item_now.result_name" disabled></el-input>
           </el-form-item>
         </el-form>
         <div slot="footer">
-          <el-button @click="cancelUpdateItem">Cancel</el-button>
-          <el-button type="primary" @click="updateItem">Confirm</el-button>
+          <el-button @click="cancelUpdateItem">取消</el-button>
+          <el-button type="primary" @click="updateItem">确认</el-button>
         </div>
       </el-dialog>
     </el-card>
@@ -83,7 +83,8 @@ export default {
       itemIndex: -1,
       item_now: JSON.parse(JSON.stringify(defaultItem)),
       resultList: [],
-      functionOptions
+      functionOptions,
+      labelStyle: { 'width': '80px' } // 表单样式 (标签列宽固定)
     }
   },
   mounted () {
@@ -96,15 +97,30 @@ export default {
       finalResult.forEach((item) => {
         item.param = item.param.join(',')
       })
-      // console.log(finalResult)
       return finalResult
     },
-
+    showResult (computing) {
+      if (!computing) return
+      const list = []
+      computing.forEach(cItem => {
+        const item = cItem
+        if (cItem.param === '') {
+          cItem.param = []
+        } else {
+          item.param = cItem.param.split(',')
+        }
+        list.push(item)
+      })
+      list.forEach(item => {
+        this.resultList.push(item)
+      })
+    },
     refresh () {
       this.$forceUpdate()
       this.$emit('input', this.resultList)
     },
     openEditor (triggerInfo, index) {
+      console.log(triggerInfo)
       if (triggerInfo && index >= 0) {
         this.item_now = JSON.parse(JSON.stringify(triggerInfo))
         this.itemIndex = index

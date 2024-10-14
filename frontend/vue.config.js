@@ -148,4 +148,3 @@ if (process.env.VUE_APP_PREVIEW === 'true') {
 }
 
 module.exports = vueConfig
-

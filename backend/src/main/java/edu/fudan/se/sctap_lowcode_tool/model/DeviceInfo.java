@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
 
@@ -36,9 +37,11 @@ public class DeviceInfo {
     private DeviceTypeInfo deviceType;   // 设备的类型
 
     @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<StateDevice> states;   // 设备的状态
 
     @OneToMany(mappedBy = "device", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ToString.Exclude
     private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
     private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}
@@ -48,6 +51,8 @@ public class DeviceInfo {
     private float coordinateY; // 设备的纵坐标
 
     private float coordinateZ; // 设备的Z轴坐标
+
+    private LocalDateTime lastUpdateTime;  // 设备最后更新时间
 
     @Override
     public boolean equals(Object o) {
