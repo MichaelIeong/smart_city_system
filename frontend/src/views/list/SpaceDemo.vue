@@ -1,7 +1,9 @@
 <template>
   <div class="space-demo-container">
-    <!-- 3D渲染容器 -->
-    <div id="three-container"></div>
+    <a-spin :spinning="isLoading" tip="Loading...">
+      <!-- 3D渲染容器 -->
+      <div id="three-container"></div>
+    </a-spin>
 
     <!-- 表单区域 -->
     <div class="form-container">
@@ -36,14 +38,15 @@
         <!-- 表格区域 -->
         <a-row justify="center" gutter="{16}">
           <!-- 第一行：属性表和状态表 -->
-          <a-col :span="12">
+          <a-col :span="11">
             <a-table
               :columns="propertyColumns"
               :dataSource="propertyData"
               pagination="{false}"
             />
           </a-col>
-          <a-col :span="12">
+          <a-col :span="2"></a-col>
+          <a-col :span="11">
             <a-table
               :columns="statusColumns"
               :dataSource="statusData"
@@ -53,14 +56,15 @@
         </a-row>
         <a-row justify="center" gutter="{16}">
           <!-- 第二行：事件表和服务表 -->
-          <a-col :span="12">
+          <a-col :span="11">
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
               pagination="{false}"
             />
           </a-col>
-          <a-col :span="12">
+          <a-col :span="2"></a-col>
+          <a-col :span="11">
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
@@ -81,13 +85,14 @@ export default {
   name: 'SpaceDemo',
   data () {
     return {
+      isLoading: true,
       meta: null,
       FloorMap: {
         0: '/Park_e50d76e1b0bd4a91869076afc36e6a01/Building_48b5fb64ad0340a1b2121478b20a9369/Floor_5bc543e44c994054b3ff843e6da0695c/graphic.glb',
         1: '/Park_e50d76e1b0bd4a91869076afc36e6a01/graphic.glb',
         2: '/Park_e50d76e1b0bd4a91869076afc36e6a01/Building_48b5fb64ad0340a1b2121478b20a9369/graphic.glb'
       },
-      selectedSpace: undefined,
+      selectedSpace: 1,
       spaces: [],
 
       // 表格1: 属性
@@ -153,6 +158,7 @@ export default {
   },
   methods: {
     initMeta () {
+      this.isLoading = true
       createWebglEngine((config) => {
         config.scene.cache = true
         config.scene.cacheType = (url) => {
@@ -166,7 +172,9 @@ export default {
       }).then((app) => {
         app.amount('three-container')
         this.meta = app
-        this.changeDemo('0')
+        this.changeDemo('0').then(() => {
+          this.isLoading = false
+        })
       })
     },
     change (selectedSpace) {
@@ -228,7 +236,7 @@ export default {
     setTimeout(() => {
       this.initMeta()
       this.fetchSpaces(1)
-      this.fetchData()
+      this.fetchData(1)
     }, 1000)
   }
 }
