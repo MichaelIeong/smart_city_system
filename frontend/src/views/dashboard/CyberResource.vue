@@ -61,7 +61,7 @@ export default {
         { title: '资源描述', dataIndex: 'description', width: 200 },
         { title: '资源状态', dataIndex: 'state', width: 100 },
         { title: '更新时间', dataIndex: 'lastUpdateTime', width: 200 },
-        { title: '', key: 'action', scopedSlots: { customRender: 'action' }, width: 100 }
+        { title: '操作', key: 'action', scopedSlots: { customRender: 'action' }, width: 100 }
       ],
       cyberData: [],
       filteredData: [],

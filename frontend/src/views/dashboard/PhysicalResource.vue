@@ -10,10 +10,8 @@
             :pagination="false"
             :scroll="{ y: 250 }"
           />
-          <!-- 分割线 -->
-          <a-divider />
 
-          <a-button type="primary" @click="showAddDeviceTypeModal">新增设备类型</a-button>
+          <a-button type="primary" @click="showAddDeviceTypeModal" style="margin-top: 16px;">新增设备类型</a-button>
           <a-modal
             v-model="isDeviceTypeModalVisible"
             title="新增设备类型"
@@ -85,8 +83,6 @@
             :scroll="{ y: 300 }"
             style="margin-top: 20px;"
           />
-          <!-- 分割线 -->
-          <a-divider />
           <!-- 新增设备实例按钮 -->
           <a-row style="margin-top: 16px;">
             <a-col>
