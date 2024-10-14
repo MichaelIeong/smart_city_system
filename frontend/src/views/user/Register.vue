@@ -175,14 +175,14 @@ export default {
         if (!err) {
           state.passwordLevelChecked = false
           const registrationData = {
-            userName: values.username,
-            passWord: values.password
+            username: values.username,
+            password: values.password
           }
           console.log(registrationData)
           register(registrationData)
             .then(res => {
               // 如果注册成功，跳转到注册成功页面
-              this.$router.push({ name: 'registerResult', params: { ...values } })
+              this.$router.push({ name: 'login', params: { ...values } })
             })
             .catch(() => {
               // 处理注册失败的情况，比如提示错误信息
