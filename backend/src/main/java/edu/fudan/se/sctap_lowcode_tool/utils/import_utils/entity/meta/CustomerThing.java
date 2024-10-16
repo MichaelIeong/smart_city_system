@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.model.import_json.meta;
+package edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.meta;
 
 public record CustomerThing(
         String Id,

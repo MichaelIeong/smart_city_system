@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.model.import_json.meta;
+package edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.meta;
 
 import java.util.List;
 
@@ -17,8 +17,8 @@ public record Meta(
         String DeviceName,
         String DeviceType,
         List<Meta> Children,
-        List<String> Tags, // TODO: confirm
-        List<CustomerThing> CustomerPropertys,
+        List<String> Tags,
+        List<CustomerThing> CustomerProperties,
         List<CustomerThing> CustomerEvents,
         List<CustomerThing> CustomerServices,
         Coordinate GeoLocation
