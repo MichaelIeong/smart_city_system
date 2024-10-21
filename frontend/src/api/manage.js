@@ -28,12 +28,15 @@ export function getUserList (parameter) {
 }
 
 export function postProject (formData) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
   return request({
     url: api.project, // 确保 api.project 指向正确的后端 /upload 路径
     method: 'post',
     data: formData, // 使用 data 而不是 params 来发送 FormData
     headers: {
-      'Content-Type': 'multipart/form-data' // 设置 multipart/form-data 头
+      'Content-Type': 'multipart/form-data', // 设置 multipart/form-data 头
+      'Authorization': `Bearer ${token}`
     }
   })
 }

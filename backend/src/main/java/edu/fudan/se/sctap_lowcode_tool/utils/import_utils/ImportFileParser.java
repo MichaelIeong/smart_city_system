@@ -2,12 +2,14 @@ package edu.fudan.se.sctap_lowcode_tool.utils.import_utils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import edu.fudan.se.sctap_lowcode_tool.model.import_json.index.Index;
-import edu.fudan.se.sctap_lowcode_tool.model.import_json.meta.Meta;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.MetaTreeNode;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.index.Index;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.meta.Meta;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Utility class for parsing index and meta files.
@@ -71,5 +73,80 @@ public class ImportFileParser {
     public static Meta parseMeta(Path path) throws IOException, ParseException {
         String json = Files.readString(path);
         return parseMeta(json);
+    }
+
+    /**
+     * Parses the meta tree starting from the given base path and the relative path of the root meta file.
+     *
+     * @param basePath               the base path where the meta files are located
+     * @param relativePathOfMetaFile the relative path of the root meta file
+     * @return the root node of the parsed meta tree
+     * @throws IOException    if an I/O error occurs while reading the meta files
+     * @throws ParseException if a parsing error occurs while reading the meta files
+     */
+    public static MetaTreeNode parseMetaTree(Path basePath, Path relativePathOfMetaFile) throws IOException, ParseException {
+
+        Queue<MetaTreeNode> waitingQueue = new LinkedList<>();
+        Set<Path> visitedPaths = new HashSet<>(); // 记录已访问的路径
+        MetaTreeNode root = new MetaTreeNode(relativePathOfMetaFile, null);
+        waitingQueue.add(root);
+
+        try {
+            while (!waitingQueue.isEmpty()) {
+                MetaTreeNode currentNode = waitingQueue.poll();
+                Path currentMetaPathRelative = currentNode.getMetaFilePath();
+                if (visitedPaths.contains(currentMetaPathRelative)) {
+                    throw new ParseException(
+                            "Duplicated parents detected in meta files, " +
+                                    "this file has at least two parents: " +
+                                    currentMetaPathRelative + "."
+                    );
+                } else {
+                    visitedPaths.add(currentMetaPathRelative);
+                }
+
+                // Parse the meta file and set the meta to the current node
+                Path currentMetaPath = basePath.resolve(currentMetaPathRelative);
+                Meta currentMeta = ImportFileParser.parseMeta(currentMetaPath);
+                currentNode.setMeta(currentMeta);
+
+                // Parse the children of the current meta and add them to the current node
+                List<MetaTreeNode> children = currentMeta.getChildrenSpaces().stream()
+                        .map(Meta::MetaUri)
+                        .map(Path::of)
+                        .map(path -> new MetaTreeNode(path, currentNode))
+                        .toList();
+                currentNode.setChildren(children);
+
+                // Add the children to the waiting queue
+                waitingQueue.addAll(children);
+            }
+        } catch (ParseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+        return root;
+    }
+
+    /**
+     * Parses the meta tree starting from the given base path and use the index.json in the base path.
+     *
+     * @param indexFileBasePath the base path where the index file is located
+     * @return the root node of the parsed meta tree
+     * @throws IOException    if an I/O error occurs while reading the index or meta files
+     * @throws ParseException if a parsing error occurs while reading the index or meta files
+     */
+    public static MetaTreeNode parseMetaTree(Path indexFileBasePath) throws IOException, ParseException {
+        try {
+            Path indexPath = indexFileBasePath.resolve("index.json");
+            Index index = ImportFileParser.parseIndex(indexPath);
+            Path rootMetaRelativePath = Path.of(index.RootSpace().MetaUri());
+            return parseMetaTree(indexFileBasePath, rootMetaRelativePath);
+        } catch (ParseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 }

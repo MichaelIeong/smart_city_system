@@ -182,7 +182,7 @@ export default {
           register(registrationData)
             .then(res => {
               // 如果注册成功，跳转到注册成功页面
-              this.$router.push({ name: 'login', params: { ...values } })
+              this.$router.push({ name: 'login' })
             })
             .catch(() => {
               // 处理注册失败的情况，比如提示错误信息

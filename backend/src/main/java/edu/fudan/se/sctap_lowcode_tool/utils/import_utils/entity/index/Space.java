@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.model.import_json.index;
+package edu.fudan.se.sctap_lowcode_tool.utils.import_utils.entity.index;
 
 import java.util.List;
 

@@ -15,6 +15,10 @@ public class BadRequestException extends RuntimeException {
         this(errCode, errMsg, List.of(new ErrorDetail(location, param, msg)));
     }
 
+    public BadRequestException(Exception e) {
+        this("400", e.getMessage(), List.of());
+    }
+
     public ErrorResponse get() {
         return errorResponse;
     }

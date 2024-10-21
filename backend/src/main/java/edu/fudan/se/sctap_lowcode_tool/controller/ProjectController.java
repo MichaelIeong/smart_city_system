@@ -1,15 +1,25 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
 import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
+import edu.fudan.se.sctap_lowcode_tool.service.ImportService;
 import edu.fudan.se.sctap_lowcode_tool.service.ProjectService;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.ImportFileParser;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.ParseException;
+import edu.fudan.se.sctap_lowcode_tool.utils.import_utils.UnZip;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/projects")
 @Tag(name = "ProjectController", description = "项目控制器")
@@ -17,6 +27,9 @@ public class ProjectController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private ImportService importService;
 
     @PostMapping("/upload")
     @Operation(summary = "上传项目信息", description = "上传新的或更新现有项目的信息。")
@@ -59,11 +72,31 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.findAll());
     }
 
+    @Operation(summary = "导入特斯联提供的模型文件(ZIP压缩包)", description = "该服务将增加device, device_type, space, event到数据库中")
     @PostMapping("/import")
-    @Operation(summary = "导入项目信息", description = "从JSON文件导入项目信息。")
-    public ResponseEntity<Void> importProjects(@RequestBody String json) {
-        boolean isSuccess = projectService.importProjects(json);
-        return isSuccess ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
+    public ResponseEntity<String> postEvent(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("projectName") String projectName
+    ) {
+        Path destDir = Path.of("src/main/resources/unzip-" + UUID.randomUUID());
+        try {
+            // unzip
+            UnZip.unzip(file, destDir);
+
+            // iterate the unzip files
+            var tree = ImportFileParser.parseMetaTree(destDir);
+            importService.importRecursively(tree, projectName);
+
+        } catch (IOException | ParseException e) {
+            throw new BadRequestException(e);
+        } finally {
+            // delete the unzip files
+            if (!UnZip.deleteDirectory(destDir)) {
+                log.warn("Failed to delete the unzip files - {}", destDir);
+            }
+        }
+
+        return ResponseEntity.ok("ok");
     }
 
     @GetMapping("/export")
