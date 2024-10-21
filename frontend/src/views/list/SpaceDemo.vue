@@ -188,6 +188,11 @@ export default {
     changeDemo (type) {
       return this.meta.render(this.FloorMap[type], true).then(() => {
         console.log('场景渲染完成.')
+
+      // 调整相机位置，使模型显示得更大
+      const camera = this.meta.camera
+      camera.position.set(0, 100, 100) // 将相机的位置调整得更近一些，缩短 Z 轴距离
+      camera.updateProjectionMatrix() // 更新投影矩阵以应用更改
       })
     },
     async fetchData (spaceID) {
@@ -223,8 +228,11 @@ export default {
         console.error('Error fetching data:', error)
       }
     },
-    async fetchSpaces (projectID) {
+    async fetchSpaces () {
       try {
+        // 从 localStorage 获取保存的 projectId
+        const projectID = localStorage.getItem('project_id')
+
         const response = await axios.get(`http://localhost:8080/api/spaces?project=${projectID}`)
         this.spaces = response.data
       } catch (error) {
@@ -235,7 +243,7 @@ export default {
   mounted () {
     setTimeout(() => {
       this.initMeta()
-      this.fetchSpaces(1)
+      this.fetchSpaces()
       this.fetchData(1)
     }, 1000)
   }
