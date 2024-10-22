@@ -41,8 +41,8 @@ const user = {
         login(userInfo).then(response => {
           console.log(response)
           const result = response
-          console.log(result)
           storage.set(ACCESS_TOKEN, result.token, new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+          storage.set('port', result.port)
           commit('SET_TOKEN', result.token)
           resolve()
         }).catch(error => {

@@ -80,7 +80,7 @@
 import TwoStepCaptcha from '@/components/tools/TwoStepCaptcha'
 import { mapActions } from 'vuex'
 import { timeFix } from '@/utils/util'
-import { getSmsCaptcha } from '@/api/login'
+import storage from 'store'
 
 export default {
   components: {
@@ -105,32 +105,6 @@ export default {
       }
     }
   },
-  // created () {
-  //   get2step({ })
-  //     .then(res => {
-  //       this.requiredTwoStepCaptcha = res.result.stepCode
-  //     })
-  //     .catch(() => {
-  //       this.requiredTwoStepCaptcha = false
-  //     })
-  //     // alert('hello')
-  //     var params = {
-  //       username: 'admin',
-  //       password: 'admin'
-  //     }
-  //     const hide = this.$message.loading('正在登录..', 0)
-  //     getAccessToken(params)
-  //       .then(res => {
-  //         setTimeout(hide, 2500)
-  //         this.$notification['success']({
-  //           message: '提示',
-  //           description: '你的AccessToken为：' + res.access,
-  //           duration: 8
-  //         })
-  //       })
-  //
-  //   // this.requiredTwoStepCaptcha = true
-  // },
   methods: {
     ...mapActions(['Login', 'Logout']),
     // handler
@@ -197,40 +171,6 @@ export default {
         }
       })
     },
-    getCaptcha (e) {
-      e.preventDefault()
-      const { form: { validateFields }, state } = this
-
-      validateFields(['mobile'], { force: true }, (err, values) => {
-        if (!err) {
-          state.smsSendBtn = true
-
-          const interval = window.setInterval(() => {
-            if (state.time-- <= 0) {
-              state.time = 60
-              state.smsSendBtn = false
-              window.clearInterval(interval)
-            }
-          }, 1000)
-
-          const hide = this.$message.loading('验证码发送中..', 0)
-          getSmsCaptcha({ mobile: values.mobile }).then(res => {
-            setTimeout(hide, 2500)
-            this.$notification['success']({
-              message: '提示',
-              description: '验证码获取成功，您的验证码为：' + res.result.captcha,
-              duration: 8
-            })
-          }).catch(err => {
-            setTimeout(hide, 1)
-            clearInterval(interval)
-            state.time = 60
-            state.smsSendBtn = false
-            this.requestFailed(err)
-          })
-        }
-      })
-    },
     stepCaptchaSuccess () {
       this.loginSuccess()
     },
@@ -241,18 +181,13 @@ export default {
       })
     },
     loginSuccess (res) {
-      console.log(res)
-      // check res.homePage define, set $router.push name res.homePage
-      // Why not enter onComplete
-      /*
-      this.$router.push({ name: 'analysis' }, () => {
-        console.log('onComplete')
-        this.$notification.success({
-          message: '欢迎',
-          description: `${timeFix()}，欢迎回来`
-        })
-      })
-      */
+      // console.log(res)
+      // storage.set(AUTHORIZATION, 'Bearer' + ' ' + res.access, 7 * 24 * 60 * 60 * 1000)
+      // 存储userId
+      // storage.set('userId', res.access.userid)
+      // console.log(res.data)
+      const port = storage.get('port')
+      console.log(port)
       this.$router.push({ path: '/user/project-selection' })
       // 延迟 1 秒显示欢迎信息
       setTimeout(() => {

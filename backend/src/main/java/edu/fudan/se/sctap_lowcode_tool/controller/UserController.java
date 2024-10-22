@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.RegisterRequest;
+import edu.fudan.se.sctap_lowcode_tool.service.NodeRedService;
 import edu.fudan.se.sctap_lowcode_tool.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private NodeRedService nodeRedService;
+
     // 登录接口，接收用户名和密码
     @Operation(summary = "用户登录", description = "登录，验证后返回token和projectList")
     @PostMapping("/login")
@@ -26,8 +30,12 @@ public class UserController {
         try {
             // 调用 UserService 进行用户验证
             String token = userService.login(loginRequest.getUsername(), loginRequest.getPassword());
+            //
+            int port = 1880 + userService.getUserId(loginRequest.getUsername());
             // 返回生成的 JWT token以及用户的项目list
-            LoginResponse loginResponse = new LoginResponse(token);
+            nodeRedService.startNodeRedInstance(port);
+            System.out.println(port);
+            LoginResponse loginResponse = new LoginResponse(token, port);
             return ResponseEntity.ok(loginResponse);  // 返回生成的 JWT token 或者其他凭证
         } catch (Exception e) {
             return ResponseEntity.status(401).body("Unauthorized: " + e.getMessage());

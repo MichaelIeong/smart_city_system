@@ -51,4 +51,11 @@ public class UserServiceImpl implements UserService {
         newUser.setPassword(encodedPassword);  // 保存加密后的密码
         userRepository.save(newUser);
     }
+
+    @Override
+    public int getUserId(String username) throws Exception {
+        // 检查用户名是否已存在
+        return userRepository.findByUsername(username).get().getUserId();
+
+    }
 }

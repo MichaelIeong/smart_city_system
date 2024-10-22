@@ -111,6 +111,7 @@ import { getRuleList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
+import storage from 'store'
 
 const columns = [
   {
@@ -203,7 +204,8 @@ export default {
       })
     },
     handleAdd () {
-      window.open('http://127.0.0.1:1880/', '_blank')
+      const port = storage.get('port')
+      window.open('http://127.0.0.1:' + port, '_blank')
     },
     handleEdit (record) {
       let flowJson
@@ -216,7 +218,8 @@ export default {
       }
 
       console.log(flowJson)
-      fetch('http://127.0.0.1:1880/flows ', {
+      const port = storage.get('port')
+      fetch('http://127.0.0.1:' + port + 'flows ', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -225,7 +228,7 @@ export default {
       })
           .finally(() => {
             // 发送数据后，无论成功与否，都打开新窗口
-            window.open('http://127.0.0.1:1880/', '_blank')
+            window.open('http://127.0.0.1:' + port, '_blank')
           })
           .catch(error => {
             console.error('网络错误:', error)
