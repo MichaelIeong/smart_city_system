@@ -5,10 +5,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    depends_on:
-      - db
+#    depends_on:
+#      - db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/sctap
+      SPRING_DATASOURCE_URL: jdbc:mysql://10.177.29.226:13306/sctap
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
     networks:
@@ -36,17 +36,17 @@ services:
     networks:
       - app-network
 
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: sctap
-    ports:
-      - "33062:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - app-network
+#  db:
+#    image: mysql:8.0
+#    environment:
+#      MYSQL_ROOT_PASSWORD: 123456
+#      MYSQL_DATABASE: sctap
+#    ports:
+#      - "33062:3306"
+#    volumes:
+#      - db_data:/var/lib/mysql
+#    networks:
+#      - app-network
 
 volumes:
   db_data:
