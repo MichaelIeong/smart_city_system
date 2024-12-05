@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCreateRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRunRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
@@ -32,14 +33,14 @@ public class AppRuleController {
     }
 
     @PostMapping
-    public void create(@RequestBody AppRuleRequest rule) {
+    public void create(@RequestBody AppRuleCreateRequest rule) {
         appRuleService.createRule(rule);
     }
 
     @PutMapping("/{id}")
     public void update(
             @PathVariable("id") Integer id,
-            @RequestBody AppRuleRequest rule) {
+            @RequestBody AppRuleCreateRequest rule) {
         appRuleService.updateRule(id, rule);
     }
 
@@ -51,6 +52,13 @@ public class AppRuleController {
     @DeleteMapping
     public void deleteAll(@RequestParam("id") List<Integer> ids) {
         appRuleService.deleteRulesByIds(ids);
+    }
+
+
+    @PostMapping("/submit")
+    public ResponseEntity<Void> runRule(@RequestBody AppRuleRunRequest request) {
+        appRuleService.runRule(request);
+        return ResponseEntity.ok().build();
     }
 
 }

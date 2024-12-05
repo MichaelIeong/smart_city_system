@@ -30,6 +30,8 @@ public class ServiceInfo {
     @Column(nullable = false)
     private String serviceName; // 服务名称, 例如“会议模式”
 
+    private String url; // 服务URL(POST请求)
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

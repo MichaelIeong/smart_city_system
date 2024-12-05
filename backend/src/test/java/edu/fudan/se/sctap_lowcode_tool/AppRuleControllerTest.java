@@ -2,7 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.LoginRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,7 +88,7 @@ public class AppRuleControllerTest {
 
     @Test
     public void create() throws Exception {
-        AppRuleRequest ruleRequest = new AppRuleRequest(
+        AppRuleCreateRequest ruleRequest = new AppRuleCreateRequest(
                 1, "description", "{}"
         );
         printJsonResponse(mockMvc.perform(
@@ -101,7 +101,7 @@ public class AppRuleControllerTest {
 
     @Test
     public void update() throws Exception {
-        AppRuleRequest ruleRequest = new AppRuleRequest(
+        AppRuleCreateRequest ruleRequest = new AppRuleCreateRequest(
                 1, "description", "{}"
         );
         printJsonResponse(mockMvc.perform(
