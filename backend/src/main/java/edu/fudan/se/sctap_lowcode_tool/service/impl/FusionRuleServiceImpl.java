@@ -16,10 +16,8 @@ public class FusionRuleServiceImpl implements FusionRuleService {
 
     @Override
     public void addNewRule(FusionRule fusionRule) {
-        System.out.println("八嘎八嘎");
         FusionRule existRule = fusionRuleRepository.findByRuleName(fusionRule.getRuleName());
         if(existRule!=null){
-            System.out.println("nima,尼玛嗦斯");
             System.out.println(existRule.getRuleName());
             System.out.println(existRule.getRuleId());
             fusionRule.setRuleId(existRule.getRuleId());
