@@ -19,6 +19,6 @@ public class ActuatingFunctionDevice {
     @JoinColumn(name = "device_id", nullable = false)
     private DeviceInfo device;
 
-    private String url;
+    private String url;  // 设备的URL
 
 }

@@ -16,4 +16,6 @@ public class ActuatingFunctionInfo {
 
     private String params;   // 功能的参数，以JSON对象格式字符串存储，例如{"mode":"string", "temperature":"int"}
 
+    private String description;   // 功能的描述
+
 }

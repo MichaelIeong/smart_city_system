@@ -15,15 +15,43 @@ public class SpaceService {
     @Autowired
     private SpaceRepository spaceRepository;
 
+    /**
+     * 根据项目ID查询所有空间
+     *
+     * @param projectId 项目ID
+     * @return 空间列表
+     */
     public List<SpaceInfo> findSpacesByProjectId(int projectId) {
         return spaceRepository.findByProjectInfo_ProjectId(projectId);
     }
 
+    /**
+     * 根据空间ID查询具体空间
+     *
+     * @param id 空间ID
+     * @return 空间信息（Optional包装）
+     */
     public Optional<SpaceInfo> findSpaceById(int id) {
         return spaceRepository.findById(id);
     }
 
-    public List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo){
+    /**
+     * 根据ProjectInfo查询所有空间
+     *
+     * @param projectInfo 项目信息
+     * @return 空间列表
+     */
+    public List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo) {
         return spaceRepository.findByProjectInfo(projectInfo);
+    }
+
+    /**
+     * 根据空间名称查询SpaceInfo
+     *
+     * @param spaceName 空间名称
+     * @return 空间信息（Optional包装）
+     */
+    public Optional<SpaceInfo> findBySpaceName(String spaceName) {
+        return spaceRepository.findBySpaceName(spaceName);
     }
 }
