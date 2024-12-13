@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+
 @RestController
 @CrossOrigin
 @RequestMapping("/api/fusion")
@@ -101,4 +102,11 @@ public class FusionRuleController {
         }
         return ResponseEntity.ok(sensorDataList);
     }
+
+    @Operation(summary = "获取所有事件融合算子", description = "获取所有事件融合算子")
+    @GetMapping("/operator/")
+    public List<Operator> getAllOperators() {
+        return fusionRuleService.getAllOperators();
+    }
+
 }

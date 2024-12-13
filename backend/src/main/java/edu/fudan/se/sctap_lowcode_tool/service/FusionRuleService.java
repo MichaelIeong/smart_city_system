@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository; // 新增
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,16 @@ public class FusionRuleService {
 
     @Autowired
     private SpaceService spaceService;
+
+    @Autowired
+    private OperatorRepository operatorRepository; // 新增的注入
+
+    /**
+     * 获取所有Operator记录
+     */
+    public List<Operator> getAllOperators() {
+        return operatorRepository.findAll();
+    }
 
     /**
      * 添加或更新规则。
