@@ -1,16 +1,15 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
-import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.ProjectRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.PropertySpaceRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.ServiceRepository;
-import edu.fudan.se.sctap_lowcode_tool.utils.ConditionEvaluator;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
+import edu.fudan.se.sctap_lowcode_tool.utils.CurrentConditionEvaluator;
+import edu.fudan.se.sctap_lowcode_tool.utils.HistoryConditionEvaluator;
 import edu.fudan.se.sctap_lowcode_tool.utils.HttpRequestUtils;
+import edu.fudan.se.sctap_lowcode_tool.utils.TimeAdjustUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -37,14 +36,14 @@ public class AppRuleService {
     @Autowired
     private ServiceRepository serviceRepository;
 
+    @Autowired
+    private EventHistoryRepository eventHistoryRepository;
+
     public PageDTO<AppRuleInfo> getAllRulesByProjectId(Integer projectId, int pageNo, int pageSize) {
         PageRequest pageRequest = PageRequest.of(pageNo - 1, pageSize);
         Page<AppRuleInfo> repoResult = appRuleRepository.findAllByProjectId(projectId, pageRequest);
-        return new PageDTO<>(
-                pageNo, pageSize,
-                repoResult.getTotalElements(), repoResult.getTotalPages(),
-                repoResult.getContent()
-        );
+        return new PageDTO<>(pageNo, pageSize, repoResult.getTotalElements(), repoResult.getTotalPages(),
+                             repoResult.getContent());
     }
 
     public Optional<AppRuleInfo> getRuleById(Integer ruleId) {
@@ -63,10 +62,9 @@ public class AppRuleService {
     public void updateRule(Integer ruleId, AppRuleCreateRequest rule) {
         var appRuleInfo = getEntityFromRequest(rule);
         if (appRuleRepository.findById(ruleId).isEmpty()) {
-            throw new BadRequestException(
-                    "400", "Rule not exists to update",
-                    "rule.id", ruleId.toString(), "ruleId not found"
-            );
+            throw new BadRequestException("400", "Rule not exists to update", "rule.id", ruleId.toString(), "ruleId " +
+                                                                                                            "not " +
+                                                                                                            "found");
         }
         appRuleInfo.setId(ruleId);
         appRuleRepository.save(appRuleInfo);
@@ -74,28 +72,36 @@ public class AppRuleService {
 
     private AppRuleInfo getEntityFromRequest(AppRuleCreateRequest rule) {
         AppRuleInfo appRuleInfo = new AppRuleInfo();
-        projectRepository.findById(rule.projectId()).ifPresentOrElse(
-                appRuleInfo::setProject,
-                () -> {
-                    throw new BadRequestException(
-                            "400", "Project not found",
-                            "rule.projectId", rule.projectId().toString(), "projectId not found"
-                    );
-                });
+        projectRepository.findById(rule.projectId()).ifPresentOrElse(appRuleInfo::setProject, () -> {
+            throw new BadRequestException("400", "Project not found", "rule.projectId", rule.projectId().toString(),
+                                          "projectId not found");
+        });
         appRuleInfo.setDescription(rule.description());
         appRuleInfo.setRuleJson(rule.ruleJson());
         appRuleInfo.setUpdateTime(LocalDateTime.now());
         return appRuleInfo;
     }
 
-    private AppRuleContent getContentFromJson(String json) {
-        return new GsonBuilder().create().fromJson(json, AppRuleContent.class);
+    public void runRule(AppRuleRunRequest request) {
+        var rules = this.getAllRules();
+        for (var rule : rules) {
+            if (
+                this.filterTrigger(rule, request) &&
+                this.filterCurrentCondition(rule, request) &&
+                this.filterHistoryCondition(rule, request)
+            ) {
+                log.info("Rule {} is triggered", rule.getAction().action().actionName());
+                this.postService(rule, request);
+            }
+        }
     }
 
     private List<AppRuleContent> getAllRules() {
-        return appRuleRepository.findAll().stream()
-                .map(rule -> this.getContentFromJson(rule.getRuleJson()))
-                .toList();
+        return appRuleRepository.findAll().stream().map(rule -> this.getContentFromJson(rule.getRuleJson())).toList();
+    }
+
+    private AppRuleContent getContentFromJson(String json) {
+        return new Gson().fromJson(json, AppRuleContent.class);
     }
 
     private boolean filterTrigger(AppRuleContent rule, AppRuleRunRequest request) {
@@ -130,15 +136,13 @@ public class AppRuleService {
         -- 若为空, 视为满足
         -- 若不为空, 则解析current_condition, 检查是否满足。解析时将trigger_location绑定到实际的space
          */
-        ConditionEvaluator parser = new ConditionEvaluator() {
+        CurrentConditionEvaluator parser = new CurrentConditionEvaluator() {
             @Override
             public double get(String variable) {
                 String[] parts = variable.split("\\.");
                 if (parts.length != 2) {
-                    throw new BadRequestException(
-                            "400", "Variable format error",
-                            "variable", variable, "variable format error"
-                    );
+                    throw new BadRequestException("400", "Variable format error", "variable", variable, "variable " +
+                                                                                                        "format error");
                 }
                 var spaceId = parts[0].replace("trigger_location", request.spaceId());
                 var propertyId = parts[1];
@@ -151,7 +155,39 @@ public class AppRuleService {
                 }
             }
         };
+        if (rule.getAction().currentCondition() == null || rule.getAction().currentCondition().isBlank()) {
+            return true;
+        }
         return parser.evaluateCondition(rule.getAction().currentCondition());
+    }
+
+    private boolean filterHistoryCondition(AppRuleContent rule, AppRuleRunRequest request) {
+        return rule.getAction().historyCondition().stream().allMatch(condition -> {
+            // 从event_history中提取指定的历史事件
+            List<EventHistory> eventHistories;
+            try {
+                if (condition.eventsFilter().rangeType() == null) {
+                    throw new BadRequestException("400", "Range type not specified", "rule.rangeType", "null",
+                                                  "rangeType not specified");
+                }
+                if (condition.eventsFilter().rangeType().equals("time")) {
+                    eventHistories =
+                        eventHistoryRepository.findByEventTypeAndTimestamp(condition.eventsFilter().eventTypeIds(),
+                                                                           condition.eventsFilter().fromTime().toLocalDateTime(), condition.eventsFilter().toTime().toLocalDateTime());
+                } else {
+                    eventHistories =
+                        eventHistoryRepository.findTopRecordsBeforeTimeWithLimit(condition.eventsFilter().eventTypeIds(), condition.eventsFilter().toTime().toLocalDateTime(), condition.eventsFilter().count());
+                }
+            } catch (TimeAdjustUtils.BadDateTimeArgumentException e) {
+                throw new BadRequestException(e);
+            }
+
+            // 使用condition_evaluator解析历史事件
+            // 获取指定的算子
+            var func = HistoryConditionEvaluator.dispatch(condition.conditionEvaluator());
+            // 评估是否满足HistoryCondition, 传入历史事件和请求数据
+            return func.eval(eventHistories, request);
+        });
     }
 
     private void postService(AppRuleContent rule, AppRuleRunRequest request) {
@@ -164,26 +200,8 @@ public class AppRuleService {
         var action = rule.getAction().action();
         var actionJson = new Gson().toJson(action);
         var serviceName = action.actionName();
-        action.actionLocations().stream()
-                .map(space -> space.replace("trigger_location", request.spaceId()))
-                .map(space -> serviceRepository.findSpecificService(serviceName, space, request.projectId()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(ServiceInfo::getUrl)
-                .forEach(url -> HttpRequestUtils.post(url, actionJson));
+        action.actionLocations().stream().map(space -> space.replace("trigger_location", request.spaceId())).map(space -> serviceRepository.findSpecificService(serviceName, space, request.projectId())).filter(Optional::isPresent).map(Optional::get).map(ServiceInfo::getUrl).forEach(url -> HttpRequestUtils.post(url, actionJson));
     }
-
-    public void runRule(AppRuleRunRequest request) {
-        var rules = this.getAllRules();
-        for (var rule : rules) {
-            if (this.filterTrigger(rule, request) && this.filterCurrentCondition(rule, request)) {
-                log.info("Rule {} is triggered", rule.getAction().action().actionName());
-                this.postService(rule, request);
-            }
-        }
-    }
-    
-    
 
 
 }

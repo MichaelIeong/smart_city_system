@@ -1,6 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.utils;
 
-public abstract class ConditionEvaluator {
+public abstract class CurrentConditionEvaluator {
 
     /**
      * 从变量名获取值

@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -13,29 +14,19 @@ public class EventHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
-    private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
+    private int id;   // 历史记录的唯一标识符，应有其自己的ID
 
-    @Column(nullable = false)
-    private String eventType; // 事件类型
+    @ToString.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id")
+    private EventInfo eventInfo; // 发生的事件
 
-    @Column(nullable = false)
-    private String location; // 事件发生的位置
-
-    @Column(nullable = false)
     private int objectId; // 事件相关对象的ID
 
     @Column
     private String eventData; // 事件数据
 
-    @Column
-    private String dataValue; // 数据值
-
-    @Column
-    private String state; // 状态
-
     @Column(nullable = false)
     private LocalDateTime timestamp; // 事件发生的时间
 
-    @Column
-    private String eventDetails; // 事件详情
 }

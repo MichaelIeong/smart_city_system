@@ -1,10 +1,12 @@
 package edu.fudan.se.sctap_lowcode_tool.DTO;
 
 import com.google.gson.annotations.SerializedName;
+import edu.fudan.se.sctap_lowcode_tool.utils.TimeAdjustUtils;
 
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public record AppRuleContent(
@@ -87,20 +89,46 @@ public record AppRuleContent(
 
     public record ScenarioAction(
             @SerializedName("history_condition")
-            String historyCondition,
+            List<HistoryCondition> historyCondition,
             @SerializedName("current_condition")
             String currentCondition,
             @SerializedName("action")
             Action action
     ) {
-        public record Action(
-                @SerializedName("action_name")
-                String actionName,
-                @SerializedName("action_location")
-                List<String> actionLocations,
-                @SerializedName("action_param")
-                String actionParam
-        ) {
+        @Override
+        public List<HistoryCondition> historyCondition() {
+            return historyCondition != null ? historyCondition : List.of();
         }
+    }
+
+    public record Action(
+        @SerializedName("action_name")
+        String actionName,
+        @SerializedName("action_location")
+        List<String> actionLocations,
+        @SerializedName("action_param")
+        String actionParam
+    ) {
+    }
+
+    public record HistoryCondition(
+        EventsFilter eventsFilter,
+        ConditionEvaluator conditionEvaluator
+    ) {
+    }
+
+    public record EventsFilter(
+        List<String> eventTypeIds,
+        String rangeType, // "time" or "count"
+        TimeAdjustUtils.PointInTime toTime,
+        TimeAdjustUtils.PointInTime fromTime,
+        Integer count
+    ) {
+    }
+
+    public record ConditionEvaluator(
+        String name,
+        Map<String, Object> params
+    ) {
     }
 }
