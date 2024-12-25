@@ -7,9 +7,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository; // 新增
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class FusionRuleService {
@@ -21,13 +19,38 @@ public class FusionRuleService {
     private SpaceService spaceService;
 
     @Autowired
-    private OperatorRepository operatorRepository; // 新增的注入
+    private OperatorRepository operatorRepository;
+
+    @Autowired
+    private OperatorService operatorService;
 
     /**
-     * 获取所有Operator记录
+     * 获取所有运算符记录，包括工具类运算符和数据库运算符。
+     *
+     * @return 所有运算符的列表
      */
     public List<Operator> getAllOperators() {
-        return operatorRepository.findAll();
+        List<Operator> operators = new ArrayList<>();
+
+        // 添加工具类运算符
+        operators.addAll(operatorService.getAllUtilOperators());
+
+        // 添加数据库中的运算符
+        operators.addAll(operatorRepository.findAll());
+
+        return operators;
+    }
+
+    /**
+     * 调用工具类运算符的逻辑。
+     *
+     * @param operatorName 运算符名称
+     * @param input1       第一个输入值
+     * @param input2       第二个输入值
+     * @return 运算结果
+     */
+    public boolean applyUtilOperator(String operatorName, Object input1, Object input2) {
+        return operatorService.applyUtilOperator(operatorName, input1, input2);
     }
 
     /**
