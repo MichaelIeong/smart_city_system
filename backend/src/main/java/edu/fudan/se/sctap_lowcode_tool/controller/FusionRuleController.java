@@ -31,39 +31,56 @@ public class FusionRuleController {
     @Autowired
     private ProjectService projectService;
 
-    @Operation(summary = "上传新的规则", description = "用户在node-red构建好规则，传给后端，加入到数据库并立即执行")
+    /**
+     * 上传新的规则，并立即执行 Node-RED JSON 的处理逻辑，同时保存规则到数据库。
+     *
+     * @param msg 包含 ruleJson 和 flowJson 的 Map
+     * @return 操作结果
+     */
+    @Operation(summary = "上传并处理规则", description = "用户在 Node-RED 构建好规则，传给后端，加入到数据库并立即执行")
     @PostMapping("/uploadrule")
-    public ResponseEntity<Void> saveRule(@RequestBody Map<String, JsonNode> msg) {
+    public ResponseEntity<Void> saveAndProcessRule(@RequestBody Map<String, JsonNode> msg) {
         JsonNode ruleJson = msg.get("ruleJson");
         JsonNode flowJson = msg.get("flowJson");
 
+        // 创建规则对象并保存到数据库
         FusionRule fusionRule = new FusionRule();
         fusionRule.setFlowJson(flowJson.toString());
         fusionRule.setRuleJson(ruleJson.toString());
         fusionRule.setRuleName(ruleJson.get("rulename").asText());
-
-        // 保存规则
         fusionRuleService.addNewRule(fusionRule);
 
-        // 上传规则后立即执行设备处理逻辑
-        fusionRuleService.executeDeviceProcessing(ruleJson);
+        // 调用服务处理 Node-RED JSON
+        fusionRuleService.processNodeRedJson(ruleJson);
 
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "获取规则列表", description = "将规则list传给前端")
+    /**
+     * 获取规则列表。
+     *
+     * @param request Http 请求对象
+     * @return 规则列表
+     */
+    @Operation(summary = "获取规则列表", description = "将规则列表传给前端")
     @GetMapping("/getRuleList")
     public ResponseEntity<?> getRuleList(HttpServletRequest request) {
         List<FusionRule> fusionRuleList = fusionRuleService.getRuleList();
         return ResponseEntity.ok(fusionRuleList);
     }
 
-    @Operation(summary = "获取sensor节点数据", description = "联合查询传给前端")
+    /**
+     * 根据项目 ID 获取 Sensor 节点数据。
+     *
+     * @param projectId 项目 ID
+     * @return Sensor 数据列表
+     */
+    @Operation(summary = "获取 Sensor 节点数据", description = "联合查询传给前端")
     @GetMapping("/sensor/{projectId}")
     public ResponseEntity<?> getSensorData(@PathVariable int projectId) {
         Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
         if (projectInfo.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("未找到对应ID的项目！");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("未找到对应 ID 的项目！");
         }
 
         List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(projectId);
@@ -103,10 +120,14 @@ public class FusionRuleController {
         return ResponseEntity.ok(sensorDataList);
     }
 
+    /**
+     * 获取所有事件融合算子。
+     *
+     * @return 算子列表
+     */
     @Operation(summary = "获取所有事件融合算子", description = "获取所有事件融合算子")
     @GetMapping("/operator/")
     public List<Operator> getAllOperators() {
         return fusionRuleService.getAllOperators();
     }
-
 }

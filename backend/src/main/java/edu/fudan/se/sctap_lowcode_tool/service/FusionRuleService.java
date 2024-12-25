@@ -3,7 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository; // 新增
+import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,13 +16,13 @@ public class FusionRuleService {
     private FusionRuleRepository fusionRuleRepository;
 
     @Autowired
-    private SpaceService spaceService;
-
-    @Autowired
     private OperatorRepository operatorRepository;
 
     @Autowired
     private OperatorService operatorService;
+
+    // 全局状态存储，用于保存每一步的结果 (step -> value)
+    private Map<String, Double> globalState = new HashMap<>();
 
     /**
      * 获取所有运算符记录，包括工具类运算符和数据库运算符。
@@ -31,13 +31,8 @@ public class FusionRuleService {
      */
     public List<Operator> getAllOperators() {
         List<Operator> operators = new ArrayList<>();
-
-        // 添加工具类运算符
-        operators.addAll(operatorService.getAllUtilOperators());
-
-        // 添加数据库中的运算符
-        operators.addAll(operatorRepository.findAll());
-
+        operators.addAll(operatorService.getAllUtilOperators()); // 工具类运算符
+        operators.addAll(operatorRepository.findAll()); // 数据库中的运算符
         return operators;
     }
 
@@ -76,69 +71,119 @@ public class FusionRuleService {
     }
 
     /**
-     * 执行设备处理逻辑：自动解析规则内容并处理所有Sensor节点。
+     * 实时处理从 Node-RED 传入的 JSON。
      *
-     * @param ruleJson 包含规则信息的JSON对象
+     * @param ruleJson 包含规则信息的 JSON 对象
      */
-    public void executeDeviceProcessing(JsonNode ruleJson) {
+    public void processNodeRedJson(JsonNode ruleJson) {
         if (!ruleJson.has("steps")) {
-            System.out.println("规则中未包含有效的步骤信息，跳过设备处理。");
+            System.out.println("规则中未包含有效的步骤信息，跳过处理。");
             return;
         }
 
-        ruleJson.fields().forEachRemaining(entry -> {
-            JsonNode node = entry.getValue();
-            if (node.has("type") && "Sensor".equalsIgnoreCase(node.get("type").asText())) {
-                String location = node.get("location").asText();
-                String sensingFunction = node.get("sensingFunction").asText();
+        // 获取总步骤数并按顺序处理
+        int totalSteps = ruleJson.get("steps").asInt();
+        for (int currentStep = 1; currentStep <= totalSteps; currentStep++) {
+            JsonNode currentNode = findNodeByStep(ruleJson, currentStep);
 
-                System.out.println("处理Sensor节点：位置=" + location + "，功能=" + sensingFunction);
-
-                Optional<SpaceInfo> optionalSpaceInfo = spaceService.findBySpaceName(location);
-                if (optionalSpaceInfo.isEmpty()) {
-                    System.out.println("未找到位置=" + location + "的空间信息，跳过该节点。");
-                    return;
-                }
-
-                SpaceInfo spaceInfo = optionalSpaceInfo.get();
-                Set<DeviceInfo> devices = spaceInfo.getSpaceDevices();
-                if (devices == null || devices.isEmpty()) {
-                    System.out.println("空间：" + location + " 中没有设备，跳过该节点。");
-                    return;
-                }
-
-                String functionUrl = findFunctionUrl(devices, sensingFunction);
-                if (functionUrl == null) {
-                    System.out.println("在空间：" + location + "中未找到功能：" + sensingFunction + " 的设备。");
-                } else {
-                    System.out.println("成功找到功能URL：" + functionUrl);
-                }
-            }
-        });
-    }
-
-    /**
-     * 在设备列表中查找匹配的功能URL。
-     *
-     * @param devices          设备列表
-     * @param sensingFunction  要匹配的功能名称
-     * @return 匹配的功能URL，如果未找到返回null
-     */
-    private String findFunctionUrl(Set<DeviceInfo> devices, String sensingFunction) {
-        for (DeviceInfo device : devices) {
-            Set<ActuatingFunctionDevice> actuatingFunctions = device.getActuatingFunctions();
-            if (actuatingFunctions == null) {
+            if (currentNode == null) {
+                System.out.println("未找到 step=" + currentStep + " 的节点，跳过该步骤。");
                 continue;
             }
 
-            for (ActuatingFunctionDevice afd : actuatingFunctions) {
-                ActuatingFunctionInfo afi = afd.getActuatingFunction();
-                if (afi != null && sensingFunction.equalsIgnoreCase(afi.getName())) {
-                    System.out.println("找到设备：" + device.getDeviceName() + "，功能：" + afi.getName());
-                    return afd.getUrl(); // 从 ActuatingFunctionDevice 获取 URL
-                }
+            String nodeType = currentNode.get("type").asText();
+            switch (nodeType) {
+                case "Sensor":
+                    processSensorNode(currentNode);
+                    break;
+                case "Operator":
+                    processOperatorNode(currentNode);
+                    break;
+                default:
+                    System.out.println("未知的节点类型: " + nodeType + "，跳过该步骤。");
+                    break;
+            }
+        }
+    }
+
+    /**
+     * 根据 step 查找对应的节点。
+     *
+     * @param ruleJson JSON 对象
+     * @param step     当前步骤
+     * @return 对应的节点，如果未找到返回 null
+     */
+    private JsonNode findNodeByStep(JsonNode ruleJson, int step) {
+        for (Iterator<Map.Entry<String, JsonNode>> it = ruleJson.fields(); it.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = it.next();
+            JsonNode node = entry.getValue();
+            if (node.has("step") && node.get("step").asInt() == step) {
+                return node;
             }
         }
         return null;
+    }
+
+    /**
+     * 处理 Sensor 节点。
+     *
+     * @param sensorNode Sensor 节点
+     */
+    private void processSensorNode(JsonNode sensorNode) {
+        String step = sensorNode.get("step").asText();
+        String location = sensorNode.get("location").asText();
+        String sensingFunction = sensorNode.get("sensingFunction").asText();
+
+        // 获取传感器值
+        double sensorValue = getSensorValue(sensorNode);
+        globalState.put(step, sensorValue);
+
+        System.out.println("从 Sensor 节点获取的值: step=" + step + "，位置=" + location + "，功能=" + sensingFunction + "，值=" + sensorValue);
+    }
+
+    /**
+     * 处理 Operator 节点。
+     *
+     * @param operatorNode Operator 节点
+     */
+    private void processOperatorNode(JsonNode operatorNode) {
+        String step = operatorNode.get("step").asText();
+        String previousStep = String.valueOf(Integer.parseInt(step) - 1); // 假设 Operator 依赖上一节点的值
+
+        Double inputValue = globalState.get(previousStep);
+
+        if (inputValue == null) {
+            System.out.println("未找到对应的输入值，无法处理 Operator 节点: step=" + step);
+            return;
+        }
+
+        String operatorName = operatorNode.get("operator").asText();
+        double operatorValue = operatorNode.get("value").asDouble();
+
+        // 调用 OperatorService 进行计算
+        boolean result;
+        try {
+            result = operatorService.applyUtilOperator(operatorName, inputValue, operatorValue);
+        } catch (UnsupportedOperationException e) {
+            System.out.println("不支持的运算符: " + operatorName + "，跳过处理。");
+            return;
+        }
+
+        System.out.println("规则计算结果: step=" + step + ", Sensor Value (" + inputValue + ") " +
+                operatorName + " Operator Value (" + operatorValue + ") = " + result);
+
+        // 将结果存入全局状态 (布尔值可以存为 1.0 或 0.0)
+        globalState.put(step, result ? 1.0 : 0.0);
+    }
+
+    /**
+     * 获取传感器值（简化逻辑，不再依赖功能 URL）。
+     *
+     * @param sensorNode 包含传感器信息的 JSON 节点
+     * @return 模拟的传感器值
+     */
+    private double getSensorValue(JsonNode sensorNode) {
+        // 如果需要动态查询，可以在此实现查询逻辑
+        return 28.5; // 示例值
     }
 }
