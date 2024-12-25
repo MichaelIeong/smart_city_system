@@ -121,8 +121,8 @@ public class OperatorUtil {
         operators.add(createOperator("Equal to", null, "Boolean", true));
         operators.add(createOperator("Greater than or equal to", null, "Boolean", true));
         operators.add(createOperator("Less than or equal to", null, "Boolean", true));
-        operators.add(createOperator("AND", null, "Boolean", true));
-        operators.add(createOperator("OR", null, "Boolean", true));
+        operators.add(createOperator("AND", null, "Boolean", false));
+        operators.add(createOperator("OR", null, "Boolean", false));
 
         return operators;
     }
