@@ -13,6 +13,8 @@ public interface DeviceTypeRepository extends JpaRepository<DeviceTypeInfo, Inte
 
     Optional<DeviceTypeInfo> findById(int id);
 
+    Optional<DeviceTypeInfo> findByProjectInfoProjectIdAndDeviceTypeId(int projectId, String deviceTypeId);
+
     List<DeviceTypeInfo> findByProjectInfoProjectId(int projectId);
 
 }
