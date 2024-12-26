@@ -7,7 +7,6 @@ import java.util.List;
 public record DeviceTypeResponse(
         Integer id,
         Integer projectId,
-        String deviceTypeId,
         String deviceTypeName,
         Boolean isSensor,
         List<StateInfo> states,
@@ -17,7 +16,6 @@ public record DeviceTypeResponse(
         this(
                 deviceType.getId(),
                 deviceType.getProjectInfo().getProjectId(),
-                deviceType.getDeviceTypeId(),
                 deviceType.getDeviceTypeName(),
                 deviceType.getIsSensor(),
                 deviceType.getStates()

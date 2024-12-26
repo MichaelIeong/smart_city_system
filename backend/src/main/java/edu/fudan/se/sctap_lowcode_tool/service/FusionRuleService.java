@@ -148,7 +148,7 @@ public class FusionRuleService {
      */
     private void processOperatorNode(JsonNode operatorNode) {
         String step = operatorNode.get("step").asText();
-        String previousStep = String.valueOf(Integer.parseInt(step) - 1); // 假设 Operator 依赖上一节点的值
+        String previousStep = String.valueOf(Integer.parseInt(step) - 1); // Operator 依赖上一节点的值
 
         Double inputValue = globalState.get(previousStep);
 
@@ -177,13 +177,13 @@ public class FusionRuleService {
     }
 
     /**
-     * 获取传感器值（简化逻辑，不再依赖功能 URL）。
+     * 获取传感器值
      *
      * @param sensorNode 包含传感器信息的 JSON 节点
      * @return 模拟的传感器值
      */
     private double getSensorValue(JsonNode sensorNode) {
-        // 如果需要动态查询，可以在此实现查询逻辑
-        return 28.5; // 示例值
+
+        return 26; // mock 值
     }
 }

@@ -9,9 +9,7 @@ import java.util.List;
 public final class DeviceResponse {
 
     public final Integer id;
-    public final String deviceId;
     public final String deviceName;
-    public final String deviceTypeId;
     public final String deviceTypeName;
     public final String fixedProperties;
     public final Coordinate coordinate;
@@ -20,9 +18,7 @@ public final class DeviceResponse {
     public final List<DeviceFunction> functions;
     public DeviceResponse(DeviceInfo deviceInfo) {
         this.id = deviceInfo.getId();
-        this.deviceId = deviceInfo.getDeviceId();
         this.deviceName = deviceInfo.getDeviceName();
-        this.deviceTypeId = deviceInfo.getDeviceType().getDeviceTypeId();
         this.deviceTypeName = deviceInfo.getDeviceType().getDeviceTypeName();
         this.fixedProperties = deviceInfo.getFixedProperties();
         this.lastUpdateTime = deviceInfo.getLastUpdateTime();

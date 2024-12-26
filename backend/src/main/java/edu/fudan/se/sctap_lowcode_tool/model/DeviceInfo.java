@@ -8,13 +8,8 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
 
-
 @Entity
-@Table(name = "devices",
-        uniqueConstraints = {@UniqueConstraint(
-                columnNames = {"space_id", "device_id"}
-        )}
-)
+@Table(name = "devices")
 @Data
 public class DeviceInfo {
     @Id
@@ -25,9 +20,6 @@ public class DeviceInfo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id")
     private SpaceInfo space;   // 设备所属的空间
-
-    @Column(name = "device_id", nullable = false)
-    private String deviceId; // 用户设定的设备ID(Space内唯一)
 
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
@@ -58,11 +50,11 @@ public class DeviceInfo {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof DeviceInfo that)) return false;
-        return Objects.equals(id, that.id) && Objects.equals(deviceId, that.deviceId) && Objects.equals(deviceName, that.deviceName);
+        return Objects.equals(id, that.id) && Objects.equals(deviceName, that.deviceName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, deviceId, deviceName);
+        return Objects.hash(id, deviceName);
     }
 }
