@@ -4,40 +4,60 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class KafkaConsumerUtil implements Runnable {
 
     private final KafkaConsumer<String, String> consumer;
-    /**
-     * 用于标识当前消费者是否在运行
-     */
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final String topic;
+    private Thread consumerThread;
+    private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
 
-    public KafkaConsumerUtil() {
-        // 1. 配置消费者
+    /**
+     * 构造函数，由 Spring 自动注入 Kafka 地址和订阅的 Topic
+     *
+     * @param bootstrapServers Kafka 地址
+     * @param topic Kafka 订阅的 Topic 名称
+     */
+    public KafkaConsumerUtil(@Value("${kafka.bootstrap.servers}") String bootstrapServers,
+                             @Value("${kafka.topic}") String topic) {
+        this.topic = topic;
+
+        // 配置 Kafka 消费者
         Properties props = new Properties();
-        props.put("bootstrap.servers", "10.37.71.12:19092"); // Kafka 地址
-        props.put("group.id", "sc_uos_consumer_group");     // 消费者组 ID
-        props.put("enable.auto.commit", "true");            // 自动提交偏移量
-        props.put("auto.commit.interval.ms", "1000");       // 自动提交间隔
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");   // 反序列化键
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer"); // 反序列化值
-        props.put("auto.offset.reset", "earliest");         // 从最早的消息开始消费
+        props.put("bootstrap.servers", bootstrapServers);
+        props.put("group.id", "sc_uos_consumer_group");
+        props.put("enable.auto.commit", "true");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("auto.offset.reset", "earliest");
 
-        // 2. 创建消费者
         this.consumer = new KafkaConsumer<>(props);
+        this.consumer.subscribe(Collections.singletonList(topic));
+    }
 
-        // 3. 订阅指定的 Topic
-        this.consumer.subscribe(Collections.singletonList("SC-UOS-Platform"));
-
-        System.out.println("KafkaConsumerService: 初始化完成，订阅了 Topic: SC-UOS-Platform");
+    /**
+     * 启动消费者线程
+     */
+    @EventListener(ContextRefreshedEvent.class)
+    public void startConsumer() {
+        running.set(true);
+        consumerThread = new Thread(this);
+        consumerThread.start();
     }
 
     /**
@@ -46,31 +66,31 @@ public class KafkaConsumerUtil implements Runnable {
      */
     @Override
     public void run() {
-        running.set(true);
         try {
-            System.out.println("KafkaConsumerService: 开始消费消息...");
             while (running.get()) {
-                // 每秒轮询一次
+                // 从 Kafka 拉取消息
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+
+                // 如果没有新消息，则跳过
+                if (records.isEmpty()) {
+                    continue;
+                }
+
+                // 打印每条获取到的消息信息
                 for (ConsumerRecord<String, String> record : records) {
-                    // 这里进行业务处理，如打印日志、写数据库等
-                    System.out.printf("Offset: %d, Key: %s, Value: %s, Partition: %d%n",
-                            record.offset(), record.key(), record.value(), record.partition());
+                    // 将获取到的消息放入队列
+                    messageQueue.offer(record.value());
                 }
             }
         } catch (WakeupException e) {
-            // 如果是我们主动调用 consumer.wakeup()，则 running 会被置为 false
+            // 如果是正常关闭，跳出循环
             if (running.get()) {
-                // 如果依然是 true，说明不是主动关闭引起的 wakeup，继续抛出异常
                 throw e;
             }
-            // 否则说明是我们主动停止消费了，这里可以捕获后直接结束
         } catch (Exception e) {
-            System.err.println("KafkaConsumerService: 消费过程中发生异常 -> " + e.getMessage());
+            // 捕获异常时不打印异常内容（已移除打印）
         } finally {
-            // 只有在外部调用 close() 后，才会到达这里
             consumer.close();
-            System.out.println("KafkaConsumerService: Consumer 已关闭");
         }
     }
 
@@ -78,8 +98,38 @@ public class KafkaConsumerUtil implements Runnable {
      * 安全停止消费并关闭 Consumer
      */
     public void close() {
-        System.out.println("KafkaConsumerService: 收到关闭请求...");
         running.set(false);
         consumer.wakeup(); // 会触发 WakeupException，从而跳出消费循环
+    }
+
+    /**
+     * 在 Spring 上下文关闭时安全关闭消费者
+     */
+    @EventListener(ContextClosedEvent.class)
+    public void stopConsumer() {
+        close();
+        try {
+            if (consumerThread != null) {
+                consumerThread.join();
+            }
+        } catch (InterruptedException e) {
+            // 这里也不再打印异常
+        }
+    }
+
+    /**
+     * 获取从 Kafka 消费的最新消息
+     *
+     * @return 最新的消息
+     */
+    public String getLatestMessage() {
+        // 打印获取消息的操作
+        String message = messageQueue.poll();  // 获取并移除队列中的最新消息
+        if (message != null) {
+            System.out.println("KafkaConsumerUtil: 获取到消息: " + message);  // 只在此处打印
+        } else {
+            System.out.println("KafkaConsumerUtil: 当前没有可用的消息。");
+        }
+        return message;
     }
 }

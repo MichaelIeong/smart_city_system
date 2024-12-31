@@ -1,13 +1,17 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository;
+import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class FusionRuleService {
@@ -21,8 +25,14 @@ public class FusionRuleService {
     @Autowired
     private OperatorService operatorService;
 
+    @Autowired
+    private KafkaConsumerUtil kafkaConsumerUtil; // 注入 KafkaConsumerUtil
+
     // 全局状态存储，用于保存每一步的结果 (step -> value)
     private Map<String, Double> globalState = new HashMap<>();
+
+    // Executor 服务，用于管理 Kafka 消费者线程
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     /**
      * 获取所有运算符记录，包括工具类运算符和数据库运算符。
@@ -133,9 +143,10 @@ public class FusionRuleService {
         String step = sensorNode.get("step").asText();
         String location = sensorNode.get("location").asText();
         String sensingFunction = sensorNode.get("sensingFunction").asText();
+        int sensorDeviceId = sensorNode.get("sensorDeviceId").asInt();  // 从 Node-RED 的传感器节点中获取设备 ID
 
         // 获取传感器值
-        double sensorValue = getSensorValue(sensorNode);
+        double sensorValue = getSensorValue(sensorDeviceId);  // 根据设备 ID 获取传感器值
         globalState.put(step, sensorValue);
 
         System.out.println("从 Sensor 节点获取的值: step=" + step + "，位置=" + location + "，功能=" + sensingFunction + "，值=" + sensorValue);
@@ -177,13 +188,45 @@ public class FusionRuleService {
     }
 
     /**
-     * 获取传感器值（简化逻辑，不再依赖功能 URL）。
+     * 获取传感器值。
      *
      * @param sensorNode 包含传感器信息的 JSON 节点
-     * @return 模拟的传感器值
+     * @return 从 Kafka 获取到的传感器值
      */
-    private double getSensorValue(JsonNode sensorNode) {
-        // 如果需要动态查询，可以在此实现查询逻辑
-        return 28.5; // 示例值
+    private double getSensorValue(int sensorDeviceId) {
+        // 启动 Kafka 消费者线程并获取最新的传感器值
+        System.out.println("启动 Kafka 消费者获取最新的传感器值...");
+
+        // 启动消费者线程
+        executorService.execute(kafkaConsumerUtil);
+
+        // 获取从 Kafka 消费的最新消息
+        String latestMessage = kafkaConsumerUtil.getLatestMessage();
+        if (latestMessage != null) {
+            try {
+                // 解析 Kafka 传来的 JSON 格式的消息
+                ObjectMapper objectMapper = new ObjectMapper();  // 创建 ObjectMapper 实例
+                JsonNode messageJson = objectMapper.readTree(latestMessage);  // 将 JSON 字符串解析为 JsonNode
+
+                int kafkaId = messageJson.get("id").asInt();  // 获取 Kafka 消息中的传感器 ID
+                double value = messageJson.get("value").asDouble();  // 获取传感器的值
+
+                // 比较 Kafka 的传感器 ID 和 Node-RED 提供的 sensor device id
+                if (kafkaId == sensorDeviceId) {
+                    System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
+                    return value;
+                } else {
+                    System.out.println("Kafka 中的传感器 ID 不匹配，跳过此消息，Kafka id=" + kafkaId + ", 预期 id=" + sensorDeviceId);
+                    return 0.0; // 如果 ID 不匹配，返回默认值
+                }
+
+            } catch (Exception e) {
+                System.out.println("消息格式错误，无法解析传感器值，返回默认值 0.0");
+                return 0.0;
+            }
+        } else {
+            System.out.println("未从 Kafka 获取到传感器值，返回默认值 0.0");
+            return 0.0; // 如果没有消息，返回默认值
+        }
     }
 }
