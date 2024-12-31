@@ -143,10 +143,10 @@ public class FusionRuleService {
         String step = sensorNode.get("step").asText();
         String location = sensorNode.get("location").asText();
         String sensingFunction = sensorNode.get("sensingFunction").asText();
-        int sensorDeviceId = sensorNode.get("sensorDeviceId").asInt();  // 从 Node-RED 的传感器节点中获取设备 ID
+        int sensorId = sensorNode.get("sensorId").asInt();  // 从 Node-RED 的传感器节点中获取设备 ID
 
         // 获取传感器值
-        double sensorValue = getSensorValue(sensorDeviceId);  // 根据设备 ID 获取传感器值
+        double sensorValue = getSensorValue(sensorId);  // 根据设备 ID 获取传感器值
         globalState.put(step, sensorValue);
 
         System.out.println("从 Sensor 节点获取的值: step=" + step + "，位置=" + location + "，功能=" + sensingFunction + "，值=" + sensorValue);
@@ -190,10 +190,10 @@ public class FusionRuleService {
     /**
      * 获取传感器值。
      *
-     * @param sensorNode 包含传感器信息的 JSON 节点
+     * @param sensorId 传感器设备 ID
      * @return 从 Kafka 获取到的传感器值
      */
-    private double getSensorValue(int sensorDeviceId) {
+    private double getSensorValue(int sensorId) {
         // 启动 Kafka 消费者线程并获取最新的传感器值
         System.out.println("启动 Kafka 消费者获取最新的传感器值...");
 
@@ -212,11 +212,11 @@ public class FusionRuleService {
                 double value = messageJson.get("value").asDouble();  // 获取传感器的值
 
                 // 比较 Kafka 的传感器 ID 和 Node-RED 提供的 sensor device id
-                if (kafkaId == sensorDeviceId) {
+                if (kafkaId == sensorId) {
                     System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
                     return value;
                 } else {
-                    System.out.println("Kafka 中的传感器 ID 不匹配，跳过此消息，Kafka id=" + kafkaId + ", 预期 id=" + sensorDeviceId);
+                    System.out.println("Kafka 中的传感器 ID 不匹配，跳过此消息，Kafka id=" + kafkaId + ", 预期 id=" + sensorId);
                     return 0.0; // 如果 ID 不匹配，返回默认值
                 }
 
