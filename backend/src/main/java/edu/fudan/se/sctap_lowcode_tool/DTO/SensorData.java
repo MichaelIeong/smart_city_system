@@ -7,6 +7,8 @@ import java.util.List;
 @Data
 public class SensorData {
 
+    private String sensorId;
+
     private String location;
 
     private String deviceName;

@@ -21,4 +21,7 @@ public class Operator {
 
     @Column(name = "output_name")
     private String outputName; // 输出的名字
+
+    @Column(name = "required_input")
+    private Boolean requiredInput; // 是否必要输入
 }

@@ -1,13 +1,232 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository;
+import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public interface FusionRuleService {
+@Service
+public class FusionRuleService {
 
-    void addNewRule(FusionRule fusionRule);
+    @Autowired
+    private FusionRuleRepository fusionRuleRepository;
 
-    List<FusionRule> getRuleList();
+    @Autowired
+    private OperatorRepository operatorRepository;
 
+    @Autowired
+    private OperatorService operatorService;
+
+    @Autowired
+    private KafkaConsumerUtil kafkaConsumerUtil; // 注入 KafkaConsumerUtil
+
+    // 全局状态存储，用于保存每一步的结果 (step -> value)
+    private Map<String, Double> globalState = new HashMap<>();
+
+    // Executor 服务，用于管理 Kafka 消费者线程
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    /**
+     * 获取所有运算符记录，包括工具类运算符和数据库运算符。
+     *
+     * @return 所有运算符的列表
+     */
+    public List<Operator> getAllOperators() {
+        List<Operator> operators = new ArrayList<>();
+        operators.addAll(operatorService.getAllUtilOperators()); // 工具类运算符
+        operators.addAll(operatorRepository.findAll()); // 数据库中的运算符
+        return operators;
+    }
+
+    /**
+     * 调用工具类运算符的逻辑。
+     *
+     * @param operatorName 运算符名称
+     * @param input1       第一个输入值
+     * @param input2       第二个输入值
+     * @return 运算结果
+     */
+    public boolean applyUtilOperator(String operatorName, Object input1, Object input2) {
+        return operatorService.applyUtilOperator(operatorName, input1, input2);
+    }
+
+    /**
+     * 添加或更新规则。
+     *
+     * @param fusionRule 要添加或更新的规则对象
+     */
+    public void addNewRule(FusionRule fusionRule) {
+        FusionRule existRule = fusionRuleRepository.findByRuleName(fusionRule.getRuleName());
+        if (existRule != null) {
+            fusionRule.setRuleId(existRule.getRuleId());
+        }
+        fusionRuleRepository.save(fusionRule);
+    }
+
+    /**
+     * 获取所有规则的列表。
+     *
+     * @return 数据库中所有规则的列表
+     */
+    public List<FusionRule> getRuleList() {
+        return fusionRuleRepository.findAll();
+    }
+
+    /**
+     * 实时处理从 Node-RED 传入的 JSON。
+     *
+     * @param ruleJson 包含规则信息的 JSON 对象
+     */
+    public void processNodeRedJson(JsonNode ruleJson) {
+        if (!ruleJson.has("steps")) {
+            System.out.println("规则中未包含有效的步骤信息，跳过处理。");
+            return;
+        }
+
+        // 获取总步骤数并按顺序处理
+        int totalSteps = ruleJson.get("steps").asInt();
+        for (int currentStep = 1; currentStep <= totalSteps; currentStep++) {
+            JsonNode currentNode = findNodeByStep(ruleJson, currentStep);
+
+            if (currentNode == null) {
+                System.out.println("未找到 step=" + currentStep + " 的节点，跳过该步骤。");
+                continue;
+            }
+
+            String nodeType = currentNode.get("type").asText();
+            switch (nodeType) {
+                case "Sensor":
+                    processSensorNode(currentNode);
+                    break;
+                case "Operator":
+                    processOperatorNode(currentNode);
+                    break;
+                default:
+                    System.out.println("未知的节点类型: " + nodeType + "，跳过该步骤。");
+                    break;
+            }
+        }
+    }
+
+    /**
+     * 根据 step 查找对应的节点。
+     *
+     * @param ruleJson JSON 对象
+     * @param step     当前步骤
+     * @return 对应的节点，如果未找到返回 null
+     */
+    private JsonNode findNodeByStep(JsonNode ruleJson, int step) {
+        for (Iterator<Map.Entry<String, JsonNode>> it = ruleJson.fields(); it.hasNext(); ) {
+            Map.Entry<String, JsonNode> entry = it.next();
+            JsonNode node = entry.getValue();
+            if (node.has("step") && node.get("step").asInt() == step) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 处理 Sensor 节点。
+     *
+     * @param sensorNode Sensor 节点
+     */
+    private void processSensorNode(JsonNode sensorNode) {
+        String step = sensorNode.get("step").asText();
+        String location = sensorNode.get("location").asText();
+        String sensingFunction = sensorNode.get("sensingFunction").asText();
+        int sensorId = sensorNode.get("sensorId").asInt();  // 从 Node-RED 的传感器节点中获取设备 ID
+
+        // 获取传感器值
+        double sensorValue = getSensorValue(sensorId);  // 根据设备 ID 获取传感器值
+        globalState.put(step, sensorValue);
+
+        System.out.println("从 Sensor 节点获取的值: step=" + step + "，位置=" + location + "，功能=" + sensingFunction + "，值=" + sensorValue);
+    }
+
+    /**
+     * 处理 Operator 节点。
+     *
+     * @param operatorNode Operator 节点
+     */
+    private void processOperatorNode(JsonNode operatorNode) {
+        String step = operatorNode.get("step").asText();
+        String previousStep = String.valueOf(Integer.parseInt(step) - 1); // 假设 Operator 依赖上一节点的值
+
+        Double inputValue = globalState.get(previousStep);
+
+        if (inputValue == null) {
+            System.out.println("未找到对应的输入值，无法处理 Operator 节点: step=" + step);
+            return;
+        }
+
+        String operatorName = operatorNode.get("operator").asText();
+        double operatorValue = operatorNode.get("value").asDouble();
+
+        // 调用 OperatorService 进行计算
+        boolean result;
+        try {
+            result = operatorService.applyUtilOperator(operatorName, inputValue, operatorValue);
+        } catch (UnsupportedOperationException e) {
+            System.out.println("不支持的运算符: " + operatorName + "，跳过处理。");
+            return;
+        }
+
+        System.out.println("规则计算结果: step=" + step + ", Sensor Value (" + inputValue + ") " +
+                operatorName + " Operator Value (" + operatorValue + ") = " + result);
+
+        // 将结果存入全局状态 (布尔值可以存为 1.0 或 0.0)
+        globalState.put(step, result ? 1.0 : 0.0);
+    }
+
+    /**
+     * 获取传感器值。
+     *
+     * @param sensorId 传感器设备 ID
+     * @return 从 Kafka 获取到的传感器值
+     */
+    private double getSensorValue(int sensorId) {
+        // 启动 Kafka 消费者线程并获取最新的传感器值
+        System.out.println("启动 Kafka 消费者获取最新的传感器值...");
+
+        // 启动消费者线程
+        executorService.execute(kafkaConsumerUtil);
+
+        // 获取从 Kafka 消费的最新消息
+        String latestMessage = kafkaConsumerUtil.getLatestMessage();
+        if (latestMessage != null) {
+            try {
+                // 解析 Kafka 传来的 JSON 格式的消息
+                ObjectMapper objectMapper = new ObjectMapper();  // 创建 ObjectMapper 实例
+                JsonNode messageJson = objectMapper.readTree(latestMessage);  // 将 JSON 字符串解析为 JsonNode
+
+                int kafkaId = messageJson.get("id").asInt();  // 获取 Kafka 消息中的传感器 ID
+                double value = messageJson.get("value").asDouble();  // 获取传感器的值
+
+                // 比较 Kafka 的传感器 ID 和 Node-RED 提供的 sensor device id
+                if (kafkaId == sensorId) {
+                    System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
+                    return value;
+                } else {
+                    System.out.println("Kafka 中的传感器 ID 不匹配，跳过此消息，Kafka id=" + kafkaId + ", 预期 id=" + sensorId);
+                    return 0.0; // 如果 ID 不匹配，返回默认值
+                }
+
+            } catch (Exception e) {
+                System.out.println("消息格式错误，无法解析传感器值，返回默认值 0.0");
+                return 0.0;
+            }
+        } else {
+            System.out.println("未从 Kafka 获取到传感器值，返回默认值 0.0");
+            return 0.0; // 如果没有消息，返回默认值
+        }
+    }
 }
