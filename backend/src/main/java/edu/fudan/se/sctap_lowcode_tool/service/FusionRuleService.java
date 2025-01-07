@@ -200,33 +200,37 @@ public class FusionRuleService {
         // 启动消费者线程
         executorService.execute(kafkaConsumerUtil);
 
-        // 获取从 Kafka 消费的最新消息
-        String latestMessage = kafkaConsumerUtil.getLatestMessage();
-        if (latestMessage != null) {
-            try {
-                // 解析 Kafka 传来的 JSON 格式的消息
-                ObjectMapper objectMapper = new ObjectMapper();  // 创建 ObjectMapper 实例
-                JsonNode messageJson = objectMapper.readTree(latestMessage);  // 将 JSON 字符串解析为 JsonNode
+        while (true) {  // 无限循环，直到获取到正确的传感器数据
+            // 获取从 Kafka 消费的最新消息
+            String latestMessage = kafkaConsumerUtil.getLatestMessage();
+            if (latestMessage != null) {
+                try {
+                    // 解析 Kafka 传来的 JSON 格式的消息
+                    ObjectMapper objectMapper = new ObjectMapper();  // 创建 ObjectMapper 实例
+                    JsonNode messageJson = objectMapper.readTree(latestMessage);  // 将 JSON 字符串解析为 JsonNode
 
-                int kafkaId = messageJson.get("id").asInt();  // 获取 Kafka 消息中的传感器 ID
-                double value = messageJson.get("value").asDouble();  // 获取传感器的值
+                    int kafkaId = messageJson.get("id").asInt();  // 获取 Kafka 消息中的传感器 ID
+                    double value = messageJson.get("value").asDouble();  // 获取传感器的值
 
-                // 比较 Kafka 的传感器 ID 和 Node-RED 提供的 sensor device id
-                if (kafkaId == sensorId) {
-                    System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
-                    return value;
-                } else {
-                    System.out.println("Kafka 中的传感器 ID 不匹配，跳过此消息，Kafka id=" + kafkaId + ", 预期 id=" + sensorId);
-                    return 0.0; // 如果 ID 不匹配，返回默认值
+                    // 比较 Kafka 的传感器 ID 和 Node-RED 提供的 sensor device id
+                    if (kafkaId == sensorId) {
+                        System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
+                        return value; // 成功匹配到传感器 ID，返回传感器值
+                    } else {
+                        // 如果 Kafka 中的传感器 ID 不匹配，输出日志并继续等待
+                        System.out.println("Kafka 中的传感器 ID 不匹配，预期 id=" + sensorId + ", 当前 Kafka id=" + kafkaId + "，正在等待...");
+                    }
+                } catch (Exception e) {
+                    System.out.println("消息格式错误，无法解析传感器值，继续等待...");
                 }
-
-            } catch (Exception e) {
-                System.out.println("消息格式错误，无法解析传感器值，返回默认值 0.0");
-                return 0.0;
             }
-        } else {
-            System.out.println("未从 Kafka 获取到传感器值，返回默认值 0.0");
-            return 0.0; // 如果没有消息，返回默认值
+
+            // 等待一段时间后继续尝试
+            try {
+                Thread.sleep(1000); // 每次重试前等待 1 秒钟
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // 如果线程被中断，退出循环
+            }
         }
     }
 }

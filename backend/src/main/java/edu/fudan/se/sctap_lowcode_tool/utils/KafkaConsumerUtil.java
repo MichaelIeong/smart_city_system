@@ -123,13 +123,25 @@ public class KafkaConsumerUtil implements Runnable {
      * @return 最新的消息
      */
     public String getLatestMessage() {
-        // 打印获取消息的操作
-        String message = messageQueue.poll();  // 获取并移除队列中的最新消息
-        if (message != null) {
-            System.out.println("KafkaConsumerUtil: 获取到消息: " + message);  // 只在此处打印
-        } else {
-            System.out.println("KafkaConsumerUtil: 当前没有可用的消息。");
+        String message = null;
+
+        // 如果队列为空，持续检查并获取新消息
+        while (message == null) {
+            message = messageQueue.poll();  // 获取并移除队列中的最新消息
+            if (message == null) {
+                // 如果队列为空，打印等待日志，并且等待新消息
+                System.out.println("KafkaConsumerUtil: 当前没有可用的消息，正在等待...");
+                try {
+                    // 在此处延迟一小段时间，以便给 Kafka 消费者线程一些时间来获取新消息
+                    Thread.sleep(200);  // 设置一个小的等待时间，防止空转
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
+
+        // 获取到新消息后，打印并返回消息
+        System.out.println("KafkaConsumerUtil: 获取到新消息: " + message);
         return message;
     }
 }
