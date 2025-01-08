@@ -26,7 +26,7 @@ public class FusionRuleService {
     private OperatorService operatorService;
 
     @Autowired
-    private KafkaConsumerUtil kafkaConsumerUtil; // 注入 KafkaConsumerUtil
+    private KafkaConsumerUtil kafkaConsumerUtil;
 
     // 全局状态存储，用于保存每一步的结果 (step -> value)
     private Map<String, Double> globalState = new HashMap<>();
@@ -227,7 +227,7 @@ public class FusionRuleService {
 
             // 等待一段时间后继续尝试
             try {
-                Thread.sleep(1000); // 每次重试前等待 1 秒钟
+                Thread.sleep(2000); // 每次重试前等待 2 秒钟
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();  // 如果线程被中断，退出循环
             }
