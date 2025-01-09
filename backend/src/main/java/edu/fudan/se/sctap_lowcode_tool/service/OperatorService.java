@@ -95,6 +95,8 @@ public class OperatorService {
     private Boolean toBoolean(Object input) {
         if (input instanceof Boolean) {
             return (Boolean) input;
+        } else if (input instanceof Number) {
+            return ((Number) input).doubleValue() != 0.0;
         }
         return Boolean.parseBoolean(input.toString());
     }
