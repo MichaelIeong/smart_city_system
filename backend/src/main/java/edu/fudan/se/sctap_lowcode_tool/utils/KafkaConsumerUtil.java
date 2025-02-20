@@ -65,7 +65,7 @@ public class KafkaConsumerUtil implements Runnable {
      * 当运行此方法时，会一直持续消费，直到调用 close()。
      */
     @Override
-    public void run() {
+    public synchronized void run() {
         try {
             while (running.get()) {
                 // 从 Kafka 拉取消息
@@ -97,7 +97,7 @@ public class KafkaConsumerUtil implements Runnable {
     /**
      * 安全停止消费并关闭 Consumer
      */
-    public void close() {
+    public synchronized void close() {
         running.set(false);
         consumer.wakeup(); // 会触发 WakeupException，从而跳出消费循环
     }
