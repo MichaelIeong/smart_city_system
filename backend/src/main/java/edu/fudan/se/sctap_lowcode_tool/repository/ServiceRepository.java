@@ -11,4 +11,6 @@ public interface ServiceRepository extends JpaRepository<ServiceInfo, Integer> {
 
     @Query("SELECT s FROM ServiceInfo s JOIN s.parentingSpace p WHERE p.projectInfo.projectId = :projectId")
     List<ServiceInfo> findAllByProjectId(@Param("projectId") Integer projectId);
+
+    ServiceInfo findByServiceId(String serviceId);
 }

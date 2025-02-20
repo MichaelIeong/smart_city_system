@@ -30,6 +30,12 @@ public class ServiceInfo {
     @Column(nullable = false)
     private String serviceName; // 服务名称, 例如“会议模式”
 
+    @Column(nullable = false)
+    private String serviceJson; // 服务组合的node-red的json
+
+    @Column(nullable = false)
+    private String serviceCsp; // 服务的CSP模型
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
