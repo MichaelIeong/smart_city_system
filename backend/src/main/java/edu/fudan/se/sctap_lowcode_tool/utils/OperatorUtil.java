@@ -106,6 +106,48 @@ public class OperatorUtil {
         }
         return value1 || value2;
     }
+    /*================== 新增：带时间戳的 AND_TIME / OR_TIME =================*/
+
+    /**
+     * 带时间戳和最大允许时间差的 AND 运算
+     */
+    public static boolean andTime(Boolean value1, Long timestamp1,
+                                  Boolean value2, Long timestamp2,
+                                  Long maxTimeDiff) {
+        if (value1 == null || value2 == null) {
+            throw new IllegalArgumentException("[AND_TIME] 输入布尔值不能为空");
+        }
+        if (timestamp1 == null || timestamp2 == null || maxTimeDiff == null) {
+            throw new IllegalArgumentException("[AND_TIME] 时间戳或最大时间差不能为空");
+        }
+        // 超过时间差，视为不同步
+        if (Math.abs(timestamp1 - timestamp2) > maxTimeDiff) {
+            return false;
+        }
+        // 在时间差范围内，再进行普通 AND 判断
+        return value1 && value2;
+    }
+
+    /**
+     * 带时间戳和最大允许时间差的 OR 运算
+     */
+    public static boolean orTime(Boolean value1, Long timestamp1,
+                                 Boolean value2, Long timestamp2,
+                                 Long maxTimeDiff) {
+        if (value1 == null || value2 == null) {
+            throw new IllegalArgumentException("[OR_TIME] 输入布尔值不能为空");
+        }
+        if (timestamp1 == null || timestamp2 == null || maxTimeDiff == null) {
+            throw new IllegalArgumentException("[OR_TIME] 时间戳或最大时间差不能为空");
+        }
+        // 超过时间差直接 false
+        if (Math.abs(timestamp1 - timestamp2) > maxTimeDiff) {
+            return false;
+        }
+        // 在时间差范围内，再进行普通 OR
+        return value1 || value2;
+    }
+
 
     /**
      * 获取所有工具类运算符并封装为 Operator 对象
@@ -123,6 +165,8 @@ public class OperatorUtil {
         operators.add(createOperator("Less than or equal to", null, "Boolean", true));
         operators.add(createOperator("AND", null, "Boolean", false));
         operators.add(createOperator("OR", null, "Boolean", false));
+        operators.add(createOperator("AND_TIME", null, "Boolean", true));
+        operators.add(createOperator("OR_TIME", null, "Boolean", true));
 
         return operators;
     }
@@ -130,10 +174,10 @@ public class OperatorUtil {
     /**
      * 创建工具类运算符对象
      *
-     * @param operatorName   运算符名称
-     * @param operatorApi    运算符API（工具类运算符通常为 null）
-     * @param outputName     运算符输出的名称
-     * @param requiredInput  是否需要输入
+     * @param operatorName  运算符名称
+     * @param operatorApi   运算符API（工具类运算符通常为 null）
+     * @param outputName    运算符输出的名称
+     * @param requiredInput 是否需要输入
      * @return 封装的 Operator 对象
      */
     private static Operator createOperator(String operatorName, String operatorApi, String outputName, Boolean requiredInput) {

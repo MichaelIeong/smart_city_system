@@ -48,6 +48,7 @@
 
       <div class="table-operator">
         <a-button type="primary" icon="plus" @click="handleAdd">新建</a-button>
+        <a-button type="primary" icon="plus" @click="openLLMCreation">使用大模型创建规则</a-button>
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">
             <a-menu-item key="1">
@@ -78,9 +79,6 @@
         <span slot="ruleStatus" slot-scope="text">
           <a-badge :status="text | statusTypeFilter" :text="text | statusFilter"/>
         </span>
-        <!--        <span slot="description" slot-scope="text">-->
-        <!--          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>-->
-        <!--        </span>-->
 
         <span slot="action" slot-scope="text, record">
           <template>
@@ -100,6 +98,12 @@
         @ok="handleOk"
       />
       <step-by-step-modal ref="modal" @ok="handleOk"/>
+
+      <!-- 引入 LLMCreation 组件 -->
+      <LLMCreation
+        :modelModalVisible="modelModalVisible"
+        @update:modelModalVisible="modelModalVisible = $event"
+      />
     </a-card>
   </page-header-wrapper>
 </template>
@@ -111,6 +115,7 @@ import { getRuleList } from '@/api/manage'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
+import LLMCreation from './modules/LLMCreation' // 引入 LLMCreation 组件
 
 const columns = [
   {
@@ -155,7 +160,8 @@ export default {
     STable,
     Ellipsis,
     CreateForm,
-    StepByStepModal
+    StepByStepModal,
+    LLMCreation // 注册 LLMCreation 组件
   },
   data () {
     return {
@@ -172,7 +178,8 @@ export default {
         current: 1,
         pageSize: 10,
         total: 0
-      }
+      },
+      modelModalVisible: false // 控制LLM创建规则的弹窗
     }
   },
   filters: {
@@ -184,7 +191,6 @@ export default {
     }
   },
   created () {
-    // getRoleList({ t: new Date() })
     this.refreshTable()
   },
   computed: {
@@ -205,17 +211,16 @@ export default {
     handleAdd () {
       window.open('http://127.0.0.1:1880/', '_blank')
     },
+
     handleEdit (record) {
       let flowJson
       try {
         flowJson = JSON.parse(record.flowJson)
-        // flowJson = `'${flowJson}'`
       } catch (e) {
         console.error('解析 flowJson 时出错:', e)
         return
       }
 
-      console.log(flowJson)
       fetch('http://127.0.0.1:1880/flows ', {
         method: 'POST',
         headers: {
@@ -223,13 +228,12 @@ export default {
         },
         body: flowJson
       })
-          .finally(() => {
-            // 发送数据后，无论成功与否，都打开新窗口
-            window.open('http://127.0.0.1:1880/', '_blank')
-          })
-          .catch(error => {
-            console.error('网络错误:', error)
-          })
+      .finally(() => {
+        window.open('http://127.0.0.1:1880/', '_blank')
+      })
+      .catch(error => {
+        console.error('网络错误:', error)
+      })
     },
 
     handleOk () {
@@ -300,10 +304,14 @@ export default {
     },
     loadData () {
       return getRuleList()
-          .then(res => {
-            console.log('Data received:', res)
-            return res // 确保数据格式是数组
-          })
+        .then(res => {
+          return res
+        })
+    },
+
+    // 控制弹窗显隐
+    openLLMCreation () {
+      this.modelModalVisible = true
     }
   }
 }

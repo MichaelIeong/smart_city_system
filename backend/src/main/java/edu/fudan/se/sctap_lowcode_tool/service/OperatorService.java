@@ -21,33 +21,64 @@ public class OperatorService {
      * 构造函数初始化工具类运算符逻辑
      */
     public OperatorService() {
+        // 1) 原有的数值比较
         utilOperators.put("Greater than", (input1, input2) ->
-            OperatorUtil.greaterThan(toDouble(input1), toDouble(input2))
+                OperatorUtil.greaterThan(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Less than", (input1, input2) ->
-            OperatorUtil.lessThan(toDouble(input1), toDouble(input2))
+                OperatorUtil.lessThan(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Equal to", (input1, input2) ->
-            OperatorUtil.equalTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.equalTo(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Greater than or equal to", (input1, input2) ->
-            OperatorUtil.greaterThanOrEqualTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.greaterThanOrEqualTo(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Less than or equal to", (input1, input2) ->
-            OperatorUtil.lessThanOrEqualTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.lessThanOrEqualTo(toDouble(input1), toDouble(input2))
         );
+
+        // 2) 原有的布尔运算（不带时间戳）
         utilOperators.put("AND", (input1, input2) ->
-            OperatorUtil.and(toBoolean(input1), toBoolean(input2))
+                OperatorUtil.and(toBoolean(input1), toBoolean(input2))
         );
         utilOperators.put("OR", (input1, input2) ->
-            OperatorUtil.or(toBoolean(input1), toBoolean(input2))
+                OperatorUtil.or(toBoolean(input1), toBoolean(input2))
         );
+
+        // 3) **新增：带时间戳版本的 AND/OR，调用 andTime() / orTime()**
+        utilOperators.put("AND_TIME", (input1, input2) -> {
+            Map<String, Object> map1 = castToMap(input1);
+            Map<String, Object> map2 = castToMap(input2);
+            // 拿到布尔值
+            Boolean bool1 = toBoolean(map1.get("value"));
+            Boolean bool2 = toBoolean(map2.get("value"));
+            // 拿到时间戳
+            Long ts1 = toLong(map1.get("timestamp"));
+            Long ts2 = toLong(map2.get("timestamp"));
+            // 拿到最大时间差
+            Long maxTimeDiff = toLong(map1.get("maxTimeDiff"));
+
+            // **这里改成调用 andTime(...) 而不是原先的 and(...)**
+            return OperatorUtil.andTime(bool1, ts1, bool2, ts2, maxTimeDiff);
+        });
+
+        utilOperators.put("OR_TIME", (input1, input2) -> {
+            Map<String, Object> map1 = castToMap(input1);
+            Map<String, Object> map2 = castToMap(input2);
+            Boolean bool1 = toBoolean(map1.get("value"));
+            Boolean bool2 = toBoolean(map2.get("value"));
+            Long ts1 = toLong(map1.get("timestamp"));
+            Long ts2 = toLong(map2.get("timestamp"));
+            Long maxTimeDiff = toLong(map1.get("maxTimeDiff"));
+
+            // **这里改成调用 orTime(...) 而不是原先的 or(...)**
+            return OperatorUtil.orTime(bool1, ts1, bool2, ts2, maxTimeDiff);
+        });
     }
 
     /**
      * 获取所有工具类运算符（封装为 Operator 对象）。
-     *
-     * @return 工具类运算符的列表
      */
     public List<Operator> getAllUtilOperators() {
         // 直接调用 OperatorUtil 提供的封装方法
@@ -71,9 +102,6 @@ public class OperatorService {
 
     /**
      * 将输入对象转换为 Double 类型
-     *
-     * @param input 输入对象
-     * @return 转换后的 Double 值
      */
     private Double toDouble(Object input) {
         if (input instanceof Number) {
@@ -88,9 +116,6 @@ public class OperatorService {
 
     /**
      * 将输入对象转换为 Boolean 类型
-     *
-     * @param input 输入对象
-     * @return 转换后的 Boolean 值
      */
     private Boolean toBoolean(Object input) {
         if (input instanceof Boolean) {
@@ -99,6 +124,32 @@ public class OperatorService {
             return ((Number) input).doubleValue() != 0.0;
         }
         return Boolean.parseBoolean(input.toString());
+    }
+
+    /**
+     * 将输入对象转换为 Long 类型
+     */
+    private Long toLong(Object input) {
+        if (input instanceof Number) {
+            return ((Number) input).longValue();
+        }
+        try {
+            return Long.parseLong(input.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("输入值无法转换为 Long：" + input);
+        }
+    }
+
+    /**
+     * 将输入对象强制转换为 Map<String,Object>
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castToMap(Object obj) {
+        if (obj instanceof Map) {
+            return (Map<String, Object>) obj;
+        } else {
+            throw new IllegalArgumentException("输入值不是 Map 类型：" + obj);
+        }
     }
 
     /**

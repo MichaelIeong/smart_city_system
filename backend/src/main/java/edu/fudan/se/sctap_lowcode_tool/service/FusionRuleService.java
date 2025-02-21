@@ -29,16 +29,16 @@ public class FusionRuleService {
     @Autowired
     private KafkaConsumerUtil kafkaConsumerUtil;
 
-    // 全局状态存储，用于保存每个节点的 ID 和对应的值
-    private final Map<String, Double> globalState = new HashMap<>();
+    // 全局状态：Map<String, Map<String,Object>>
+    // key: 节点ID
+    // value: 一个Map，至少包含 "value" (存数值或布尔结果), "timestamp" (存最近一次更新时间)
+    private final Map<String, Map<String, Object>> globalState = new HashMap<>();
 
     // Executor 服务，用于管理 Kafka 消费者线程
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     /**
      * 获取所有运算符记录，包括工具类运算符和数据库运算符。
-     *
-     * @return 所有运算符的列表
      */
     public List<Operator> getAllOperators() {
         List<Operator> operators = new ArrayList<>();
@@ -49,8 +49,6 @@ public class FusionRuleService {
 
     /**
      * 添加或更新规则。
-     *
-     * @param fusionRule 要添加或更新的规则对象
      */
     public void addNewRule(FusionRule fusionRule) {
         FusionRule existRule = fusionRuleRepository.findByRuleName(fusionRule.getRuleName());
@@ -62,8 +60,6 @@ public class FusionRuleService {
 
     /**
      * 获取所有规则的列表。
-     *
-     * @return 数据库中所有规则的列表
      */
     public List<FusionRule> getRuleList() {
         return fusionRuleRepository.findAll();
@@ -71,8 +67,6 @@ public class FusionRuleService {
 
     /**
      * 实时处理从 Node-RED 传入的 JSON。
-     *
-     * @param ruleJson 包含规则信息的 JSON 对象
      */
     public void processNodeRedJson(JsonNode ruleJson) {
         if (!ruleJson.has("steps")) {
@@ -89,7 +83,10 @@ public class FusionRuleService {
                 String nodeId = entry.getKey();
                 JsonNode currentNode = entry.getValue();
 
-                String nodeType = currentNode.has("type") ? currentNode.get("type").asText() : "Unknown";
+                String nodeType = currentNode.has("type")
+                        ? currentNode.get("type").asText()
+                        : "Unknown";
+
                 if ("Sensor".equalsIgnoreCase(nodeType)) {
                     processSensorNode(nodeId, currentNode);
                 } else if ("Operator".equalsIgnoreCase(nodeType)) {
@@ -103,10 +100,6 @@ public class FusionRuleService {
 
     /**
      * 根据 step 查找对应的所有节点。
-     *
-     * @param ruleJson JSON 对象
-     * @param step     当前步骤
-     * @return 对应的节点列表，如果未找到返回空列表
      */
     private List<Map.Entry<String, JsonNode>> findNodesByStep(JsonNode ruleJson, int step) {
         List<Map.Entry<String, JsonNode>> nodes = new ArrayList<>();
@@ -130,28 +123,33 @@ public class FusionRuleService {
     }
 
     /**
-     * 处理 Sensor 节点。
-     *
-     * @param nodeId     Sensor 节点的 ID
-     * @param sensorNode Sensor 节点的 JSON 数据
+     * 处理 Sensor 节点：读取传感器值 + 存入 globalState。
      */
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
-        String sensorIdStr = sensorNode.get("sensorId").asText(); // 假设 sensorId 一定存在且正确解析
+        String sensorIdStr = sensorNode.get("sensorId").asText();
         int sensorId = Integer.parseInt(sensorIdStr);
 
-        double sensorValue = getSensorValue(sensorId);  // 获取传感器值
-        globalState.put(nodeId, sensorValue);  // 使用节点的 ID 作为键存储值
+        // 从 Kafka 或其它来源获取传感器值
+        double sensorValue = getSensorValue(sensorId);
 
-        System.out.println("从 Sensor 节点获取的值: nodeId=" + nodeId + "，sensorId=" + sensorId + "，值=" + sensorValue);
+        // 存入一个 Map
+        Map<String, Object> sensorData = new HashMap<>();
+        sensorData.put("value", sensorValue);
+        // 如果 Node-RED 那边已经带了时间戳，也可以用 sensorNode.get("timestamp"); 这里先用当前时间
+        sensorData.put("timestamp", System.currentTimeMillis());
+
+        // 存到全局状态
+        globalState.put(nodeId, sensorData);
+
+        System.out.println("从 Sensor 节点获取的值: nodeId="
+                + nodeId + "，sensorId=" + sensorId + "，值=" + sensorValue);
     }
 
     /**
-     * 处理 Operator 节点。
-     *
-     * @param nodeId      Operator 节点的 ID
-     * @param operatorNode Operator 节点的 JSON 数据
+     * 处理 Operator 节点：根据 operatorType + 依赖节点 + (value) 做运算并存结果。
      */
     private void processOperatorNode(String nodeId, JsonNode operatorNode) {
+        // 获取 dependencies
         JsonNode dependenciesNode = operatorNode.get("dependencies");
         if (dependenciesNode == null || dependenciesNode.isMissingNode()) {
             System.out.println("Operator 节点没有依赖，跳过处理 nodeId=" + nodeId);
@@ -160,52 +158,138 @@ public class FusionRuleService {
 
         List<String> dependencies = new ArrayList<>();
         for (JsonNode dependency : dependenciesNode) {
-            dependencies.add(dependency.asText());  // 获取前置节点的 ID
+            dependencies.add(dependency.asText());  // 依赖节点ID
         }
 
-        String operatorType = operatorNode.get("operator").asText(); // 假设 operator 字段存在
+        // 获取 operatorType
+        String operatorType = operatorNode.get("operator").asText(); // 假设一定存在
+        // 这里的 value 是“最大时间差”或其他辅助数值
         JsonNode valueNode = operatorNode.get("value");
-        boolean hasValue = valueNode != null && !valueNode.isNull();
+        boolean hasValue = (valueNode != null && !valueNode.isNull());
 
-        List<Object> inputs = new ArrayList<>();
+        // 是否是带时间戳的运算符 (xxx_TIME)
+        boolean isTimeOperator = operatorType.endsWith("_TIME");
+
+        // 先准备 input1, input2
+        Object input1 = null;
+        Object input2 = null;
+
+        // --- 分情况：有 value => 1依赖 + 1个value；没 value => 2 依赖 ---
 
         if (hasValue) {
-            // 运算符需要一个依赖和一个 value
+            // 需要 1 个依赖 + 1 个 value
             if (dependencies.size() != 1) {
-                System.out.println("Operator 节点 " + nodeId + " 需要一个依赖节点和一个 value，但依赖节点数量为 " + dependencies.size());
+                System.out.println("Operator 节点 " + nodeId
+                        + " 需要一个依赖节点和一个 value，但依赖节点数量为 "
+                        + dependencies.size());
                 return;
             }
 
-            Double dependencyResult = globalState.get(dependencies.get(0));
-            inputs.add(dependencyResult);
-            inputs.add(valueNode.asDouble());
+            // 拿依赖节点数据
+            Map<String, Object> depData = globalState.get(dependencies.get(0));
+            if (depData == null) {
+                System.out.println("依赖节点 " + dependencies.get(0) + " 无数据，跳过处理。");
+                return;
+            }
+
+            if (!isTimeOperator) {
+                // 不带时间戳 => 普通数值比较
+                Double depVal = toDouble(depData.get("value"));
+                Double val = valueNode.asDouble(); // Node-RED 里配置的某个阈值
+                input1 = depVal;
+                input2 = val;
+            } else {
+                // 带时间戳 => "valueNode" 就是“最大允许时间差”
+                Double timeDiff = valueNode.asDouble(); // Node-RED 里写的
+                Map<String, Object> depMap = new HashMap<>(depData);
+                // depMap.value -> 转为 bool
+                Boolean boolVal = (toDouble(depMap.get("value")) != 0.0);
+                depMap.put("value", boolVal);
+
+                // depMap 里已经有 "timestamp"
+                // 把“最大时间差”存到同一个 Map 里，和之前 maxTimeDiff 类似
+                depMap.put("maxTimeDiff", timeDiff);
+
+                // 构造另一个输入 (假设是布尔 true？看具体场景)
+                // 如果这个运算是 AND_TIME / OR_TIME，你要比较dep节点 + 另一个节点的同时到达
+                // 也许你想在 Node-RED 里注入“第二个节点”的数据?
+                // 如果此时只有 “value”=timeDiff，就没有第二个布尔值——那么可以设定：只要 depMap 本身
+                // 这样就看你业务:
+                //   - 可能不需要第二个节点 => 你也可以把 input2 = null
+                //   - 或者你手动创建 valMap, 里面 "value"=true, "timestamp"=now
+                // 这里演示：另一个输入是个临时节点
+                Map<String, Object> valMap = new HashMap<>();
+                valMap.put("value", true);  // 默认 true
+                valMap.put("timestamp", System.currentTimeMillis());
+                valMap.put("maxTimeDiff", timeDiff);
+
+                input1 = depMap;
+                input2 = valMap;
+            }
+
         } else {
-            // 运算符需要两个依赖
+            // 没有 value => 需要 2 个依赖
             if (dependencies.size() != 2) {
-                System.out.println("Operator 节点 " + nodeId + " 需要两个依赖节点，但依赖节点数量为 " + dependencies.size());
+                System.out.println("Operator 节点 " + nodeId
+                        + " 需要两个依赖节点，但依赖节点数量为 " + dependencies.size());
                 return;
             }
 
-            Double dep1 = globalState.get(dependencies.get(0));
-            Double dep2 = globalState.get(dependencies.get(1));
+            Map<String, Object> dep1Data = globalState.get(dependencies.get(0));
+            Map<String, Object> dep2Data = globalState.get(dependencies.get(1));
 
-            inputs.add(dep1);
-            inputs.add(dep2);
+            if (dep1Data == null || dep2Data == null) {
+                System.out.println("依赖节点数据缺失，跳过处理 nodeId=" + nodeId);
+                return;
+            }
+
+            if (!isTimeOperator) {
+                // 普通运算
+                Double val1 = toDouble(dep1Data.get("value"));
+                Double val2 = toDouble(dep2Data.get("value"));
+                input1 = val1;
+                input2 = val2;
+            } else {
+                // 带时间戳 => dep1, dep2 都是 Map
+                // 但这次 "最大时间差" 没有单独字段 => 说明 Node-RED 只提供了2个依赖, 并没有valueNode
+                // 可能 Node-RED 每个依赖自己携带 timeDiff?
+                // 或者你的业务就是 AND_TIME / OR_TIME 只比较dep1、dep2的 timestamp 不超出多少?
+                // 这里演示一下：如果 Node-RED 不提供，就意味着 timeDiff=0 或一个默认值
+                Double defaultTimeDiff = 3000.0; // 你自己决定
+
+                Map<String, Object> dep1Map = new HashMap<>(dep1Data);
+                Boolean bool1 = (toDouble(dep1Map.get("value")) != 0.0);
+                dep1Map.put("value", bool1);
+                dep1Map.put("maxTimeDiff", defaultTimeDiff);
+
+                Map<String, Object> dep2Map = new HashMap<>(dep2Data);
+                Boolean bool2 = (toDouble(dep2Map.get("value")) != 0.0);
+                dep2Map.put("value", bool2);
+                dep2Map.put("maxTimeDiff", defaultTimeDiff);
+
+                input1 = dep1Map;
+                input2 = dep2Map;
+            }
         }
 
-        // 调用 OperatorService 进行运算
-        boolean result = operatorService.applyUtilOperator(operatorType, inputs.get(0), inputs.get(1));
-        double operatorResult = result ? 1.0 : 0.0;
-        globalState.put(nodeId, operatorResult);  // 存储结果
+        // 最终调用 OperatorService
+        boolean result = operatorService.applyUtilOperator(operatorType, input1, input2);
 
-        System.out.println("Operator 节点处理结果: nodeId=" + nodeId + "，结果=" + operatorResult);
+        // 将布尔结果转为 double 存储，并更新 "timestamp"
+        double operatorDoubleResult = result ? 1.0 : 0.0;
+        Map<String, Object> operatorData = new HashMap<>();
+        operatorData.put("value", operatorDoubleResult);
+        operatorData.put("timestamp", System.currentTimeMillis());
+
+        globalState.put(nodeId, operatorData);
+
+        System.out.println("Operator 节点处理结果: nodeId=" + nodeId
+                + "，运算符=" + operatorType
+                + "，结果=" + operatorDoubleResult);
     }
 
     /**
-     * 获取传感器值。
-     *
-     * @param sensorId 传感器设备 ID
-     * @return 从 Kafka 获取到的传感器值
+     * 获取传感器值。（伪代码：可从 Kafka 等获取最新的传感器值）
      */
     private double getSensorValue(int sensorId) {
         // 启动 Kafka 消费者线程并获取最新的传感器值
@@ -215,24 +299,38 @@ public class FusionRuleService {
             String latestMessage = kafkaConsumerUtil.getLatestMessage();
             if (latestMessage != null) {
                 try {
-                    JsonNode messageJson = new ObjectMapper().readTree(latestMessage);  // 将 JSON 字符串解析为 JsonNode
-
+                    // 这里 Kafka 返回的是带 "timestamp" 的 JSON
+                    JsonNode messageJson = new ObjectMapper().readTree(latestMessage);
                     JsonNode idNode = messageJson.get("id");
                     JsonNode valueNode = messageJson.get("value");
 
-                    // 假设 Kafka 消息中的 id 和 value 总是存在且正确
                     int kafkaId = idNode.asInt();
                     double value = valueNode.asDouble();
 
                     if (kafkaId == sensorId) {
-                        System.out.println("从 Kafka 获取到匹配的传感器值: id=" + kafkaId + ", value=" + value);
-                        return value; // 成功匹配到传感器 ID，返回传感器值
+                        System.out.println("从 Kafka 获取到匹配的传感器值: id="
+                                + kafkaId + ", value=" + value);
+                        return value;
                     }
                 } catch (Exception e) {
-                    // 将受检异常转换为运行时异常，简化代码
                     throw new RuntimeException("解析 Kafka 消息失败: " + latestMessage, e);
                 }
             }
+        }
+    }
+
+    /**
+     * 工具方法：安全地将 Object 转为 double
+     */
+    private Double toDouble(Object input) {
+        if (input == null) return 0.0;
+        if (input instanceof Number) {
+            return ((Number) input).doubleValue();
+        }
+        try {
+            return Double.parseDouble(input.toString());
+        } catch (NumberFormatException e) {
+            return 0.0;
         }
     }
 }

@@ -1,5 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -26,11 +29,11 @@ public class KafkaConsumerUtil implements Runnable {
     private Thread consumerThread;
     private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
 
+    // Jackson ObjectMapper，用于将消息加上timestamp后转为 JSON
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * 构造函数，由 Spring 自动注入 Kafka 地址和订阅的 Topic
-     *
-     * @param bootstrapServers Kafka 地址
-     * @param topic Kafka 订阅的 Topic 名称
      */
     public KafkaConsumerUtil(@Value("${kafka.bootstrap.servers}") String bootstrapServers,
                              @Value("${kafka.topic}") String topic) {
@@ -71,24 +74,46 @@ public class KafkaConsumerUtil implements Runnable {
                 // 从 Kafka 拉取消息
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 
-                // 如果没有新消息，则跳过
                 if (records.isEmpty()) {
                     continue;
                 }
 
-                // 打印每条获取到的消息信息
                 for (ConsumerRecord<String, String> record : records) {
-                    // 将获取到的消息放入队列
-                    messageQueue.offer(record.value());
+                    // 1) 获取 Kafka 消息自带的 timestamp (可能是生产者发送时间或LogAppendTime)
+                    long kafkaTimestamp = record.timestamp();
+
+                    // 2) 尝试把原 value 解析成 JSON，如果失败则创建一个空 JSON 再填上原字符串
+                    JsonNode originalJson;
+                    try {
+                        originalJson = objectMapper.readTree(record.value());
+                    } catch (Exception e) {
+                        // 解析失败，就手动创建一个包含原字符串的 JSON
+                        ObjectNode fallbackJson = objectMapper.createObjectNode();
+                        fallbackJson.put("value", record.value());
+                        originalJson = fallbackJson;
+                    }
+
+                    // 3) 在原 JSON 上加一个 "timestamp" 字段
+                    if (originalJson.isObject()) {
+                        ((ObjectNode) originalJson).put("timestamp", kafkaTimestamp);
+                    } else {
+                        // 如果原 JSON 不是 object 类型，就包装一下
+                        ObjectNode wrapper = objectMapper.createObjectNode();
+                        wrapper.set("data", originalJson);
+                        wrapper.put("timestamp", kafkaTimestamp);
+                        originalJson = wrapper;
+                    }
+
+                    // 4) 将修改后的 JSON 转为字符串，放入队列
+                    messageQueue.offer(originalJson.toString());
                 }
             }
         } catch (WakeupException e) {
-            // 如果是正常关闭，跳出循环
             if (running.get()) {
                 throw e;
             }
         } catch (Exception e) {
-            // 捕获异常时不打印异常内容（已移除打印）
+            // 其它异常
         } finally {
             consumer.close();
         }
@@ -99,7 +124,7 @@ public class KafkaConsumerUtil implements Runnable {
      */
     public synchronized void close() {
         running.set(false);
-        consumer.wakeup(); // 会触发 WakeupException，从而跳出消费循环
+        consumer.wakeup();
     }
 
     /**
@@ -113,20 +138,19 @@ public class KafkaConsumerUtil implements Runnable {
                 consumerThread.join();
             }
         } catch (InterruptedException e) {
-            // 这里也不再打印异常
+            // ignore
         }
     }
 
     /**
-     * 获取从 Kafka 消费的最新消息
+     * 获取从 Kafka 消费的最新消息（此时已包含 timestamp 字段）
      *
-     * @return 最新的消息
+     * @return 最新的消息（带 "timestamp" 的 JSON 字符串）
      */
     public String getLatestMessage() {
-        // 打印获取消息的操作
-        String message = messageQueue.poll();  // 获取并移除队列中的最新消息
+        String message = messageQueue.poll();
         if (message != null) {
-            System.out.println("KafkaConsumerUtil: 获取到消息: " + message);  // 只在此处打印
+            System.out.println("KafkaConsumerUtil: 获取到消息: " + message);
         } else {
             System.out.println("KafkaConsumerUtil: 当前没有可用的消息。");
         }
