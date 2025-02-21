@@ -47,7 +47,7 @@
       </div>
 
       <div class="table-operator">
-        <a-button type="primary" icon="plus" @click="handleAdd">新建</a-button>
+        <a-button type="primary" icon="plus" @click="handleAdd">使用Node-Red创建规则</a-button>
         <a-button type="primary" icon="plus" @click="openLLMCreation">使用大模型创建规则</a-button>
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">

@@ -9,26 +9,25 @@
   >
     <a-spin :spinning="loading">
       <a-form :form="form" v-bind="formLayout">
-        <!-- 问题输入 -->
-        <a-form-item label="请输入您的问题">
-          <a-input
-            v-decorator="['question', {rules: [{required: true, message: '请输入问题!'}]}]"
-            placeholder="请输入您的问题..."
+        <a-form-item label="请输入您的要求">
+          <a-textarea
+            v-decorator="['prompt', {rules: [{required: true, message: '请输入要求!'}]}]"
+            placeholder="请输入您的要求..."
+            rows="4"
           />
         </a-form-item>
 
-        <!-- 显示响应 -->
         <a-form-item label="模型回答">
           <div class="response">
             <div v-html="response"></div>
           </div>
         </a-form-item>
-
-        <a-form-item>
-          <a-button type="primary" @click="sendQuestion">发送问题</a-button>
-        </a-form-item>
       </a-form>
     </a-spin>
+
+    <div class="modal-footer">
+      <a-button type="primary" @click="sendQuestion">发送</a-button>
+    </div>
   </a-modal>
 </template>
 
@@ -47,8 +46,7 @@ export default {
   data () {
     return {
       form: this.$form.createForm(this),
-      response: '',
-      question: ''
+      response: ''
     }
   },
   computed: {
@@ -63,38 +61,40 @@ export default {
     handleCancelModal () {
       this.$emit('update:modelModalVisible', false)
     },
-    handleOk () {
-      // 处理OK事件，关闭弹窗或其他逻辑
-    },
+    handleOk () {},
     sendQuestion () {
-      if (!this.question.trim()) {
-        this.response = '请输入有效的问题！'
-        return
-      }
+      this.form.validateFields((errors, values) => {
+        if (errors) {
+          this.response = '请输入有效的要求！'
+          return
+        }
 
-      const requestData = {
-        model: 'deepseek-r1:70b',
-        stream: false,
-        prompt: this.question
-      }
+        const promptTemplate = `请先参考这个json，并生成新的规则： {\\"steps\\": 3, \\"0c53393282d602d7\\": {\\"type\\": \\"Operator\\", \\"step\\": 3, \\"value\\": null, \\"operator\\": \\"AND\\", \\"output\\": \\"Boolean\\"}, \\"bd3998b67e605caa\\": {\\"type\\": \\"Operator\\", \\"step\\": 2, \\"value\\": \\"50\\", \\"operator\\": \\"Greater than\\", \\"output\\": \\"Boolean\\"}, \\"87e4ec7c57203b0c\\": {\\"type\\": \\"Sensor\\", \\"step\\": 1, \\"location\\": \\"Ai Park\\", \\"sensorId\\": \\"6\\", \\"deviceName\\": \\"湿度传感器\\", \\"sensingFunction\\": \\"humidity\\"}, \\"6647f3ca070b28fd\\": {\\"type\\": \\"Operator\\", \\"step\\": 2, \\"value\\": \\"20\\\\", \\"operator\\": \\"Greater than\\", \\"output\\": \\"Boolean\\"}, \\"6a6566b5851c475b\\": {\\"type\\": \\"Sensor\\", \\"step\\": 1, \\"location\\": \\"Ai Park\\", \\"sensorId\\": \\"4\\", \\"deviceName\\": \\"温度传感器2\\", \\"sensingFunction\\": \\"temperature\\"}, \\"rulename\\": \\"温湿度过高\\"}`
 
-      this.loading = true
-      fetch('http://10.177.29.226:11434/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
+        const requestData = {
+          model: 'qwen2.5:32b',
+          stream: false,
+          prompt: promptTemplate + ' 根据以下规则生成用户需要的规则，首先每个字段冒号前的id随机就行，step的编号是执行次序，type只有sensor和operator，value表示需要该operator计算的输入，目前的operator有这些Greater than、Less than、Equal to、Greater than or equal to、Less than or equal to、AND、OR，location先不要更改。只需要输出json文件，以JSON格式输出答案。用户需求：' + values.prompt
+        }
+
+        this.loading = true
+        fetch('http://10.177.29.226:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestData)
+        })
+          .then(response => response.json())
+          .then(data => {
+            this.response = data && data.response ? `${data.response}` : '没有得到有效的回答，请稍后再试。'
+          })
+          .catch(error => {
+            this.response = '请求失败，请检查网络或稍后再试。'
+            console.error('Error:', error)
+          })
+          .finally(() => {
+            this.loading = false
+          })
       })
-        .then(response => response.json())
-        .then(data => {
-          this.response = data && data.response ? `<strong>回答:</strong> ${data.response}` : '没有得到有效的回答，请稍后再试。'
-        })
-        .catch(error => {
-          this.response = '请求失败，请检查网络或稍后再试。'
-          console.error('Error:', error)
-        })
-        .finally(() => {
-          this.loading = false
-        })
     }
   }
 }
@@ -121,5 +121,11 @@ a-button {
 a-spin {
   display: flex;
   justify-content: center;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
 }
 </style>
