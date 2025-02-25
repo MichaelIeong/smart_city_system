@@ -7,10 +7,19 @@ import java.util.Map;
 
 public class DeviceConfig {
 
+    private int deviceId;
     private String deviceName;
     private List<DeviceState> states;
     private Map<String, Object> parameters; //参数
     private Map<String, Object> variables; //全局变量
+
+    public int getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(int deviceId) {
+        this.deviceId = deviceId;
+    }
 
     public Map<String, Object> getVariables() {
         return variables;

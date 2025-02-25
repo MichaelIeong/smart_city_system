@@ -18,32 +18,44 @@ public class ServiceController {
 
     @GetMapping
     public ResponseEntity<Iterable<ServiceBriefResponse>> getServicesByProjectId(
-            @RequestParam(name = "project") int projectId) {
+            @RequestParam(name = "project") String projectId) {
         return ResponseEntity.ok(serviceService.findAllByProjectId(projectId));
     }
 
     @Operation(summary = "上传新的服务", description = "用户在node-red组合好服务，传给后端，加入到数据库")
     @PostMapping("/uploadservice")
     public ResponseEntity<Void> saveService(@RequestBody JsonNode serviceMsg) {
+        String compositionName = "";
+        String projectId = "";
+        // 遍历 JSON 数组
+        for (JsonNode node : serviceMsg) {
+            if (node.has("type") && "Composition".equals(node.get("type").asText())) {
+                compositionName = node.has("compositionName") ? node.get("compositionName").asText() : "No Name";
+                projectId = node.has("projectId") ? node.get("projectId").asText() : "No projectId";
+                break;
+            }
+        }
         ServiceInfo serviceInfo = new ServiceInfo();
         serviceInfo.setServiceJson(serviceMsg.toString());
-        serviceInfo.setServiceName(serviceMsg.get("serviceName").asText());
+        serviceInfo.setServiceName(compositionName);
         serviceService.addOrUpdateService(serviceInfo);
-        System.out.println(serviceMsg);
+
+        // System.out.println(serviceMsg.get("compositionName"));
+
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "查看CSP", description = "返回服务的CSP模型")
     @GetMapping ("/getCSP")
-    public ResponseEntity<?> getCSP(@PathVariable String serviceId) {
+    public ResponseEntity<?> getCSP(@RequestParam String serviceId) {
         ServiceInfo serviceInfo = serviceService.getService(serviceId);
-        //System.out.println(serviceMsg);
+        //System.out.println(serviceInfo.getServiceCsp());
         return ResponseEntity.ok(serviceInfo.getServiceCsp());
     }
 
     @Operation(summary = "手动生成CSP", description = "手敲的CSP，放到数据库")
     @PostMapping("/generateCSPbyHand")
-    public ResponseEntity<Void> CSPbyHand(@PathVariable String serviceId, @RequestBody String Csp){
+    public ResponseEntity<Void> CSPbyHand(@RequestParam String serviceId, @RequestBody String Csp){
         ServiceInfo serviceInfo = serviceService.getService(serviceId);
         serviceInfo.setServiceCsp(Csp);
         serviceService.addOrUpdateService(serviceInfo);
@@ -52,7 +64,7 @@ public class ServiceController {
 
     @Operation(summary = "LLM生成CSP", description = "用LLM生成CSP，放到数据库")
     @GetMapping("/generateCSPbyLLM")
-    public ResponseEntity<?> CSPbyLLM(@PathVariable String serviceId){
+    public ResponseEntity<?> CSPbyLLM(@RequestParam String serviceId){
         try {
             // 调用服务层生成CSP
             String csp = serviceService.generateCSP(serviceId);
@@ -64,3 +76,6 @@ public class ServiceController {
         }
     }
 }
+
+
+//通过serviceId获取node-red的json，通过json，获取里面的deviceId，通过deviceId获取LHA

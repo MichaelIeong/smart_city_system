@@ -18,11 +18,12 @@ public class ServiceService {
     @Autowired
     private ServiceRepository serviceRepository;
 
-    public List<ServiceBriefResponse> findAllByProjectId(Integer projectId) {
+    public List<ServiceBriefResponse> findAllByProjectId(String projectId) {
         return serviceRepository.findAllByProjectId(projectId).stream().map(ServiceBriefResponse::new).toList();
     }
 
     public void addOrUpdateService(ServiceInfo serviceInfo){
+
         serviceRepository.save(serviceInfo);
     }
 

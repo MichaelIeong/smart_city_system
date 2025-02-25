@@ -27,13 +27,16 @@ public class ServiceInfo {
     @Column(name = "service_id", nullable = false)
     private String serviceId; // 服务ID(由用户自定义, Project内唯一)
 
-    @Column(nullable = false)
+    @Column(name = "project_id", nullable = false)
+    private String projectId; // 服务ID(由用户自定义, Project内唯一)
+
+    @Column(name = "service_name", nullable = false)
     private String serviceName; // 服务名称, 例如“会议模式”
 
-    @Column(nullable = false)
+    @Column(name = "service_json", nullable = true)
     private String serviceJson; // 服务组合的node-red的json
 
-    @Column(nullable = false)
+    @Column(name = "service_csp", nullable = true)
     private String serviceCsp; // 服务的CSP模型
 
     @Override

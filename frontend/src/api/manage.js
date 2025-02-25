@@ -2,11 +2,10 @@ import request from '@/utils/request'
 import store from '@/store'
 
 const api = {
-  project: 'api/import/upload',
+  project: '/api/import/upload',
   user: '/user',
   role: '/role',
   rule: '/api/fusion/getRuleList',
-  service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
@@ -14,7 +13,8 @@ const api = {
   events: '/api/events',
   spaces: '/api/spaces',
   properties: '/api/properties',
-  services: '/api/services'
+  services: '/api/services',
+  deviceConfig: '/api/LHA'
 }
 
 export default api
@@ -61,15 +61,16 @@ export function getRuleList () {
   })
 }
 
-export function getServiceList () {
+export function getServiceList (project) {
   const token = store.state.token // 从 Vuex 或其他存储中获取 token
 
   return request({
-    url: api.service,
+    url: api.services,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
-    }
+    },
+    params: { project }
   })
 }
 
@@ -189,5 +190,93 @@ export function getServices (projectId) {
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
     }
+  })
+}
+
+export function saveDeviceConfig (deviceConfig) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.deviceConfig + '/addConfig',
+    method: 'post',
+    data: deviceConfig,
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getDeviceConfig (deviceId) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.deviceConfig + '/getConfig',
+    method: 'get',
+    params: { deviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getDevicelha (deviceId) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.deviceConfig + '/getLHA',
+    method: 'get',
+    params: { deviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function saveDeviceLha (deviceId, lha) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.deviceConfig + '/updateLHA',
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    params: { deviceId },
+    data: lha
+  })
+}
+// 服务组合部分
+export function getCSP (serviceId) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.services + '/getCSP',
+    method: 'get',
+    params: { serviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function saveCsp (serviceId, csp) {
+  const token = store.state.token
+
+  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
+  return request({
+    url: api.services + '/generateCSPbyHand',
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    params: { serviceId },
+    data: csp
   })
 }
