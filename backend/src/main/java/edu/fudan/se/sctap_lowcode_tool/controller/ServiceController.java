@@ -2,7 +2,9 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
-import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
+import edu.fudan.se.sctap_lowcode_tool.execution.ServiceTaskExecutor;
+import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
+import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.ServiceService;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
@@ -24,6 +26,18 @@ public class ServiceController {
 
     @Autowired
     private SpaceService spaceService;
+
+    private final TaskScheduler scheduler; // 让 Spring 负责管理
+
+
+
+    private final WorkflowParser parser;
+
+    @Autowired
+    public ServiceController(WorkflowParser parser, TaskScheduler scheduler) {
+        this.parser = parser;
+        this.scheduler = scheduler;
+    }
 
     @GetMapping
     public ResponseEntity<Iterable<ServiceBriefResponse>> getServicesByProjectId(
@@ -124,6 +138,33 @@ public class ServiceController {
             // 错误处理
             return ResponseEntity.status(500).body("Error generating CSP: " + e.getMessage());
         }
+    }
+
+    @Operation(summary = "服务执行引擎入口", description = "调用执行引擎，执行响应服务")
+    @GetMapping("/executorService")
+    public ResponseEntity<?> executorService(@RequestParam Integer serviceId) throws Exception {
+        // 1. 获取服务的json
+        ServiceInfo serviceInfo = serviceService.getService(serviceId);
+        String serviceJson = serviceInfo.getServiceJson();
+        // 调用执行引擎
+        // 2. 初始化工作流解析器
+        //WorkflowParser parser = new WorkflowParser(serviceJson);
+        parser.initParser(serviceJson);
+        System.out.println(parser.getNodeMap());
+        System.out.println(parser.getDependencies());
+        System.out.println(parser.getStartNodeId());
+
+        // 3. 初始化执行引擎
+//        ServiceTaskExecutor serviceTaskExecutor = new ServiceTaskExecutor();
+//        TaskScheduler scheduler = new TaskScheduler(parser, serviceTaskExecutor);
+
+        // 4. 执行工作流
+        scheduler.start(parser.getStartNodeId());
+
+        // 5. 关闭线程池
+        //Thread.sleep(30000);
+        // scheduler.shutdown();
+        return ResponseEntity.ok().build();
     }
 }
 
