@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
+import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.ServiceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,16 +23,25 @@ public class ServiceService {
         return serviceRepository.findAllByProjectId(projectId).stream().map(ServiceBriefResponse::new).toList();
     }
 
+    /**
+     * 获取所有规则的列表。
+     *
+     * @return 数据库中所有规则的列表
+     */
+    public List<ServiceInfo> getServiceList() {
+        return serviceRepository.findAll();
+    }
+
     public void addOrUpdateService(ServiceInfo serviceInfo){
 
         serviceRepository.save(serviceInfo);
     }
 
-    public ServiceInfo getService(String serviceId){
+    public ServiceInfo getService(Integer serviceId){
         return serviceRepository.findByServiceId(serviceId);
     }
 
-    public String generateCSP(String serviceId) {
+    public String generateCSP(Integer serviceId) {
         // 获取服务信息
         ServiceInfo serviceInfo = getService(serviceId);
 

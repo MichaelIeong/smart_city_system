@@ -357,22 +357,18 @@ export default {
       window.open('http://127.0.0.1:1880/', '_blank')
     },
     handleEdit (record) {
-      let flowJson
-      try {
-        flowJson = JSON.parse(record.flowJson)
-        // flowJson = `'${flowJson}'`
-      } catch (e) {
-        console.error('解析 flowJson 时出错:', e)
-        return
+      console.log(record)
+      if (typeof record.serviceJson === 'object') {
+        console.warn('⚠️ record.flowJson 是对象，尝试转换为 JSON 字符串')
       }
-
-      console.log(flowJson)
+      const updatedFlowJson = this.addServiceIdToFlowJson(JSON.parse(record.serviceJson), record.serviceId)
+      console.log(updatedFlowJson)
       fetch('http://127.0.0.1:1880/flows ', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: flowJson
+        body: JSON.stringify(updatedFlowJson)
       })
           .finally(() => {
             // 发送数据后，无论成功与否，都打开新窗口
@@ -383,6 +379,24 @@ export default {
           })
     },
 
+    addServiceIdToFlowJson (flowJson, serviceId) {
+      return flowJson.map(node => {
+        // 只在 "tab"（flow 画布）类型的节点中添加 serviceId
+        if (node.type === 'tab') {
+          // 确保 `env` 存在
+          node.env = node.env || []
+
+          // 检查 `env` 是否已经包含 `serviceId`
+          const existingServiceId = node.env.find(envVar => envVar.name === 'serviceId')
+          if (existingServiceId) {
+            existingServiceId.value = serviceId // 更新已有的值
+          } else {
+            node.env.push({ name: 'serviceId', value: serviceId }) // 添加新的 serviceId
+          }
+        }
+        return node
+      })
+    },
     handleOk () {
       const form = this.$refs.createModal.form
       this.confirmLoading = true
