@@ -6,6 +6,7 @@ const api = {
   user: '/user',
   role: '/role',
   rule: '/api/fusion/getRuleList',
+  sensors: '/api/fusion/sensor',
   service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
@@ -185,6 +186,18 @@ export function getServices (projectId) {
 
   return request({
     url: api.services + `?project=${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function getSensors (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
+  return request({
+    url: api.sensors + '/' + projectId,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
