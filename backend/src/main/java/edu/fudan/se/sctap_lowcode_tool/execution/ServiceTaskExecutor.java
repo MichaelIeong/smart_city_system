@@ -1,9 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.execution;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import edu.fudan.se.sctap_lowcode_tool.service.CyberResourceService;
 import edu.fudan.se.sctap_lowcode_tool.service.FunctionExeService;
-import edu.fudan.se.sctap_lowcode_tool.service.SocialServiceExeService;
-//import edu.fudan.se.sctap_lowcode_tool.service.InformationServiceExeService;
+import edu.fudan.se.sctap_lowcode_tool.service.SocialResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +16,10 @@ public class ServiceTaskExecutor {
     private FunctionExeService functionExeService;
 
     @Autowired
-    private SocialServiceExeService socialServiceExeService;
-//
-//    @Autowired
-//    private InformationServiceExeService informationServiceExeService;
+    private SocialResourceService socialResourceService;
+
+    @Autowired
+    private CyberResourceService cyberResourceService;
 
     public void execute(JsonNode node) {
         String nodeId = node.get("id").asText();
@@ -64,6 +64,7 @@ public class ServiceTaskExecutor {
 
     private void executeInformationService(JsonNode node) {
         String resourceName = node.has("informationResource") ? node.get("informationResource").asText() : "";
+        String resourceId = node.has("resourceId") ? node.get("resourceId").asText() : "";
 
         if (resourceName == null || resourceName.isEmpty()) {
             System.out.println("跳过无信息资源的节点: " + node.get("id").asText());
@@ -71,20 +72,20 @@ public class ServiceTaskExecutor {
         }
 
         System.out.println("执行信息服务: " + resourceName);
-        //String apiUrl = informationServiceExeService.getApiUrl(resourceName);
-        //callApi(apiUrl);
+        String apiUrl = cyberResourceService.findByResourceId(resourceId).getUrl();
+        callApi(apiUrl);
     }
 
     private void executeSocialService(JsonNode node) {
         String socialResource = node.has("socialResource") ? node.get("socialResource").asText() : "";
-
+        String resourceId = node.has("resourceId") ? node.get("resourceId").asText() : "";
         if (socialResource == null || socialResource.isEmpty()) {
             System.out.println("跳过无社交资源的节点: " + node.get("id").asText());
             return;
         }
 
         System.out.println("执行社交服务: " + socialResource);
-        String apiUrl = socialServiceExeService.getApiUrl(socialResource);
+        String apiUrl = socialResourceService.findByResourceId(resourceId).getUrl();
         callApi(apiUrl);
     }
 
