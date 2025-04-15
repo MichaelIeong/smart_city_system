@@ -1,6 +1,7 @@
 export default {
     'menu.welcome': '欢迎',
     'menu.home': '主页',
+    'menu.recommend': '应用推荐',
     'menu.resource': '资源管理',
     'menu.resource.physical-resource': '物理资源',
     'menu.projectSelection': '场景选择',
