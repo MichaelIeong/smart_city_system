@@ -2,11 +2,14 @@
 
 ## Install dependencies
 ```bash
-npm install
+yarn install
 ```
 
 ## Node.js version
-22
+version 22 important !!
+```bash
+nvm use 22
+```
 
 ## Run
 ```bash

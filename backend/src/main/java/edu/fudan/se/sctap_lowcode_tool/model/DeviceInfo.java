@@ -44,14 +44,19 @@ public class DeviceInfo {
     @ToString.Exclude
     private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
+    @Column(nullable = true)
     private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}
 
-    private float coordinateX; // 设备的横坐标
+    @Column(nullable = true)
+    private Float coordinateX; // 设备的横坐标
 
-    private float coordinateY; // 设备的纵坐标
+    @Column(nullable = true)
+    private Float coordinateY; // 设备的纵坐标
 
-    private float coordinateZ; // 设备的Z轴坐标
+    @Column(nullable = true)
+    private Float coordinateZ; // 设备的Z轴坐标
 
+    @Column(nullable = true)
     private LocalDateTime lastUpdateTime;  // 设备最后更新时间
 
     @Override
