@@ -17,7 +17,6 @@ const constantRouterComponents = {
   // 你需要动态引入的页面组件
   Workplace: () => import('@/views/dashboard/SocialResource.vue'),
   Analysis: () => import('@/views/dashboard/PhysicalResource.vue'),
-  RecommendDetail: () => import('@/views/recommend/RecommendDetail.vue'),
 
   // form
   BasicForm: () => import('@/views/form/basicForm'),
