@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.utils.kafka;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
