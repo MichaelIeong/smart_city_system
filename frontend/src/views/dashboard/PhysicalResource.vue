@@ -2,7 +2,7 @@
   <div style="height: 100%">
     <a-row :gutter="24" style="height: 50% ;margin-bottom: 2%; ">
       <a-col :span="24">
-        <a-card title="设备类型" bordered :style="{ borderRadius: '8px' }" >
+        <a-card title="设备类型" bordered :style="{ borderRadius: '8px' }">
           <a-table
             :columns="deviceTypeColumns"
             :dataSource="deviceTypes"
@@ -10,10 +10,8 @@
             :pagination="false"
             :scroll="{ y: 250 }"
           />
-          <!-- 分割线 -->
-          <a-divider />
 
-          <a-button type="primary" @click="showAddDeviceTypeModal">新增设备类型</a-button>
+          <a-button type="primary" @click="showAddDeviceTypeModal" style="margin-top: 16px;">新增设备类型</a-button>
           <a-modal
             v-model="isDeviceTypeModalVisible"
             title="新增设备类型"
@@ -61,13 +59,18 @@
                 style="width: 100%;"
               >
                 <a-select-option value="0">全部</a-select-option>
-                <a-select-option v-for="device in deviceTypes" :key="device.deviceTypeId" :value="device.deviceTypeName">
+                <a-select-option
+                  v-for="device in deviceTypes"
+                  :key="device.deviceTypeId"
+                  :value="device.deviceTypeName">
                   {{ device.deviceTypeName }}
                 </a-select-option>
               </a-select>
             </a-col>
             <a-col :md="!advanced && 8 || 24" :sm="24">
-              <span class="table-page-search-submitButtons" :style="advanced && { float: 'right', overflow: 'hidden' } || {} " >
+              <span
+                class="table-page-search-submitButtons"
+                :style="advanced && { float: 'right', overflow: 'hidden' } || {} ">
                 <a-button type="primary" @click="filterData" style="margin-left: 8px;">
                   查询
                 </a-button>
@@ -85,8 +88,6 @@
             :scroll="{ y: 300 }"
             style="margin-top: 20px;"
           />
-          <!-- 分割线 -->
-          <a-divider />
           <!-- 新增设备实例按钮 -->
           <a-row style="margin-top: 16px;">
             <a-col>
@@ -202,7 +203,16 @@ export default {
   methods: {
     async fetchDeviceData () {
       try {
-        const response = await axios.get('http://localhost:8080/api/devices?project=1')
+        // 从 localStorage 获取保存的 projectId
+        const projectId = localStorage.getItem('project_id')
+
+        // 发起带有 projectId 的 API 请求
+        const response = await axios.get(`http://localhost:8080/api/devices`, {
+          params: {
+            project: projectId // 作为查询参数发送 projectId
+          }
+        })
+
         console.log('API 返回的数据:', response.data) // 打印返回的数据
         const rawData = response.data
 
@@ -216,6 +226,7 @@ export default {
           deviceTypeName: device.deviceTypeName, // 确保这个属性存在
           deviceTypeId: device.deviceTypeId
         }))
+
         // 初始化 filteredDeviceInstances
         this.filteredDeviceInstances = [...this.deviceInstances]
       } catch (error) {
@@ -304,7 +315,16 @@ export default {
     async fetchDeviceTypes () {
       this.loading = true
       try {
-        const response = await axios.get('http://localhost:8080/api/deviceTypes?project=1') // 调用API
+        // 从 localStorage 获取保存的 projectId
+        const projectId = localStorage.getItem('project_id')
+
+        // 发起带有 projectId 的 API 请求
+        const response = await axios.get('http://localhost:8080/api/deviceTypes', {
+          params: {
+            project: projectId // 作为查询参数发送 projectId
+          }
+        })
+
         const deviceData = response.data
 
         // 映射设备类型的数据（左侧表格）
