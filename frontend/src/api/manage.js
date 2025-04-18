@@ -6,7 +6,7 @@ const api = {
   user: '/user',
   role: '/role',
   rule: '/api/fusion/getRuleList',
-  sensors: '/api/fusion/sensor',
+  sensors: '/api/node-red/sensor',
   service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
@@ -15,7 +15,9 @@ const api = {
   events: '/api/events',
   spaces: '/api/spaces',
   properties: '/api/properties',
-  services: '/api/services'
+  services: '/api/services',
+  executeRule: '/api/fusion/executeRule',
+  deleteRule: '/api/fusion/deleteRule'
 }
 
 export default api
@@ -201,6 +203,30 @@ export function getSensors (projectId) {
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function executeRuleById (ruleId) {
+  const token = store.state.token
+
+  return request({
+    url: `${api.executeRule}/${ruleId}`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function deleteRuleById (ruleId) {
+  const token = store.state.token
+
+  return request({
+    url: `${api.deleteRule}/${ruleId}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
     }
   })
 }
