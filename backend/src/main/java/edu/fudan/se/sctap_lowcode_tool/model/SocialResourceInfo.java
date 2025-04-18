@@ -39,4 +39,6 @@ public class SocialResourceInfo {
 
     private LocalDateTime lastUpdateTime;  // 资源最后更新时间
 
+    @Column(name = "url", nullable = false, length = 512)
+    private String url;  // 资源的访问链接或 API 地址
 }

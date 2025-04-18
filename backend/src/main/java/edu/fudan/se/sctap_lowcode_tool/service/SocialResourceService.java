@@ -16,4 +16,8 @@ public class SocialResourceService {
     public List<SocialResourceInfo> getSocialResourceByProjectId(Integer projectId) {
         return socialResourceRepository.findByProjectInfoProjectId(projectId);
     }
+
+    public SocialResourceInfo findByResourceId(String resourceId) {
+        return socialResourceRepository.findByResourceId(resourceId);
+    }
 }

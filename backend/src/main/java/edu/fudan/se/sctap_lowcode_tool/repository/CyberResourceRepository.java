@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CyberResourceRepository extends JpaRepository<CyberResourceInfo, Integer> {
     List<CyberResourceInfo> findByProjectInfoProjectId(Integer projectId);
+
+    CyberResourceInfo findByResourceId(String resourceId);
 }
