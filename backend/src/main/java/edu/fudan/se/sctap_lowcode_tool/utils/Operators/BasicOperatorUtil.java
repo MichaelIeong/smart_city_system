@@ -1,11 +1,11 @@
-package edu.fudan.se.sctap_lowcode_tool.utils;
+package edu.fudan.se.sctap_lowcode_tool.utils.Operators;
 
 import edu.fudan.se.sctap_lowcode_tool.model.Operator;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class OperatorUtil {
+public class BasicOperatorUtil {
 
     /**
      * 判断第一个值是否大于第二个值
