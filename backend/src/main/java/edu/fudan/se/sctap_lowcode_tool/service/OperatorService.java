@@ -1,7 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.model.Operator;
-import edu.fudan.se.sctap_lowcode_tool.utils.Operators.BasicOperatorUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -23,27 +23,27 @@ public class OperatorService {
     public OperatorService() {
         // 1) 原有的数值比较
         utilOperators.put("Greater than", (input1, input2) ->
-                BasicOperatorUtil.greaterThan(toDouble(input1), toDouble(input2))
+                OperatorUtil.greaterThan(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Less than", (input1, input2) ->
-                BasicOperatorUtil.lessThan(toDouble(input1), toDouble(input2))
+                OperatorUtil.lessThan(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Equal to", (input1, input2) ->
-                BasicOperatorUtil.equalTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.equalTo(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Greater than or equal to", (input1, input2) ->
-                BasicOperatorUtil.greaterThanOrEqualTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.greaterThanOrEqualTo(toDouble(input1), toDouble(input2))
         );
         utilOperators.put("Less than or equal to", (input1, input2) ->
-                BasicOperatorUtil.lessThanOrEqualTo(toDouble(input1), toDouble(input2))
+                OperatorUtil.lessThanOrEqualTo(toDouble(input1), toDouble(input2))
         );
 
         // 2) 原有的布尔运算（不带时间戳）
         utilOperators.put("AND", (input1, input2) ->
-                BasicOperatorUtil.and(toBoolean(input1), toBoolean(input2))
+                OperatorUtil.and(toBoolean(input1), toBoolean(input2))
         );
         utilOperators.put("OR", (input1, input2) ->
-                BasicOperatorUtil.or(toBoolean(input1), toBoolean(input2))
+                OperatorUtil.or(toBoolean(input1), toBoolean(input2))
         );
 
         // 3) **新增：带时间戳版本的 AND/OR，调用 andTime() / orTime()**
@@ -60,7 +60,7 @@ public class OperatorService {
             Long maxTimeDiff = toLong(map1.get("maxTimeDiff"));
 
             // **这里改成调用 andTime(...) 而不是原先的 and(...)**
-            return BasicOperatorUtil.andTime(bool1, ts1, bool2, ts2, maxTimeDiff);
+            return OperatorUtil.andTime(bool1, ts1, bool2, ts2, maxTimeDiff);
         });
 
         utilOperators.put("OR_TIME", (input1, input2) -> {
@@ -73,7 +73,7 @@ public class OperatorService {
             Long maxTimeDiff = toLong(map1.get("maxTimeDiff"));
 
             // **这里改成调用 orTime(...) 而不是原先的 or(...)**
-            return BasicOperatorUtil.orTime(bool1, ts1, bool2, ts2, maxTimeDiff);
+            return OperatorUtil.orTime(bool1, ts1, bool2, ts2, maxTimeDiff);
         });
     }
 
@@ -82,7 +82,7 @@ public class OperatorService {
      */
     public List<Operator> getAllUtilOperators() {
         // 直接调用 OperatorUtil 提供的封装方法
-        return BasicOperatorUtil.getAllUtilOperators();
+        return OperatorUtil.getAllUtilOperators();
     }
 
     /**
