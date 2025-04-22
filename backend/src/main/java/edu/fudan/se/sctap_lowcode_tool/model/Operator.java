@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
-
 import jakarta.persistence.*;
 import lombok.Data;
 
