@@ -9,9 +9,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -52,11 +52,17 @@ public class KafkaConsumerUtil implements Runnable {
         this.consumer.subscribe(Collections.singletonList(topic));
     }
 
-    @EventListener(ContextRefreshedEvent.class)
-    public void startConsumer() {
-        running.set(true);
-        consumerThread = new Thread(this);
-        consumerThread.start();
+    @EventListener(ApplicationReadyEvent.class)
+    public void startConsumerAfterAppReady() {
+        new Thread(() -> {
+            try {
+                System.out.println("✅ KafkaConsumerUtil 正在启动 consumer...");
+                running.set(true);
+                run(); // 启动消费线程
+            } catch (Exception e) {
+                System.err.println("❌ KafkaConsumerUtil 启动失败：" + e.getMessage());
+            }
+        }, "kafka-consumer-thread").start();
     }
 
     @Override
@@ -86,6 +92,7 @@ public class KafkaConsumerUtil implements Runnable {
                         originalJson = wrapper;
                     }
 
+                    // System.out.println("📩 消费到 Kafka 消息：" + originalJson.toPrettyString());
                     messageQueue.offer(originalJson.toString());
                 }
             }
