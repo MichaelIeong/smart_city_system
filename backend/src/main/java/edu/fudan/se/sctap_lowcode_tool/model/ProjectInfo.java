@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -10,6 +11,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "projects")
 @Data
 public class ProjectInfo {

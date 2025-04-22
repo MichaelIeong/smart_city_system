@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/person")
@@ -66,12 +65,16 @@ public class PersonController {
     }
 
     /**
-     * 將某人設為離開空間（currentSpace 設為 null）
+     * 設定人員的空間（可傳 null 表示離開空間）
      */
-    @PostMapping("/{id}/leave-space")
-    public ResponseEntity<PersonInfo> leaveSpace(@PathVariable Integer id) {
-        Optional<PersonInfo> result = personService.removePersonFromSpace(id);
-        return result.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    @PostMapping("/{id}/set-space")
+    public ResponseEntity<PersonInfo> setPersonSpace(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer spaceId) {
+
+        return personService.setPersonSpace(id, spaceId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**

@@ -47,7 +47,6 @@ public class PersonService {
      */
     public PersonInfo createPerson(PersonCreateRequest request) {
         PersonInfo person = new PersonInfo();
-        person.setPersonId(request.getPersonId());
         person.setPersonName(request.getPersonName());
 
         if (request.getSpaceId() != null) {
@@ -83,16 +82,24 @@ public class PersonService {
     }
 
     /**
-     * 讓人員離開空間（將 currentSpace 設為 null）
+     * 設定人員所屬空間（可傳 null 表示移除）
      */
-    public Optional<PersonInfo> removePersonFromSpace(Integer personId) {
+    public Optional<PersonInfo> setPersonSpace(Integer personId, Integer spaceId) {
         Optional<PersonInfo> personOpt = personRepository.findById(personId);
-        if (personOpt.isPresent()) {
-            PersonInfo person = personOpt.get();
-            person.setCurrentSpace(null);
-            return Optional.of(personRepository.save(person));
+        if (personOpt.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+        PersonInfo person = personOpt.get();
+
+        if (spaceId != null) {
+            Optional<SpaceInfo> spaceOpt = spaceRepository.findById(spaceId);
+            person.setCurrentSpace(spaceOpt.orElse(null)); // 無效 ID 時設 null
+        } else {
+            person.setCurrentSpace(null); // 明確移除空間
+        }
+
+        return Optional.of(personRepository.save(person));
     }
 
     /**

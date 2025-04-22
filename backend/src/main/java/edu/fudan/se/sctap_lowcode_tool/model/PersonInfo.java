@@ -11,27 +11,24 @@ import java.util.Objects;
 public class PersonInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;   // 人员的唯一标识符
-
-    @Column(name = "person_id", nullable = false, unique = true)
-    private String personId;   // 人员的唯一标识符
+    private Integer id;   // 資料庫唯一主鍵
 
     @Column(nullable = false)
-    private String personName;   // 人员的姓名
+    private String personName;   // 人員姓名
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id")
-    private SpaceInfo currentSpace;   // 与空间的关联，表示人员所在的空间，允许为null
+    private SpaceInfo currentSpace;   // 所屬空間，允許為 null
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PersonInfo that)) return false;
-        return Objects.equals(id, that.id) && Objects.equals(personId, that.personId) && Objects.equals(personName, that.personName);
+        return Objects.equals(id, that.id) && Objects.equals(personName, that.personName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, personId, personName);
+        return Objects.hash(id, personName);
     }
 }

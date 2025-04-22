@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -24,6 +25,7 @@ public class DeviceInfo {
     @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id")
+    @JsonManagedReference
     private SpaceInfo space;   // 设备所属的空间
 
     @Column(name = "device_id", nullable = false)
