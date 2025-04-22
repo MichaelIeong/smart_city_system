@@ -266,25 +266,37 @@ export function saveCsp (serviceId, csp) {
 
 // 新增：执行规则
 export function executeRuleById (ruleId) {
+  const token = store.state.token
   return request({
     url: `${api.fusionExecute}/${ruleId}`,
-    method: 'post'
+    method: 'post',
+        headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
 // 新增：暂停规则
 export function pauseRuleById (ruleId) {
+  const token = store.state.token
   return request({
     url: `${api.fusionPause}/${ruleId}`,
-    method: 'put'
+    method: 'put',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
 // 新增：删除规则
 export function deleteRuleById (ruleId) {
+  const token = store.state.token
   return request({
     url: `${api.fusionDelete}/${ruleId}`,
-    method: 'delete'
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
