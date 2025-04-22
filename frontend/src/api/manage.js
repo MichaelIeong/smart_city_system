@@ -14,7 +14,11 @@ const api = {
   spaces: '/api/spaces',
   properties: '/api/properties',
   services: '/api/services',
-  deviceConfig: '/api/LHA'
+  deviceConfig: '/api/LHA',
+  fusionExecute: '/api/fusion/executeRule',
+  fusionPause: '/api/fusion/pauseRule',
+  fusionDelete: '/api/fusion/deleteRule',
+  sensors: '/api/sensors/list'
 }
 
 export default api
@@ -28,14 +32,13 @@ export function getUserList (parameter) {
 }
 
 export function postProject (formData) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
-    url: api.project, // 确保 api.project 指向正确的后端 /upload 路径
+    url: api.project,
     method: 'post',
-    data: formData, // 使用 data 而不是 params 来发送 FormData
+    data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data', // 设置 multipart/form-data 头
+      'Content-Type': 'multipart/form-data',
       'Authorization': `Bearer ${token}`
     }
   })
@@ -50,25 +53,23 @@ export function getRoleList (parameter) {
 }
 
 export function getRuleList () {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.rule,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getServiceList (project) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.services,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     },
     params: { project }
   })
@@ -90,8 +91,6 @@ export function getOrgTree (parameter) {
   })
 }
 
-// id == 0 add     post
-// id != 0 update  put
 export function saveService (parameter) {
   return request({
     url: api.service,
@@ -146,57 +145,51 @@ export function deleteTaps (ids) {
 }
 
 export function getEvents (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.events + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getSpaces (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.spaces + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getProperties (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.properties + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getServices (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.services + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function saveDeviceConfig (deviceConfig) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.deviceConfig + '/addConfig',
     method: 'post',
@@ -209,8 +202,6 @@ export function saveDeviceConfig (deviceConfig) {
 
 export function getDeviceConfig (deviceId) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.deviceConfig + '/getConfig',
     method: 'get',
@@ -223,8 +214,6 @@ export function getDeviceConfig (deviceId) {
 
 export function getDevicelha (deviceId) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.deviceConfig + '/getLHA',
     method: 'get',
@@ -237,24 +226,20 @@ export function getDevicelha (deviceId) {
 
 export function saveDeviceLha (deviceId, lha) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.deviceConfig + '/updateLHA',
     method: 'post',
+    params: { deviceId },
+    data: lha,
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
-    },
-    params: { deviceId },
-    data: lha
+    }
   })
 }
-// 服务组合部分
+
 export function getCSP (serviceId) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.services + '/getCSP',
     method: 'get',
@@ -267,16 +252,50 @@ export function getCSP (serviceId) {
 
 export function saveCsp (serviceId, csp) {
   const token = store.state.token
-
-  // 直接将 deviceConfig 发送到后端（假设 deviceConfig 已经包含了 deviceId 和 deviceName）
   return request({
     url: api.services + '/generateCSPbyHand',
     method: 'post',
+    params: { serviceId },
+    data: csp,
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
-    },
-    params: { serviceId },
-    data: csp
+    }
+  })
+}
+
+// 新增：执行规则
+export function executeRuleById (ruleId) {
+  return request({
+    url: `${api.fusionExecute}/${ruleId}`,
+    method: 'post'
+  })
+}
+
+// 新增：暂停规则
+export function pauseRuleById (ruleId) {
+  return request({
+    url: `${api.fusionPause}/${ruleId}`,
+    method: 'put'
+  })
+}
+
+// 新增：删除规则
+export function deleteRuleById (ruleId) {
+  return request({
+    url: `${api.fusionDelete}/${ruleId}`,
+    method: 'delete'
+  })
+}
+
+// 新增：获取传感器列表（LLMCreation 可能用到）
+export function getSensors () {
+  const token = store.state.token
+  return request({
+    url: api.sensors,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }

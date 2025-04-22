@@ -27,7 +27,7 @@ public class FusionRuleService {
     // 全局状态存储结构
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
 
-    // 用于 Kafka 消费
+    // 用于 Kafka 消费的线程池
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     /**
@@ -37,10 +37,51 @@ public class FusionRuleService {
         return fusionRuleRepository.findAll();
     }
 
+    /**
+     * 根据 ID 删除规则
+     */
     public boolean deleteRuleById(int ruleId) {
         Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
         if (ruleOpt.isPresent()) {
             fusionRuleRepository.deleteById(ruleId);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 点击“执行”→ 激活并执行规则
+     */
+    public boolean executeRuleById(int ruleId) {
+        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
+        if (ruleOpt.isPresent()) {
+            FusionRule rule = ruleOpt.get();
+            rule.setStatus("active");
+            fusionRuleRepository.save(rule);
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode ruleJson = mapper.readTree(rule.getRuleJson());
+                processNodeRedJson(ruleJson);
+                System.out.println("已执行并激活规则，ruleId=" + ruleId);
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException("执行失败：" + e.getMessage(), e);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 点击“暂停”→ 将规则设为 inactive
+     */
+    public boolean pauseRuleById(int ruleId) {
+        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
+        if (ruleOpt.isPresent()) {
+            FusionRule rule = ruleOpt.get();
+            rule.setStatus("inactive");
+            fusionRuleRepository.save(rule);
+            System.out.println("已将规则设为 inactive，ruleId=" + ruleId);
             return true;
         }
         return false;
@@ -58,16 +99,15 @@ public class FusionRuleService {
         int totalSteps = ruleJson.get("steps").asInt();
         for (int currentStep = 1; currentStep <= totalSteps; currentStep++) {
             List<Map.Entry<String, JsonNode>> currentNodes = findNodesByStep(ruleJson, currentStep);
-
             for (Map.Entry<String, JsonNode> entry : currentNodes) {
                 String nodeId = entry.getKey();
                 JsonNode currentNode = entry.getValue();
                 String nodeType = currentNode.has("type") ? currentNode.get("type").asText() : "Unknown";
 
                 switch (nodeType) {
-                    case "Sensor" -> processSensorNode(nodeId, currentNode);
+                    case "Sensor"   -> processSensorNode(nodeId, currentNode);
                     case "Operator" -> processOperatorNode(nodeId, currentNode);
-                    default -> System.out.println("未知的节点类型: " + nodeType + "，跳过该节点。");
+                    default         -> System.out.println("未知的节点类型: " + nodeType + "，跳过该节点。");
                 }
             }
         }
@@ -82,7 +122,9 @@ public class FusionRuleService {
             String key = entry.getKey();
             JsonNode node = entry.getValue();
 
-            if ("steps".equals(key) || "rulename".equals(key)) continue;
+            if ("steps".equals(key) || "rulename".equals(key)) {
+                continue;
+            }
 
             if (node.has("step") && node.get("step").asInt() == step) {
                 nodes.add(entry);
@@ -92,18 +134,16 @@ public class FusionRuleService {
     }
 
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
-        String sensorIdStr = sensorNode.get("sensorId").asText();
-        int sensorId = Integer.parseInt(sensorIdStr);
-
+        int sensorId = Integer.parseInt(sensorNode.get("sensorId").asText());
         double sensorValue = getSensorValue(sensorId);
 
         Map<String, Object> sensorData = new HashMap<>();
         sensorData.put("value", sensorValue);
         sensorData.put("timestamp", System.currentTimeMillis());
-
         globalState.put(nodeId, sensorData);
 
-        System.out.println("从 Sensor 节点获取的值: nodeId=" + nodeId + "，sensorId=" + sensorId + "，值=" + sensorValue);
+        System.out.println("从 Sensor 节点获取的值: nodeId=" + nodeId +
+                           "，sensorId=" + sensorId + "，值=" + sensorValue);
     }
 
     private void processOperatorNode(String nodeId, JsonNode operatorNode) {
@@ -114,8 +154,8 @@ public class FusionRuleService {
         }
 
         List<String> dependencies = new ArrayList<>();
-        for (JsonNode dependency : dependenciesNode) {
-            dependencies.add(dependency.asText());
+        for (JsonNode dep : dependenciesNode) {
+            dependencies.add(dep.asText());
         }
 
         String operatorType = operatorNode.get("operator").asText();
@@ -123,12 +163,14 @@ public class FusionRuleService {
         boolean hasValue = (valueNode != null && !valueNode.isNull());
         boolean isTimeOperator = operatorType.endsWith("_TIME");
 
-        Object input1 = null;
-        Object input2 = null;
+        Object input1;
+        Object input2;
 
         if (hasValue) {
             if (dependencies.size() != 1) {
-                System.out.println("Operator 节点 " + nodeId + " 需要一个依赖节点和一个 value，但依赖节点数量为 " + dependencies.size());
+                System.out.println("Operator 节点 " + nodeId +
+                                   " 需要一个依赖节点和一个 value，但依赖节点数量为 " +
+                                   dependencies.size());
                 return;
             }
 
@@ -142,7 +184,7 @@ public class FusionRuleService {
                 input1 = toDouble(depData.get("value"));
                 input2 = valueNode.asDouble();
             } else {
-                Double timeDiff = valueNode.asDouble();
+                double timeDiff = valueNode.asDouble();
                 Map<String, Object> depMap = new HashMap<>(depData);
                 depMap.put("value", toDouble(depMap.get("value")) != 0.0);
                 depMap.put("maxTimeDiff", timeDiff);
@@ -158,7 +200,9 @@ public class FusionRuleService {
 
         } else {
             if (dependencies.size() != 2) {
-                System.out.println("Operator 节点 " + nodeId + " 需要两个依赖节点，但数量为 " + dependencies.size());
+                System.out.println("Operator 节点 " + nodeId +
+                                   " 需要两个依赖节点，但数量为 " +
+                                   dependencies.size());
                 return;
             }
 
@@ -173,7 +217,7 @@ public class FusionRuleService {
                 input1 = toDouble(dep1Data.get("value"));
                 input2 = toDouble(dep2Data.get("value"));
             } else {
-                Double defaultTimeDiff = 3000.0;
+                double defaultTimeDiff = 3000.0;
 
                 Map<String, Object> dep1Map = new HashMap<>(dep1Data);
                 dep1Map.put("value", toDouble(dep1Map.get("value")) != 0.0);
@@ -194,15 +238,14 @@ public class FusionRuleService {
         Map<String, Object> operatorData = new HashMap<>();
         operatorData.put("value", operatorDoubleResult);
         operatorData.put("timestamp", System.currentTimeMillis());
-
         globalState.put(nodeId, operatorData);
 
-        System.out.println("Operator 节点处理结果: nodeId=" + nodeId + "，运算符=" + operatorType + "，结果=" + operatorDoubleResult);
+        System.out.println("Operator 节点处理结果: nodeId=" + nodeId +
+                           "，运算符=" + operatorType + "，结果=" + operatorDoubleResult);
     }
 
     private double getSensorValue(int sensorId) {
-        String latestMessage = kafkaConsumerUtil.getLatestMessageBySensorId(sensorId, 3000); // 最多等待3秒
-
+        String latestMessage = kafkaConsumerUtil.getLatestMessageBySensorId(sensorId, 3000);
         if (latestMessage != null) {
             try {
                 JsonNode messageJson = new ObjectMapper().readTree(latestMessage);
@@ -211,13 +254,16 @@ public class FusionRuleService {
                 throw new RuntimeException("解析 Kafka 消息失败: " + latestMessage, e);
             }
         }
-
         throw new RuntimeException("未能在 Kafka 中找到 sensorId=" + sensorId + " 的最新值");
     }
 
     private Double toDouble(Object input) {
-        if (input == null) return 0.0;
-        if (input instanceof Number) return ((Number) input).doubleValue();
+        if (input == null) {
+            return 0.0;
+        }
+        if (input instanceof Number) {
+            return ((Number) input).doubleValue();
+        }
         try {
             return Double.parseDouble(input.toString());
         } catch (NumberFormatException e) {
