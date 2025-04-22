@@ -49,11 +49,13 @@ public class NodeRedController {
         return nodeRedService.getAllOperators();
     }
 
-    // 如需开启，可取消注释
-//    @Operation(summary = "获取所有事件融合的表名")
-//    @GetMapping("/fusion_table/")
-//    public ResponseEntity<List<String>> getAllFusionTable() {
-//        List<String> fusionTableList = nodeRedService.getAllFusionTable();
-//        return ResponseEntity.ok(fusionTableList);
-//    }
+    /**
+     * 获取所有事件融合的表名
+     */
+    @Operation(summary = "获取所有事件融合的表名")
+    @GetMapping("/fusion_table/")
+    public ResponseEntity<List<String>> getAllFusionTable() {
+        List<String> fusionTableList = nodeRedService.getAllFusionTable();
+        return ResponseEntity.ok(fusionTableList);
+    }
 }

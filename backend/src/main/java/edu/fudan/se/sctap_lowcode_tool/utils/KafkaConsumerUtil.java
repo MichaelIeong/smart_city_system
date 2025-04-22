@@ -92,7 +92,6 @@ public class KafkaConsumerUtil implements Runnable {
                         originalJson = wrapper;
                     }
 
-                    // System.out.println("📩 消费到 Kafka 消息：" + originalJson.toPrettyString());
                     messageQueue.offer(originalJson.toString());
                 }
             }

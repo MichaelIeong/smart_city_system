@@ -20,7 +20,7 @@ public class PersonInfo {
     private String personName;   // 人员的姓名
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "space_id", nullable = true)  // 允许为空
+    @JoinColumn(name = "space_id")
     private SpaceInfo currentSpace;   // 与空间的关联，表示人员所在的空间，允许为null
 
     @Override

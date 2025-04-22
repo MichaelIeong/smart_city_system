@@ -117,8 +117,14 @@ public class NodeRedService {
         return operators;
     }
 
-    // 可以視需要打開這段
-//    public List<String> getAllFusionTable() {
-//        return fusionRuleRepository.findAllTableNames();
-//    }
+    /**
+     * 获取与 Space 表有关联的所有表名（静态定义）
+     *
+     * @return 相关联表的表名列表
+     */
+    public List<String> getAllFusionTable() {
+        return List.of(
+                "person"            // 人员表
+        );
+    }
 }
