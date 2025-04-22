@@ -54,6 +54,11 @@
           </template>
         </span>
       </a-table>
+
+      <LLMCreation
+        :modelModalVisible="modelModalVisible"
+        @update:modelModalVisible="modelModalVisible = $event"
+      />
     </a-card>
   </page-header-wrapper>
 </template>
@@ -61,9 +66,13 @@
 <script>
 import { getRuleList, executeRuleById, deleteRuleById, pauseRuleById } from '@/api/manage'
 import { Modal, message } from 'ant-design-vue'
+import LLMCreation from './modules/LLMCreation'
 
 export default {
   name: 'TableList',
+  components: {
+    LLMCreation
+  },
   data () {
     return {
       columns: [
@@ -79,7 +88,8 @@ export default {
         current: 1,
         pageSize: 10,
         total: 0
-      }
+      },
+      modelModalVisible: false
     }
   },
   created () {
@@ -170,7 +180,7 @@ export default {
       this.selectedRows = rows
     },
     openLLMCreation () {
-      this.$refs.LLMCreation.modelModalVisible = true
+      this.modelModalVisible = true
     }
   }
 }

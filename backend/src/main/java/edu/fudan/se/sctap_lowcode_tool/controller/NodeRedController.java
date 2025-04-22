@@ -54,7 +54,7 @@ public class NodeRedController {
      * @return Sensor 数据列表
      */
     @Operation(summary = "获取 Sensor 节点数据", description = "联合查询传给前端")
-    @GetMapping("/sensor/{projectId}")
+    @GetMapping("/sensors/{projectId}")
     public ResponseEntity<?> getSensorData(@PathVariable int projectId) {
         // 查找项目是否存在
         Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
@@ -117,4 +117,7 @@ public class NodeRedController {
     public List<Operator> getAllOperators() {
         return nodeRedService.getAllOperators();
     }
+
+//    @Operation(summary = "获取所有事件融合的表名", description = "获取所有工具类运算符")
+
 }

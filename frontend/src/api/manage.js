@@ -18,7 +18,7 @@ const api = {
   fusionExecute: '/api/fusion/executeRule',
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
-  sensors: '/api/sensors/list'
+  sensors: '/api/node-red/sensors'
 }
 
 export default api
@@ -300,14 +300,14 @@ export function deleteRuleById (ruleId) {
   })
 }
 
-// 新增：获取传感器列表（LLMCreation 可能用到）
-export function getSensors () {
-  const token = store.state.token
+export function getSensors (projectId) {
+  const token = store.state.token // 从 Vuex 或其他存储中获取 token
+
   return request({
-    url: api.sensors,
+    url: `${api.sensors}/${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
     }
   })
 }
