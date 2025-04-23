@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
@@ -25,6 +26,9 @@ public class FusionRuleService {
     @Autowired
     private KafkaConsumerUtil kafkaConsumerUtil;
 
+    @Autowired
+    private DeviceService deviceService;
+
     // 全局状态存储结构
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
 
@@ -35,7 +39,7 @@ public class FusionRuleService {
     @Autowired
     private NodeRedService nodeRedService;
 
-    int spaceId = 0;
+    private String spaceId = "";
     /**
      * 获取规则列表
      */
@@ -146,8 +150,9 @@ public class FusionRuleService {
 
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
         int sensorId = Integer.parseInt(sensorNode.get("sensorId").asText());
-        spaceId =
-        double sensorValue = getSensorValue(sensorId);
+        spaceId = deviceService.findByDeviceId(String.valueOf(sensorId))
+                .map(DeviceResponse::getSpaceId)
+                .orElseThrow(() -> new RuntimeException("Device not found"));        double sensorValue = getSensorValue(sensorId);
 
         Map<String, Object> sensorData = new HashMap<>();
         sensorData.put("value", sensorValue);

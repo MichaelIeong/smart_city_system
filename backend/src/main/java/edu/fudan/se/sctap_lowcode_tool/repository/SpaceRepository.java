@@ -15,4 +15,5 @@ public interface SpaceRepository extends JpaRepository<SpaceInfo, Integer> {
     List<SpaceInfo> findByProjectInfo_ProjectId(int projectId);
     // 使用 projectInfo 直接进行查询
     List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo);
+    Optional<SpaceInfo> findBySpaceId(String spaceId);
 }

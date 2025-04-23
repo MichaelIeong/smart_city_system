@@ -8,5 +8,5 @@ import lombok.Data;
 @Data
 public class PersonUpdateRequest {
     private String personName;    // 可選：新的人員名稱
-    private Integer spaceId;      // 可選：新空間 ID，可為 null 表示離開空間
+    private String spaceId;      // 可選：新空間 ID，可為 null 表示離開空間
 }

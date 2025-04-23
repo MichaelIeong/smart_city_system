@@ -16,4 +16,5 @@ public interface DeviceRepository extends JpaRepository<DeviceInfo, Integer> {
     @Query("SELECT d FROM DeviceInfo d JOIN d.space s WHERE s.projectInfo.projectId = :projectId")
     List<DeviceInfo> findAllByProjectId(@Param("projectId") Integer projectId);
 
+    Optional<DeviceInfo> findByDeviceId(String deviceId);
 }

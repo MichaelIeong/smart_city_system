@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class PersonCreateRequest {
     private String personName;
-    private Integer spaceId; // 可為 null 表示無所屬空間
+    private String spaceId; // 可為 null 表示無所屬空間
 }

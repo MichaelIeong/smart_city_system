@@ -50,7 +50,7 @@ public class PersonService {
         person.setPersonName(request.getPersonName());
 
         if (request.getSpaceId() != null) {
-            spaceRepository.findById(request.getSpaceId()).ifPresent(person::setCurrentSpace);
+            spaceRepository.findBySpaceId(request.getSpaceId()).ifPresent(person::setCurrentSpace);
         }
 
         return personRepository.save(person);
@@ -72,13 +72,14 @@ public class PersonService {
         }
 
         if (request.getSpaceId() != null) {
-            Optional<SpaceInfo> spaceOpt = spaceRepository.findById(request.getSpaceId());
+            Optional<SpaceInfo> spaceOpt = spaceRepository.findBySpaceId(request.getSpaceId());
             person.setCurrentSpace(spaceOpt.orElse(null));
         } else {
             person.setCurrentSpace(null); // 明確傳 null，則離開空間
         }
 
         // 消息队列
+
         return Optional.of(personRepository.save(person));
     }
 
