@@ -78,6 +78,7 @@ public class PersonService {
             person.setCurrentSpace(null); // 明確傳 null，則離開空間
         }
 
+        // 消息队列
         return Optional.of(personRepository.save(person));
     }
 

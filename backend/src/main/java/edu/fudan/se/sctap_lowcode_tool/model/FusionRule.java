@@ -19,6 +19,9 @@ public class FusionRule {
     @Column(name = "rule_name")
     private String ruleName; // 规则的名字
 
+    @Column(name = "fusion_target")
+    private String fusionTarget; // 目标的表名
+
     @Column(name = "status")
     private String status = "inactive";
 

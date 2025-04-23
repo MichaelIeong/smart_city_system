@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorData;
 import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
@@ -30,6 +31,9 @@ public class NodeRedService {
     @Autowired
     private SpaceService spaceService;
 
+    @Autowired
+    private PersonService personService;
+
     /**
      * 保存上传的规则
      *
@@ -38,12 +42,14 @@ public class NodeRedService {
     public void handleUploadRule(Map<String, JsonNode> msg) {
         JsonNode ruleJson = msg.get("ruleJson");
         JsonNode flowJson = msg.get("flowJson");
+        String fusionTarget = msg.get("fusionTarget").asText();
+        System.out.println("fusionTarget: " + fusionTarget);
 
         FusionRule fusionRule = new FusionRule();
         fusionRule.setFlowJson(flowJson.toString());
         fusionRule.setRuleJson(ruleJson.toString());
         fusionRule.setRuleName(ruleJson.get("rulename").asText());
-
+        fusionRule.setFusionTarget(fusionTarget);
         addNewRule(fusionRule);
     }
 
@@ -126,5 +132,17 @@ public class NodeRedService {
         return List.of(
                 "person"            // 人员表
         );
+    }
+
+    /**
+     * 根据表名修改数据
+     *
+     * @return 相关联表的表名列表
+     */
+    public void updateFusionTable(String fusionTarget, Object updateRequest) {
+        // 默认mmhu
+        if ("person".equals(fusionTarget) && updateRequest instanceof PersonUpdateRequest) {
+            personService.updatePerson(5, (PersonUpdateRequest) updateRequest);
+        }
     }
 }

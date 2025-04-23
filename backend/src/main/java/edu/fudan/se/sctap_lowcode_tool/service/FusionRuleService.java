@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
@@ -29,7 +30,12 @@ public class FusionRuleService {
 
     // 用于 Kafka 消费的线程池
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    @Autowired
+    private PersonService personService;
+    @Autowired
+    private NodeRedService nodeRedService;
 
+    int spaceId = 0;
     /**
      * 获取规则列表
      */
@@ -64,6 +70,11 @@ public class FusionRuleService {
                 JsonNode ruleJson = mapper.readTree(rule.getRuleJson());
                 processNodeRedJson(ruleJson);
                 System.out.println("已执行并激活规则，ruleId=" + ruleId);
+                //构造更新表
+                PersonUpdateRequest personUpdateRequest = new PersonUpdateRequest();
+                personUpdateRequest.setPersonName("mmhu");
+                personUpdateRequest.setSpaceId(spaceId);
+                nodeRedService.updateFusionTable(rule.getFusionTarget(), personUpdateRequest);
                 return true;
             } catch (Exception e) {
                 throw new RuntimeException("执行失败：" + e.getMessage(), e);
@@ -135,6 +146,7 @@ public class FusionRuleService {
 
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
         int sensorId = Integer.parseInt(sensorNode.get("sensorId").asText());
+        spaceId =
         double sensorValue = getSensorValue(sensorId);
 
         Map<String, Object> sensorData = new HashMap<>();
