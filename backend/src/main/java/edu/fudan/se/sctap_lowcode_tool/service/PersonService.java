@@ -6,6 +6,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.PersonInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.PersonRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
+import edu.fudan.se.sctap_lowcode_tool.utils.KafkaProducerUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,8 @@ public class PersonService {
 
     @Autowired
     private SpaceRepository spaceRepository;
+
+    private KafkaProducerUtil kafkaProducerUtil;
 
     /**
      * 獲取所有人員
@@ -79,7 +82,7 @@ public class PersonService {
         }
 
         // 消息队列
-
+        kafkaProducerUtil.sendMessage("someKey", person);
         return Optional.of(personRepository.save(person));
     }
 
