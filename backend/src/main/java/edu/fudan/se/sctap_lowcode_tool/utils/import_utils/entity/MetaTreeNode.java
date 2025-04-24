@@ -5,10 +5,7 @@ import jakarta.annotation.Nonnull;
 import lombok.Data;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Data
 public class MetaTreeNode implements Iterable<MetaTreeNode> {
@@ -43,7 +40,7 @@ public class MetaTreeNode implements Iterable<MetaTreeNode> {
     }
 
     private class BFSIterator implements Iterator<MetaTreeNode> {
-        private final List<MetaTreeNode> queue = new ArrayList<>();
+        private final Deque<MetaTreeNode> queue = new LinkedList<>();
 
         public BFSIterator() {
             queue.add(MetaTreeNode.this);
