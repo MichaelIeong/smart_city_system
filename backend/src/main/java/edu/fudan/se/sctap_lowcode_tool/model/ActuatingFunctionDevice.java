@@ -21,4 +21,6 @@ public class ActuatingFunctionDevice {
 
     private String url;  // 设备的URL
 
+    private String description;  // 设备的URL
+
 }
