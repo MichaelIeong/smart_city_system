@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class FusionRuleService {
@@ -41,7 +42,6 @@ public class FusionRuleService {
 
     private String spaceId = "";
 
-    private boolean operatorflag = false;
     /**
      * 获取规则列表
      */
@@ -74,10 +74,11 @@ public class FusionRuleService {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode ruleJson = mapper.readTree(rule.getRuleJson());
-                processNodeRedJson(ruleJson);
+                AtomicBoolean operatorFlag = new AtomicBoolean(false);
+                processNodeRedJson(ruleJson, operatorFlag);
                 System.out.println("已执行并激活规则，ruleId=" + ruleId);
                 //构造更新表
-                if(operatorflag){
+                if(operatorFlag.get()){
                     System.out.println("——————————mmhu登场了！！！！！————————————");
                     PersonUpdateRequest personUpdateRequest = new PersonUpdateRequest();
                     personUpdateRequest.setPersonName("mmhu");
@@ -111,7 +112,7 @@ public class FusionRuleService {
     /**
      * 实时处理 Node-RED 的规则 JSON
      */
-    public void processNodeRedJson(JsonNode ruleJson) {
+    public void processNodeRedJson(JsonNode ruleJson, AtomicBoolean operatorflag) {
         if (!ruleJson.has("steps")) {
             System.out.println("规则中未包含有效的步骤信息，跳过处理。");
             return;
@@ -127,7 +128,7 @@ public class FusionRuleService {
 
                 switch (nodeType) {
                     case "Sensor"   -> processSensorNode(nodeId, currentNode);
-                    case "Operator" -> processOperatorNode(nodeId, currentNode);
+                    case "Operator" -> processOperatorNode(nodeId, currentNode, operatorflag);
                     default         -> System.out.println("未知的节点类型: " + nodeType + "，跳过该节点。");
                 }
             }
@@ -170,7 +171,7 @@ public class FusionRuleService {
                            "，sensorId=" + sensorId + "，值=" + sensorValue);
     }
 
-    private void processOperatorNode(String nodeId, JsonNode operatorNode) {
+    private void processOperatorNode(String nodeId, JsonNode operatorNode, AtomicBoolean operatorflag) {
         JsonNode dependenciesNode = operatorNode.get("dependencies");
         if (dependenciesNode == null || dependenciesNode.isMissingNode()) {
             System.out.println("Operator 节点没有依赖，跳过处理 nodeId=" + nodeId);
@@ -258,7 +259,7 @@ public class FusionRuleService {
 
         boolean result = operatorService.applyUtilOperator(operatorType, input1, input2);
         if(result){
-            operatorflag = true;
+            operatorflag.set(true);
         }
         double operatorDoubleResult = result ? 1.0 : 0.0;
 
