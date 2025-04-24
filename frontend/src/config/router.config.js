@@ -102,7 +102,13 @@ export const asyncRouterMap = [{
         }
       ]
     },
-
+    // 应用推荐
+    {
+      path: '/recommend',
+      name: 'RecommendDetail',
+      component: () => import('@/views/recommend/RecommendDetail'),
+      meta: { title: 'menu.recommend', keepAlive: true, icon: 'fork' }
+    },
     // result
     {
       path: '/result',
