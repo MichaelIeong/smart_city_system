@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.DTO;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +22,7 @@ public final class DeviceResponse {
     public final LocalDateTime lastUpdateTime;
     public final List<DeviceState> states;
     public final List<DeviceFunction> functions;
+    @Getter
     public final String spaceId; // 新增字段
 
     public DeviceResponse(DeviceInfo deviceInfo) {
@@ -58,10 +60,6 @@ public final class DeviceResponse {
         )).toList();
 
         this.spaceId = deviceInfo.getSpace().getSpaceId(); // 设置 spaceId
-    }
-
-    public String getSpaceId() {
-        return spaceId;
     }
 
     public record Coordinate(Float x, Float y, Float z) {
