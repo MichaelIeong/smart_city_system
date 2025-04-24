@@ -262,7 +262,7 @@ public class FusionRuleService {
     }
 
     private double getSensorValue(int sensorId) {
-        String latestMessage = kafkaConsumerUtil.getLatestMessageBySensorId(sensorId, 3000);
+        String latestMessage = kafkaConsumerUtil.getLatestMessageBySensorId(sensorId);
         if (latestMessage != null) {
             try {
                 JsonNode messageJson = new ObjectMapper().readTree(latestMessage);

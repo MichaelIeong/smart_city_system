@@ -16,8 +16,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
@@ -27,7 +28,7 @@ public class KafkaConsumerUtil implements Runnable {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final String topic;
     private Thread consumerThread;
-    private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
+    private final ConcurrentMap<Integer, String> latestMessages = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public KafkaConsumerUtil(@Value("${kafka.bootstrap.servers}") String bootstrapServers,
@@ -36,33 +37,39 @@ public class KafkaConsumerUtil implements Runnable {
 
         Properties props = new Properties();
         props.put("bootstrap.servers", bootstrapServers);
-        props.put("group.id", "sc_uos_consumer_group");
-        props.put("enable.auto.commit", "true");
-        props.put("auto.commit.interval.ms", "1000");
+
+        // 使用隨機 group.id 避免 offset 汙染
+        props.put("group.id", "sc_uos_consumer_group_" + UUID.randomUUID());
+
+        props.put("enable.auto.commit", "false"); // 不提交 offset
+        props.put("auto.offset.reset", "latest"); // 若無 offset，則從最新開始
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("auto.offset.reset", "latest");
 
-        // 重连相关配置
-        props.put("reconnect.backoff.ms", "5000");         // 第一次重连间隔：5秒
-        props.put("reconnect.backoff.max.ms", "60000");    // 最大重连间隔：60秒
-        props.put("retry.backoff.ms", "1000");             // 请求失败后的重试等待时间：1秒
+        props.put("reconnect.backoff.ms", "5000");
+        props.put("reconnect.backoff.max.ms", "60000");
+        props.put("retry.backoff.ms", "1000");
 
         this.consumer = new KafkaConsumer<>(props);
         this.consumer.subscribe(Collections.singletonList(topic));
+
+        // 手動 seek 到 partition 結尾
+        consumer.poll(Duration.ofMillis(0)); // 觸發 partition assignment
+        consumer.assignment().forEach(tp -> consumer.seekToEnd(Collections.singleton(tp)));
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void startConsumerAfterAppReady() {
-        new Thread(() -> {
+        consumerThread = new Thread(() -> {
             try {
-                System.out.println("✅ KafkaConsumerUtil 正在启动 consumer...");
+                System.out.println("✅ KafkaConsumerUtil 启动中...");
                 running.set(true);
-                run(); // 启动消费线程
+                run();
             } catch (Exception e) {
                 System.err.println("❌ KafkaConsumerUtil 启动失败：" + e.getMessage());
             }
-        }, "kafka-consumer-thread").start();
+        }, "kafka-consumer-thread");
+        consumerThread.start();
     }
 
     @Override
@@ -70,46 +77,39 @@ public class KafkaConsumerUtil implements Runnable {
         try {
             while (running.get()) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
-                if (records.isEmpty()) continue;
-
                 for (ConsumerRecord<String, String> record : records) {
-                    long kafkaTimestamp = record.timestamp();
-                    JsonNode originalJson;
                     try {
-                        originalJson = objectMapper.readTree(record.value());
+                        JsonNode json = objectMapper.readTree(record.value());
+                        ((ObjectNode) json).put("timestamp", record.timestamp());
+
+                        JsonNode idNode = json.get("id");
+                        if (idNode != null && idNode.canConvertToInt()) {
+                            int sensorId = idNode.asInt();
+                            latestMessages.put(sensorId, json.toString());
+                        }
                     } catch (Exception e) {
-                        ObjectNode fallbackJson = objectMapper.createObjectNode();
-                        fallbackJson.put("value", record.value());
-                        originalJson = fallbackJson;
+                        System.err.println("❗ KafkaConsumerUtil: JSON 解析失败: " + e.getMessage());
                     }
-
-                    if (originalJson.isObject()) {
-                        ((ObjectNode) originalJson).put("timestamp", kafkaTimestamp);
-                    } else {
-                        ObjectNode wrapper = objectMapper.createObjectNode();
-                        wrapper.set("data", originalJson);
-                        wrapper.put("timestamp", kafkaTimestamp);
-                        originalJson = wrapper;
-                    }
-
-                    messageQueue.offer(originalJson.toString());
                 }
             }
         } catch (WakeupException e) {
             if (running.get()) throw e;
         } finally {
             consumer.close();
+            System.out.println("🛑 KafkaConsumerUtil 已关闭 consumer");
         }
     }
 
     @EventListener(ContextClosedEvent.class)
     public void stopConsumer() {
+        System.out.println("⏹ KafkaConsumerUtil 正在停止...");
         close();
         try {
             if (consumerThread != null) {
                 consumerThread.join();
             }
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException ignored) {
+        }
     }
 
     public synchronized void close() {
@@ -117,29 +117,13 @@ public class KafkaConsumerUtil implements Runnable {
         consumer.wakeup();
     }
 
-    public String getLatestMessageBySensorId(int sensorId, long timeoutMillis) {
-        long start = System.currentTimeMillis();
-
-        while (System.currentTimeMillis() - start < timeoutMillis) {
-            String message = messageQueue.poll();
-            if (message != null) {
-                try {
-                    JsonNode json = objectMapper.readTree(message);
-                    JsonNode idNode = json.get("id");
-                    if (idNode != null && idNode.asInt() == sensorId) {
-                        return message;
-                    }
-                } catch (Exception e) {
-                    System.out.println("KafkaConsumerUtil: 消息解析失败：" + e.getMessage());
-                }
-            } else {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ignored) {}
-            }
-        }
-
-        System.out.println("KafkaConsumerUtil: 超时未获取到 sensorId=" + sensorId + " 的消息");
-        return null;
+    /**
+     * 获取指定 sensorId 的最新消息
+     *
+     * @param sensorId 目标传感器 ID
+     * @return 最新 JSON 消息（字符串），否则返回 null
+     */
+    public String getLatestMessageBySensorId(int sensorId) {
+        return latestMessages.get(sensorId);
     }
 }
