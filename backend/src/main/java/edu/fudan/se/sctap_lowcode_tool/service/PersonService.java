@@ -21,6 +21,7 @@ public class PersonService {
     @Autowired
     private SpaceRepository spaceRepository;
 
+    @Autowired
     private KafkaProducerUtil kafkaProducerUtil;
 
     /**
@@ -82,7 +83,11 @@ public class PersonService {
         }
 
         // 消息队列
-        kafkaProducerUtil.sendMessage("person_info", person);
+        Map<String, Object> message = new HashMap<>();
+        message.put("currentSpaceId", person.getCurrentSpace().getSpaceId());
+        message.put("name", person.getPersonName());
+
+        kafkaProducerUtil.sendMessage("person_info", message);
         return Optional.of(personRepository.save(person));
     }
 

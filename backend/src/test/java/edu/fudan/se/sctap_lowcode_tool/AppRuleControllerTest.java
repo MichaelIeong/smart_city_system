@@ -89,7 +89,7 @@ public class AppRuleControllerTest {
     @Test
     public void create() throws Exception {
         AppRuleRequest ruleRequest = new AppRuleRequest(
-                1, "description", "{}", ""
+                1, "description", "{}"
         );
         printJsonResponse(mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/taps")
@@ -102,7 +102,7 @@ public class AppRuleControllerTest {
     @Test
     public void update() throws Exception {
         AppRuleRequest ruleRequest = new AppRuleRequest(
-                1, "description", "{}", ""
+                1, "description", "{}"
         );
         printJsonResponse(mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/taps/1")

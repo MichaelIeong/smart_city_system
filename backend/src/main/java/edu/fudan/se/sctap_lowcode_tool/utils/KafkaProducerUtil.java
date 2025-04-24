@@ -36,11 +36,17 @@ public class KafkaProducerUtil {
 
     public Future<RecordMetadata> sendMessage(String key, Object message) {
         try {
+            System.out.println("准备发送消息，key: " + key);
+            System.out.println("消息内容：" + message);
             String jsonMessage = objectMapper.writeValueAsString(message);
+            System.out.println("序列化后的JSON：" + jsonMessage);
+
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, jsonMessage);
+            System.out.println("准备发送到Kafka topic：" + topic);
             return producer.send(record);
         } catch (Exception e) {
-            throw new RuntimeException("发送 Kafka 消息失败", e);
+            e.printStackTrace();  // 打印具体异常堆栈
+            throw new RuntimeException("发送 Kafka 消息失败: " + e.getMessage(), e);
         }
     }
 
