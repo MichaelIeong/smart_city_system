@@ -19,9 +19,15 @@ public class FusionRule {
     @Column(name = "rule_name")
     private String ruleName; // 规则的名字
 
-    @Column(name = "rule_json",length = 65536)
+    @Column(name = "fusion_target")
+    private String fusionTarget; // 目标的表名
+
+    @Column(name = "status")
+    private String status = "inactive";
+
+    @Column(name = "rule_json", length = 65536)
     private String ruleJson; // 将rule以json的格式存到数据库
 
-    @Column(name = "flow_json",length = 65536,columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    @Column(name = "flow_json", length = 65536, columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String flowJson; // 将flow信息以json的格式存到数据库
 }

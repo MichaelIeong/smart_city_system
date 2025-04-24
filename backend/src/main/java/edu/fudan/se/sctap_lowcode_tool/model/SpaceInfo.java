@@ -1,5 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -8,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(
         name = "spaces",
         uniqueConstraints = {@UniqueConstraint(
@@ -39,6 +42,7 @@ public class SpaceInfo {
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<PropertySpace> properties = new HashSet<>();   // 空间的属性
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<DeviceInfo> spaceDevices = new HashSet<>();  // 空间内的设备
 

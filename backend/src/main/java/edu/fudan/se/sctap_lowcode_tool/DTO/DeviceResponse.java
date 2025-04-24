@@ -18,6 +18,8 @@ public final class DeviceResponse {
     public final LocalDateTime lastUpdateTime;
     public final List<DeviceState> states;
     public final List<DeviceFunction> functions;
+    public final String spaceId; // 新增字段
+
     public DeviceResponse(DeviceInfo deviceInfo) {
         this.id = deviceInfo.getId();
         this.deviceId = deviceInfo.getDeviceId();
@@ -42,6 +44,11 @@ public final class DeviceResponse {
                 actuatingFunction.getActuatingFunction().getParams(),
                 actuatingFunction.getUrl()
         )).toList();
+        this.spaceId = deviceInfo.getSpace().getSpaceId(); // 设置 spaceId
+    }
+
+    public String getSpaceId() {
+        return spaceId;
     }
 
     public record Coordinate(float x, float y, float z) {

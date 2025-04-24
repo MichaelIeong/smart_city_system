@@ -17,28 +17,25 @@ public class ServiceInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
-    private Integer id; // 全局唯一标识
+    private Integer serviceId; // 全局唯一标识
 
     @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id")
     private SpaceInfo parentingSpace;
 
-    @Column(name = "service_id", nullable = false)
-    private String serviceId; // 服务ID(由用户自定义, Project内唯一)
 
-    @Column(nullable = false)
+    @Column(name = "project_id", nullable = false)
+    private String projectId; // 服务ID(由用户自定义, Project内唯一)
+
+    @Column(name = "service_name", nullable = false)
     private String serviceName; // 服务名称, 例如“会议模式”
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ServiceInfo that)) return false;
-        return Objects.equals(id, that.id) && Objects.equals(serviceId, that.serviceId) && Objects.equals(serviceName, that.serviceName);
-    }
+    @Column(name = "service_json", columnDefinition = "TEXT")
+    private String serviceJson; // 服务组合的node-red的json
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, serviceId, serviceName);
-    }
+    @Column(name = "service_csp", nullable = true)
+    private String serviceCsp; // 服务的CSP模型
+
+
 }

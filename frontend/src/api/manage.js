@@ -2,12 +2,10 @@ import request from '@/utils/request'
 import store from '@/store'
 
 const api = {
-  project: 'api/import/upload',
+  project: '/api/import/upload',
   user: '/user',
   role: '/role',
   rule: '/api/fusion/getRuleList',
-  sensors: '/api/fusion/sensor',
-  service: '/service/getServiceList',
   permission: '/permission',
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
@@ -15,7 +13,12 @@ const api = {
   events: '/api/events',
   spaces: '/api/spaces',
   properties: '/api/properties',
-  services: '/api/services'
+  services: '/api/services',
+  deviceConfig: '/api/LHA',
+  fusionExecute: '/api/fusion/executeRule',
+  fusionPause: '/api/fusion/pauseRule',
+  fusionDelete: '/api/fusion/deleteRule',
+  sensors: '/api/node-red/sensors'
 }
 
 export default api
@@ -29,14 +32,13 @@ export function getUserList (parameter) {
 }
 
 export function postProject (formData) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
-    url: api.project, // 确保 api.project 指向正确的后端 /upload 路径
+    url: api.project,
     method: 'post',
-    data: formData, // 使用 data 而不是 params 来发送 FormData
+    data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data', // 设置 multipart/form-data 头
+      'Content-Type': 'multipart/form-data',
       'Authorization': `Bearer ${token}`
     }
   })
@@ -51,26 +53,25 @@ export function getRoleList (parameter) {
 }
 
 export function getRuleList () {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.rule,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
-export function getServiceList () {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+export function getServiceList (project) {
+  const token = store.state.token
   return request({
-    url: api.service,
+    url: api.services,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
-    }
+      'Authorization': `Bearer ${token}`
+    },
+    params: { project }
   })
 }
 
@@ -90,8 +91,6 @@ export function getOrgTree (parameter) {
   })
 }
 
-// id == 0 add     post
-// id != 0 update  put
 export function saveService (parameter) {
   return request({
     url: api.service,
@@ -146,49 +145,157 @@ export function deleteTaps (ids) {
 }
 
 export function getEvents (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.events + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getSpaces (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.spaces + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getProperties (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.properties + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
     }
   })
 }
 
 export function getServices (projectId) {
-  const token = store.state.token // 从 Vuex 或其他存储中获取 token
-
+  const token = store.state.token
   return request({
     url: api.services + `?project=${projectId}`,
     method: 'get',
     headers: {
-      'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function saveDeviceConfig (deviceConfig) {
+  const token = store.state.token
+  return request({
+    url: api.deviceConfig + '/addConfig',
+    method: 'post',
+    data: deviceConfig,
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getDeviceConfig (deviceId) {
+  const token = store.state.token
+  return request({
+    url: api.deviceConfig + '/getConfig',
+    method: 'get',
+    params: { deviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getDevicelha (deviceId) {
+  const token = store.state.token
+  return request({
+    url: api.deviceConfig + '/getLHA',
+    method: 'get',
+    params: { deviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function saveDeviceLha (deviceId, lha) {
+  const token = store.state.token
+  return request({
+    url: api.deviceConfig + '/updateLHA',
+    method: 'post',
+    params: { deviceId },
+    data: lha,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+export function getCSP (serviceId) {
+  const token = store.state.token
+  return request({
+    url: api.services + '/getCSP',
+    method: 'get',
+    params: { serviceId },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function saveCsp (serviceId, csp) {
+  const token = store.state.token
+  return request({
+    url: api.services + '/generateCSPbyHand',
+    method: 'post',
+    params: { serviceId },
+    data: csp,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+// 新增：执行规则
+export function executeRuleById (ruleId) {
+  const token = store.state.token
+  return request({
+    url: `${api.fusionExecute}/${ruleId}`,
+    method: 'post',
+        headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 新增：暂停规则
+export function pauseRuleById (ruleId) {
+  const token = store.state.token
+  return request({
+    url: `${api.fusionPause}/${ruleId}`,
+    method: 'put',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 新增：删除规则
+export function deleteRuleById (ruleId) {
+  const token = store.state.token
+  return request({
+    url: `${api.fusionDelete}/${ruleId}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
     }
   })
 }
@@ -197,7 +304,7 @@ export function getSensors (projectId) {
   const token = store.state.token // 从 Vuex 或其他存储中获取 token
 
   return request({
-    url: api.sensors + '/' + projectId,
+    url: `${api.sensors}/${projectId}`,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头

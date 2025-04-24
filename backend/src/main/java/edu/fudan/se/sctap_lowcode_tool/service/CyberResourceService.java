@@ -16,4 +16,8 @@ public class CyberResourceService {
     public List<CyberResourceInfo> getCyberResourceByProjectId(Integer projectId) {
         return cyberResourceRepository.findByProjectInfoProjectId(projectId);
     }
+
+    public CyberResourceInfo findByResourceId(String resourceId) {
+        return cyberResourceRepository.findByResourceId(resourceId);
+    }
 }

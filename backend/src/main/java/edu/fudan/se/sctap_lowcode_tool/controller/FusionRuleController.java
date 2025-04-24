@@ -1,20 +1,14 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import edu.fudan.se.sctap_lowcode_tool.DTO.SensorData;
-import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleService;
-import edu.fudan.se.sctap_lowcode_tool.service.ProjectService;
-import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
 
 @RestController
 @CrossOrigin
@@ -25,123 +19,47 @@ public class FusionRuleController {
     @Autowired
     private FusionRuleService fusionRuleService;
 
-    @Autowired
-    private SpaceService spaceService;
-
-    @Autowired
-    private ProjectService projectService;
-
-    /**
-     * 上传新的规则，并立即执行 Node-RED JSON 的处理逻辑，同时保存规则到数据库。
-     *
-     * @param msg 包含 ruleJson 和 flowJson 的 Map
-     * @return 操作结果
-     */
-    @Operation(summary = "上传并处理规则", description = "用户在 Node-RED 构建好规则，传给后端，加入到数据库并立即执行")
-    @PostMapping("/uploadrule")
-    public ResponseEntity<Void> saveAndProcessRule(@RequestBody Map<String, JsonNode> msg) {
-        JsonNode ruleJson = msg.get("ruleJson");
-        JsonNode flowJson = msg.get("flowJson");
-
-        // 创建规则对象并保存到数据库
-        FusionRule fusionRule = new FusionRule();
-        fusionRule.setFlowJson(flowJson.toString());
-        fusionRule.setRuleJson(ruleJson.toString());
-        fusionRule.setRuleName(ruleJson.get("rulename").asText());
-        fusionRuleService.addNewRule(fusionRule);
-
-        // 调用服务处理 Node-RED JSON
-        fusionRuleService.processNodeRedJson(ruleJson);
-
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 获取规则列表。
-     *
-     * @param request Http 请求对象
-     * @return 规则列表
-     */
     @Operation(summary = "获取规则列表", description = "将规则列表传给前端")
     @GetMapping("/getRuleList")
-    public ResponseEntity<?> getRuleList(HttpServletRequest request) {
+    public ResponseEntity<List<FusionRule>> getRuleList() {
         List<FusionRule> fusionRuleList = fusionRuleService.getRuleList();
         return ResponseEntity.ok(fusionRuleList);
     }
 
-    /**
-     * 根据项目 ID 获取 Sensor 节点数据。
-     *
-     * @param projectId 项目 ID
-     * @return Sensor 数据列表
-     */
-    @Operation(summary = "获取 Sensor 节点数据", description = "联合查询传给前端")
-    @GetMapping("/sensor/{projectId}")
-    public ResponseEntity<?> getSensorData(@PathVariable int projectId) {
-        // 查找项目是否存在
-        Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
-        if (projectInfo.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("未找到对应 ID 的项目！");
-        }
-
-        // 查找项目中的空间信息
-        List<SpaceInfo> spaceInfoList = spaceService.findSpacesByProjectId(projectId);
-        if (spaceInfoList.isEmpty()) {
-            return ResponseEntity.ok(Collections.emptyList());
-        }
-
-        // 存储所有的 SensorData DTO
-        List<SensorData> sensorDataList = new ArrayList<>();
-
-        // 遍历空间信息，查找与设备相关的传感器数据
-        for (SpaceInfo spaceInfo : spaceInfoList) {
-            Set<DeviceInfo> devices = spaceInfo.getSpaceDevices();
-            if (devices == null || devices.isEmpty()) {
-                continue;
+    @Operation(summary = "执行规则", description = "激活并执行指定规则")
+    @PostMapping("/executeRule/{ruleId}")
+    public ResponseEntity<String> executeRuleById(@PathVariable int ruleId) {
+        try {
+            boolean executed = fusionRuleService.executeRuleById(ruleId);
+            if (executed) {
+                return ResponseEntity.ok("执行成功");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
             }
-
-            // 遍历每个设备并将其转换为 SensorData
-            for (DeviceInfo device : devices) {
-                DeviceTypeInfo deviceType = device.getDeviceType();
-                // 只处理设备类型是传感器的设备
-                if (deviceType == null || !Boolean.TRUE.equals(deviceType.getIsSensor())) {
-                    continue;
-                }
-
-                // 创建并填充 SensorData DTO
-                SensorData sensorData = new SensorData();
-                sensorData.setSensorId(device.getDeviceId()); // 使用设备ID作为 sensorId
-                sensorData.setDeviceName(device.getDeviceName());
-                sensorData.setDeviceType(deviceType.getDeviceTypeName());
-                sensorData.setLocation(spaceInfo.getSpaceName());
-
-                // 获取设备的功能列表
-                List<String> functions = new ArrayList<>();
-                Set<ActuatingFunctionDevice> actuatingFunctions = device.getActuatingFunctions();
-                if (actuatingFunctions != null && !actuatingFunctions.isEmpty()) {
-                    for (ActuatingFunctionDevice functionDevice : actuatingFunctions) {
-                        functions.add(functionDevice.getActuatingFunction().getName());
-                    }
-                }
-                sensorData.setFunction(functions); // 设置功能列表
-
-                // 将 SensorData 添加到结果列表中
-                sensorDataList.add(sensorData);
-            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("执行失败：" + e.getMessage());
         }
-
-        // 返回 SensorData DTO 列表
-        return ResponseEntity.ok(sensorDataList);
     }
 
-    /**
-     * 获取所有事件融合算子。
-     *
-     * @return 算子列表
-     */
-    @Operation(summary = "获取所有事件融合算子", description = "获取所有事件融合算子")
-    @GetMapping("/operator/")
-    public List<Operator> getAllOperators() {
-        return fusionRuleService.getAllOperators();
+    @Operation(summary = "暂停规则", description = "将指定规则设为 inactive")
+    @PutMapping("/pauseRule/{ruleId}")
+    public ResponseEntity<String> pauseRuleById(@PathVariable int ruleId) {
+        boolean paused = fusionRuleService.pauseRuleById(ruleId);
+        if (paused) {
+            return ResponseEntity.ok("暂停成功");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到或无法暂停");
+        }
+    }
+
+    @Operation(summary = "删除规则", description = "根据 ruleId 删除规则")
+    @DeleteMapping("/deleteRule/{ruleId}")
+    public ResponseEntity<String> deleteRuleById(@PathVariable int ruleId) {
+        boolean deleted = fusionRuleService.deleteRuleById(ruleId);
+        if (deleted) {
+            return ResponseEntity.ok("删除成功");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
+        }
     }
 }

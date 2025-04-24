@@ -23,5 +23,8 @@ public class DeviceService {
                 .stream().map(DeviceResponse::new).toList();
     }
 
+    public Optional<DeviceResponse> findByDeviceId(String deviceId) {
+        return deviceRepository.findByDeviceId(deviceId).map(DeviceResponse::new);
+    }
 
 }
