@@ -142,7 +142,7 @@ public class NodeRedService {
     public void updateFusionTable(String fusionTarget, Object updateRequest) {
         // 默认mmhu
         if ("person".equals(fusionTarget) && updateRequest instanceof PersonUpdateRequest) {
-            personService.updatePerson(5, (PersonUpdateRequest) updateRequest);
+            personService.updatePerson(3, (PersonUpdateRequest) updateRequest);
         }
     }
 }

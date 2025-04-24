@@ -78,9 +78,11 @@ public class FusionRuleService {
                 System.out.println("已执行并激活规则，ruleId=" + ruleId);
                 //构造更新表
                 if(operatorflag){
+                    System.out.println("——————————mmhu登场了！！！！！————————————");
                     PersonUpdateRequest personUpdateRequest = new PersonUpdateRequest();
                     personUpdateRequest.setPersonName("mmhu");
                     personUpdateRequest.setSpaceId(spaceId);
+                    System.out.println(personUpdateRequest);
                     nodeRedService.updateFusionTable(rule.getFusionTarget(), personUpdateRequest);
                 }
                 return true;

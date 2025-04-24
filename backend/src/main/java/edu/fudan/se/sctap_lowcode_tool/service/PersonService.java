@@ -82,7 +82,7 @@ public class PersonService {
         }
 
         // 消息队列
-        kafkaProducerUtil.sendMessage("person_info", person);
+        // kafkaProducerUtil.sendMessage("person_info", person);
         return Optional.of(personRepository.save(person));
     }
 
