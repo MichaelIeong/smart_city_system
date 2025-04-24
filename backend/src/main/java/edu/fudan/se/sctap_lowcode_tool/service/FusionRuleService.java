@@ -40,6 +40,8 @@ public class FusionRuleService {
     private NodeRedService nodeRedService;
 
     private String spaceId = "";
+
+    private boolean operatorflag = false;
     /**
      * 获取规则列表
      */
@@ -75,10 +77,12 @@ public class FusionRuleService {
                 processNodeRedJson(ruleJson);
                 System.out.println("已执行并激活规则，ruleId=" + ruleId);
                 //构造更新表
-                PersonUpdateRequest personUpdateRequest = new PersonUpdateRequest();
-                personUpdateRequest.setPersonName("mmhu");
-                personUpdateRequest.setSpaceId(spaceId);
-                nodeRedService.updateFusionTable(rule.getFusionTarget(), personUpdateRequest);
+                if(operatorflag){
+                    PersonUpdateRequest personUpdateRequest = new PersonUpdateRequest();
+                    personUpdateRequest.setPersonName("mmhu");
+                    personUpdateRequest.setSpaceId(spaceId);
+                    nodeRedService.updateFusionTable(rule.getFusionTarget(), personUpdateRequest);
+                }
                 return true;
             } catch (Exception e) {
                 throw new RuntimeException("执行失败：" + e.getMessage(), e);
@@ -152,7 +156,8 @@ public class FusionRuleService {
         int sensorId = Integer.parseInt(sensorNode.get("sensorId").asText());
         spaceId = deviceService.findByDeviceId(String.valueOf(sensorId))
                 .map(DeviceResponse::getSpaceId)
-                .orElseThrow(() -> new RuntimeException("Device not found"));        double sensorValue = getSensorValue(sensorId);
+                .orElseThrow(() -> new RuntimeException("Device not found"));
+        double sensorValue = getSensorValue(sensorId);
 
         Map<String, Object> sensorData = new HashMap<>();
         sensorData.put("value", sensorValue);
@@ -250,6 +255,9 @@ public class FusionRuleService {
         }
 
         boolean result = operatorService.applyUtilOperator(operatorType, input1, input2);
+        if(result){
+            operatorflag = true;
+        }
         double operatorDoubleResult = result ? 1.0 : 0.0;
 
         Map<String, Object> operatorData = new HashMap<>();
