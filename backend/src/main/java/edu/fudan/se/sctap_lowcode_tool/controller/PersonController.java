@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonCreateRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.PersonDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.PersonInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.PersonService;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/person")
@@ -33,8 +35,17 @@ public class PersonController {
      * 查詢所有人員
      */
     @GetMapping
-    public ResponseEntity<List<PersonInfo>> getAllPersons() {
-        return ResponseEntity.ok(personService.getAllPersons());
+    public ResponseEntity<List<PersonDTO>> getAllPersons() {
+        List<PersonDTO> dtoList = personService.getAllPersons()
+                .stream()
+                .map(person -> new PersonDTO(
+                        person.getId(),
+                        person.getPersonName(),
+                        person.getCurrentSpace() != null ? person.getCurrentSpace().getId() : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtoList);
     }
 
     /**

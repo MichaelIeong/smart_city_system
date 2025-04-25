@@ -26,5 +26,4 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.findAllByProjectId(projectId));
     }
 
-
 }
