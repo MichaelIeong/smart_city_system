@@ -6,7 +6,7 @@ import { VueAxios } from './axios'
 // import { ACCESS_TOKEN } from '@/store/mutation-types'
 import { AUTHORIZATION } from '@/store/mutation-types'
 
-const API_BASE_URL = (window._env_ && window._env_.VUE_APP_API_BASE_URL) || process.env.VUE_APP_API_BASE_URL;
+const API_BASE_URL = (window._env_ && window._env_.VUE_APP_API_BASE_URL) || process.env.VUE_APP_API_BASE_URL
 
 const request = axios.create({
   // API 请求的默认前缀
