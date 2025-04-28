@@ -14,7 +14,7 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns("*")
+                        .allowedOrigins("http://10.177.29.134:8000") // 明确指定前端的地址！
                         .allowedMethods("*")
                         .allowedHeaders("*")
                         .allowCredentials(true);
