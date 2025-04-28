@@ -123,7 +123,6 @@ public class AppRuleController {
             }
             // 如果数据库中存在就添加消息
             else{
-                System.out.println("0000000000000000");
                 for (MessageInfo messageInfo : messageInfos) {
                     if (messageInfo.getMessageType() == MessageTypeEnum.USER_TYPE.getCode()) {
                         messages.add(new UserMessage(messageInfo.getContent()));
