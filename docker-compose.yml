@@ -1,55 +1,35 @@
 services:
-  web:
+  smart_city_backend:
+    container_name: smart-city-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    #    depends_on:
-    #      - db
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://10.177.29.226:13306/sctap
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 123456
     networks:
       - app-network
 
-  vue:
+  smart_city_frontend:
+    container_name: smart-city-frontend
     environment:
       - NODE_ENV=production
       - VUE_APP_API_BASE_URL=http://localhost:8080
     build: ./frontend
     depends_on:
-      - web
-      - node-red
+      - smart_city_backend
+      - smart_city_node-red
     ports:
       - "8000:80"
     networks:
       - app-network
 
-
-  node-red:
-    build: ./node-red
+  smart_city_node-red:
     container_name: custom-node-red
+    build: ./node-red
     ports:
       - "1880:1880"
     networks:
       - app-network
-
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: sctap
-    ports:
-      - "33062:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - app-network
-
-volumes:
-  db_data:
 
 networks:
   app-network:
