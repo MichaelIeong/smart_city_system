@@ -22,6 +22,7 @@ import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -31,6 +32,9 @@ public class MilvusUtil {
     private static final String COLLECTION_NAME = "tap_collection";
     private static final int VECTOR_DIMENSION = 1024;
     private final MilvusClientV2 milvusClient;
+
+    @Value("${spring.ai.dashscope.api-key}")
+    private String apiKey;
 
     @Autowired
     private AppRuleRepository appRuleRepository;
@@ -99,6 +103,7 @@ public class MilvusUtil {
         TextEmbeddingParam param = TextEmbeddingParam
                 .builder()
                 .model(TextEmbedding.Models.TEXT_EMBEDDING_V3)
+                .apiKey(apiKey)
                 .texts(Collections.singleton(record.getDescription())).build();
         TextEmbedding textEmbedding = new TextEmbedding();
         TextEmbeddingResult result = textEmbedding.call(param);
@@ -135,6 +140,7 @@ public class MilvusUtil {
         TextEmbeddingParam param = TextEmbeddingParam
                 .builder()
                 .model(TextEmbedding.Models.TEXT_EMBEDDING_V3)
+                .apiKey(apiKey)
                 .texts(Collections.singleton(queryText)).build();
         TextEmbedding textEmbedding = new TextEmbedding();
         TextEmbeddingResult result = textEmbedding.call(param);
