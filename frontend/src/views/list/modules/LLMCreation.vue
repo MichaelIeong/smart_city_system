@@ -53,6 +53,9 @@
 <script>
 import { getSensors } from '@/api/manage.js'
 
+const MODEL_SERVER_URL = process.env.VUE_APP_MODEL_SERVER_URL
+const MODEL_NAME = process.env.VUE_APP_MODEL_NAME
+
 export default {
   props: {
     modelModalVisible: {
@@ -116,7 +119,7 @@ export default {
         const promptDetail = ` 根据以下规则生成用户需要的规则，每个字段冒号前的id随机即可，step的编号是执行次序，type只有sensor和operator，value表示operator计算的输入，目前operator有Greater than、Less than、Equal to、Greater than or equal to、Less than or equal to、AND、OR，location不要更改。只需输出json不需其他解释语句，以JSON格式输出答案。用户选择的设备是：${selectedDevices}。用户需求：`
 
         const requestPayload = {
-          model: 'qwen2.5:32b',
+          model: MODEL_NAME, // 用環境變量
           stream: false,
           prompt: promptTemplate + promptDetail + values.requirement
         }
@@ -125,7 +128,7 @@ export default {
 
         this.loading = true
 
-        fetch('http://10.177.29.197:11434/api/generate', {
+        fetch(MODEL_SERVER_URL, { // 用環境變量
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestPayload)

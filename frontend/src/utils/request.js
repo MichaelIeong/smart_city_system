@@ -6,10 +6,11 @@ import { VueAxios } from './axios'
 // import { ACCESS_TOKEN } from '@/store/mutation-types'
 import { AUTHORIZATION } from '@/store/mutation-types'
 
-// 创建 axios 实例
+const API_BASE_URL = (window._env_ && window._env_.VUE_APP_API_BASE_URL) || process.env.VUE_APP_API_BASE_URL
+
 const request = axios.create({
   // API 请求的默认前缀
-  baseURL: process.env.VUE_APP_API_BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 6000 // 请求超时时间
 })
 
