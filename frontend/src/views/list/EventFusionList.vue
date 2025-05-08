@@ -116,16 +116,16 @@ export default {
       this.refreshTable()
     },
     handleAdd () {
-      window.open('http://127.0.0.1:1880/', '_blank')
+      window.open(process.env.VUE_APP_NODE_RED_URL, '_blank')
     },
     handleEdit (record) {
       try {
         const flowJson = JSON.parse(record.flowJson)
-        fetch('http://127.0.0.1:1880/flows', {
+        fetch(`${process.env.VUE_APP_NODE_RED_URL}/flows`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: flowJson
-        }).finally(() => window.open('http://127.0.0.1:1880/', '_blank'))
+        }).finally(() => window.open(process.env.VUE_APP_NODE_RED_URL, '_blank'))
       } catch (e) {
         console.error('解析 flowJson 出错:', e)
       }

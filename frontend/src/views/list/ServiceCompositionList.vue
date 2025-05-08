@@ -6,7 +6,7 @@
           <a-row :gutter="48">
             <a-col :md="8" :sm="24">
               <a-form-item label="服务编号">
-                <a-input v-model="queryParam.ruleId" placeholder=""/>
+                <a-input v-model="queryParam.ruleId" placeholder="" />
               </a-form-item>
             </a-col>
             <a-col :md="8" :sm="24">
@@ -21,7 +21,7 @@
             <template v-if="advanced">
               <a-col :md="8" :sm="24">
                 <a-form-item label="更新日期">
-                  <a-date-picker v-model="queryParam.date" style="width: 100%" placeholder="请输入更新日期"/>
+                  <a-date-picker v-model="queryParam.date" style="width: 100%" placeholder="请输入更新日期" />
                 </a-form-item>
               </a-col>
             </template>
@@ -33,7 +33,7 @@
                 <a-button style="margin-left: 8px" @click="resetSearchForm">重置</a-button>
                 <a @click="toggleAdvanced" style="margin-left: 8px">
                   {{ advanced ? '收起' : '展开' }}
-                  <a-icon :type="advanced ? 'up' : 'down'"/>
+                  <a-icon :type="advanced ? 'up' : 'down'" />
                 </a>
               </span>
             </a-col>
@@ -46,17 +46,17 @@
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">
             <a-menu-item key="1">
-              <a-icon type="delete"/>
+              <a-icon type="delete" />
               删除
             </a-menu-item>
             <a-menu-item key="2">
-              <a-icon type="lock"/>
+              <a-icon type="lock" />
               锁定
             </a-menu-item>
           </a-menu>
           <a-button style="margin-left: 8px">
             批量操作
-            <a-icon type="down"/>
+            <a-icon type="down" />
           </a-button>
         </a-dropdown>
       </div>
@@ -71,7 +71,7 @@
         :pagination="pagination"
       >
         <span slot="ruleStatus" slot-scope="text">
-          <a-badge :status="text | statusTypeFilter" :text="text | statusFilter"/>
+          <a-badge :status="text | statusTypeFilter" :text="text | statusFilter" />
         </span>
         <!--        <span slot="description" slot-scope="text">-->
         <!--          <ellipsis :length="4" tooltip>{{ text }}</ellipsis>-->
@@ -80,7 +80,7 @@
         <span slot="action" slot-scope="text, record">
           <template>
             <a @click="handleEdit(record)">编辑</a>
-            <a-divider type="vertical"/>
+            <a-divider type="vertical" />
             <a @click="deleteRule(record)">删除</a>
           </template>
         </span>
@@ -104,7 +104,7 @@
         @cancel="handleCancel"
         @ok="handleOk"
       />
-      <step-by-step-modal ref="modal" @ok="handleOk"/>
+      <step-by-step-modal ref="modal" @ok="handleOk" />
       <a-modal v-model="cspVisible" title="CSP 详情" @cancel="cspVisible = false">
         <a-button type="primary" @click="showLhaModal">查看LHA</a-button>
         <a-divider />
@@ -354,7 +354,7 @@ export default {
       })
     },
     handleAdd () {
-      window.open('http://127.0.0.1:1880/', '_blank')
+      window.open(process.env.VUE_APP_NODE_RED_URL, '_blank')
     },
     handleEdit (record) {
       console.log(record)
@@ -363,20 +363,19 @@ export default {
       }
       const updatedFlowJson = this.addServiceIdToFlowJson(JSON.parse(record.serviceJson), record.serviceId)
       console.log(updatedFlowJson)
-      fetch('http://127.0.0.1:1880/flows ', {
+      fetch(`${process.env.VUE_APP_NODE_RED_URL}/flows`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(updatedFlowJson)
       })
-          .finally(() => {
-            // 发送数据后，无论成功与否，都打开新窗口
-            window.open('http://127.0.0.1:1880/', '_blank')
-          })
-          .catch(error => {
-            console.error('网络错误:', error)
-          })
+        .finally(() => {
+          window.open(process.env.VUE_APP_NODE_RED_URL, '_blank')
+        })
+        .catch(error => {
+          console.error('网络错误:', error)
+        })
     },
 
     addServiceIdToFlowJson (flowJson, serviceId) {
