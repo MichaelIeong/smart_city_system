@@ -70,7 +70,7 @@ import { getRuleList, executeRuleById, deleteRuleById, pauseRuleById } from '@/a
 import { Modal, message } from 'ant-design-vue'
 import LLMCreation from './modules/LLMCreation'
 
-const NODE_RED_URL = 'http://10.177.29.134:1880'
+const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
 export default {
   name: 'TableList',
