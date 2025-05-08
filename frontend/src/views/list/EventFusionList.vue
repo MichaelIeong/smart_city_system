@@ -39,7 +39,9 @@
         :pagination="pagination"
       >
         <span slot="status" slot-scope="text">
-          <a-badge :status="text === 'active' ? 'processing' : 'default'" :text="text === 'active' ? '运行中' : '已关闭'" />
+          <a-badge
+            :status="text === 'active' ? 'processing' : 'default'"
+            :text="text === 'active' ? '运行中' : '已关闭'" />
         </span>
 
         <span slot="action" slot-scope="text, record">
@@ -67,6 +69,8 @@
 import { getRuleList, executeRuleById, deleteRuleById, pauseRuleById } from '@/api/manage'
 import { Modal, message } from 'ant-design-vue'
 import LLMCreation from './modules/LLMCreation'
+
+const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
 export default {
   name: 'TableList',
@@ -116,16 +120,16 @@ export default {
       this.refreshTable()
     },
     handleAdd () {
-      window.open(process.env.VUE_APP_NODE_RED_URL, '_blank')
+      window.open(NODE_RED_URL, '_blank')
     },
     handleEdit (record) {
       try {
         const flowJson = JSON.parse(record.flowJson)
-        fetch(`${process.env.VUE_APP_NODE_RED_URL}/flows`, {
+        fetch(`${NODE_RED_URL}/flows`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: flowJson
-        }).finally(() => window.open(process.env.VUE_APP_NODE_RED_URL, '_blank'))
+        }).finally(() => window.open(NODE_RED_URL, '_blank'))
       } catch (e) {
         console.error('解析 flowJson 出错:', e)
       }
