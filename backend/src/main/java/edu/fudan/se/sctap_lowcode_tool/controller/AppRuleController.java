@@ -1,18 +1,28 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleData;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.RecommendRequest;
+import edu.fudan.se.sctap_lowcode_tool.constant.Redis_Constant;
 import edu.fudan.se.sctap_lowcode_tool.constant.Sys_Prompt;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
+import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
+import jakarta.annotation.Resource;
+import org.glassfish.jaxb.core.v2.TODO;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,22 +37,21 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/taps")
 public class AppRuleController {
-
-    @Autowired
+    @Resource
     private AppRuleService appRuleService;
-
-    @Autowired
-    private ChatModel chatModel;
-
-    @Autowired
+    @Resource
     private MilvusUtil milvusUtil;
-
-
+    @Resource
+    private RedisUtil redisUtil;
+    private final ChatClient chatClient;
     // 保存生成自然语言规则消息
-    private Map<String, List<Message>> messageMap1 = new HashMap<>();
-
-    // 保存生成 tap 规则消息
-    private Map<String, List<Message>> messageMap2 = new HashMap<>();
+    private Map<String, List<Message>> messageMap = new HashMap<>();
+    // 保存自然语言规则和对应的事件、属性、动作
+    private Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
+    @Autowired
+    public AppRuleController(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
 
     @GetMapping
     public PageDTO<AppRuleInfo> queryAll(
@@ -62,8 +71,8 @@ public class AppRuleController {
     public void create(@RequestBody AppRuleRequest rule) throws NoApiKeyException {
         String uuid = rule.uuid();
         // 本地删除
-        messageMap1.remove(uuid);
-        messageMap2.remove(uuid);
+        messageMap.remove(uuid);
+        ruleDataMap.remove(uuid);
         appRuleService.createRule(rule);
     }
 
@@ -88,17 +97,38 @@ public class AppRuleController {
     public ResponseEntity<String> generateJsonRule(@RequestBody RecommendRequest recommendRequest) {
         String uuid = recommendRequest.getUuid();
         String message = recommendRequest.getMessage();
-        // 获取内存中的消息
-        List<Message> messages = messageMap2.getOrDefault(uuid, new ArrayList<>());
-        // 如果内存中不存在就构建消息
-        if(messages.isEmpty()){
-            messages.add(new SystemMessage(Sys_Prompt.SYSTEM_PROMPT2));
+        List<Message> messages = new ArrayList<>();
+        // 构造系统提示词
+        List<AppRuleData> appRuleDataList = ruleDataMap.get(uuid);
+        if(appRuleDataList==null){
+            return ResponseEntity.badRequest().body("找不到uuid");
         }
-        // 将用户输入的消息加入
+        AppRuleData appRuleData = null;
+        for(AppRuleData data:appRuleDataList){
+            if(data.getRule().equals(message)){
+                appRuleData = data;
+                break;
+            }
+        }
+        if(appRuleData==null){
+            return ResponseEntity.badRequest().body("找不到message");
+        }
+        List<String> eventList = redisUtil.getMulti(appRuleData.getComponents().getEventType(), Redis_Constant.Event_Prefix);
+        List<String> propertyList = redisUtil.getMulti(appRuleData.getComponents().getPropertyType(),  Redis_Constant.Property_Prefix);
+        List<String> actionList = redisUtil.getMulti(appRuleData.getComponents().getActionType(), Redis_Constant.Action_Prefix);
+        String eventOptions = String.join("\n", eventList);
+        String propertyOptions = String.join("\n", propertyList);
+        String actionOptions = String.join("\n", actionList);
+        String systemPrompt = String.format(Sys_Prompt.SYSTEM_PROMPT2, eventOptions, propertyOptions, actionOptions);
+        // 加入系统消息
+        messages.add(new SystemMessage(systemPrompt));
+        // 加入用户输入的消息
         messages.add(new UserMessage(message));
-        ChatResponse response = chatModel.call(new Prompt(messages));
-        messages.add(response.getResult().getOutput());
-        messageMap2.put(uuid, messages);
+        Prompt prompt = new Prompt(messages);
+        // 规定输出的格式为 JSON
+        ChatResponse response = chatClient.prompt(prompt)
+                .call()
+                .chatResponse();
         return ResponseEntity.ok(response.getResult().getOutput().getText());
     }
 
@@ -119,17 +149,57 @@ public class AppRuleController {
         String uuid = recommendRequest.getUuid();
         String message = recommendRequest.getMessage();
         // 获取内存中的消息
-        List<Message> messages = messageMap1.getOrDefault(uuid, new ArrayList<>());
+        List<Message> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
         // 如果内存中不存在就构建消息
         if(messages.isEmpty()){
-            messages.add(new SystemMessage(Sys_Prompt.SYSTEM_PROMPT1));
+            // 从redis中获取系统提示词
+            String systemPrompt = redisUtil.getSingle(Redis_Constant.SYSTEM_PROMPT1);
+            if(systemPrompt==null){
+                // 构建提示词
+                List<String> eventList = redisUtil.getAll(Redis_Constant.Event_Prefix);
+                List<String> propertyList = redisUtil.getAll(Redis_Constant.Property_Prefix);
+                List<String> actionList = redisUtil.getAll(Redis_Constant.Action_Prefix);
+                String eventOptions    = String.join("\n", eventList);
+                String propertyOptions = String.join("\n", propertyList);
+                String actionOptions   = String.join("\n", actionList);
+                systemPrompt = String.format(Sys_Prompt.SYSTEM_PROMPT1, eventOptions, propertyOptions, actionOptions);
+                // 存入redis
+                redisUtil.setSingle(Redis_Constant.SYSTEM_PROMPT1, systemPrompt);
+            }
+            messages.add(new SystemMessage(systemPrompt));
         }
         // 将用户输入的消息加入
         messages.add(new UserMessage(message));
-        ChatResponse response = chatModel.call(new Prompt(messages));
+        Prompt prompt = new Prompt(messages);
+        // 规定输出的格式为 JSON
+        DashScopeResponseFormat responseFormat = new DashScopeResponseFormat();
+        responseFormat.setType(DashScopeResponseFormat.Type.JSON_OBJECT);
+        ChatResponse response = chatClient.prompt(prompt)
+                .options(
+                        DashScopeChatOptions.builder()
+                                .withResponseFormat(responseFormat)
+                                .build()
+                )
+                .call()
+                .chatResponse();
+        // 解析输出的内容
+        String jsonContent = response.getResult().getOutput().getText();
+        AppRuleData appRuleData;
+        try{
+            ObjectMapper mapper = new ObjectMapper();
+            appRuleData = mapper.readValue(jsonContent, AppRuleData.class);
+        } catch (Exception e){
+            return ResponseEntity.badRequest().body("输出格式错误，请稍后重试");
+        }
+        // 加入消息
         messages.add(response.getResult().getOutput());
-        messageMap1.put(uuid, messages);
-        return ResponseEntity.ok(response.getResult().getOutput().getText());
+        messageMap.put(uuid, messages);
+        // 加入规则和对应的事件、动作、属性
+        List<AppRuleData> appRuleDataList = ruleDataMap.getOrDefault(uuid, new ArrayList<>());
+        appRuleDataList.add(appRuleData);
+        System.out.println(appRuleDataList);
+        ruleDataMap.put(uuid, appRuleDataList);
+        return ResponseEntity.ok(appRuleData.getRule());
     }
 
 }

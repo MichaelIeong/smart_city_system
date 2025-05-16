@@ -21,6 +21,7 @@ import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ public class MilvusUtil {
     @Value("${spring.ai.dashscope.api-key}")
     private String apiKey;
 
-    @Autowired
+    @Resource
     private AppRuleRepository appRuleRepository;
 
     public MilvusUtil(MilvusClientV2 milvusClient) {
