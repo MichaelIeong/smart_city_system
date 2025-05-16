@@ -24,12 +24,10 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/taps")
@@ -45,6 +43,8 @@ public class AppRuleController {
     private Map<String, List<Message>> messageMap = new HashMap<>();
     // 保存自然语言规则和对应的事件、属性、动作
     private Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
+    // 记录每个uuid最后的访问时间
+    private Map<String, Long> uuidTimeMap = new HashMap<>();
     @Autowired
     public AppRuleController(ChatClient.Builder builder) {
         this.chatClient = builder.build();
@@ -66,10 +66,6 @@ public class AppRuleController {
 
     @PostMapping
     public void create(@RequestBody AppRuleRequest rule) throws NoApiKeyException {
-         String uuid = rule.uuid();
-        // 本地删除
-         messageMap.remove(uuid);
-         ruleDataMap.remove(uuid);
         appRuleService.createRule(rule);
     }
 
@@ -90,6 +86,9 @@ public class AppRuleController {
         appRuleService.deleteRulesByIds(ids);
     }
 
+    /**
+     * 生成json规则
+     * */
     @PostMapping("/recommend/generateJsonRule")
     public ResponseEntity<String> generateJsonRule(@RequestBody RecommendRequest recommendRequest) {
         String uuid = recommendRequest.getUuid();
@@ -129,6 +128,9 @@ public class AppRuleController {
         return ResponseEntity.ok(response.getResult().getOutput().getText());
     }
 
+    /**
+     * 从向量数据库中匹配
+     * */
     @PostMapping("/recommend/findSimilarRule")
     public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) throws NoApiKeyException {
         String message = recommendRequest.getMessage();
@@ -141,10 +143,15 @@ public class AppRuleController {
         return ResponseEntity.ok(appRuleInfo);
     }
 
+    /**
+     * 生成自然语言规则
+     * */
     @PostMapping("/recommend/generateNaturalRule")
     public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
         String uuid = recommendRequest.getUuid();
         String message = recommendRequest.getMessage();
+        // 更新uuid的时间戳
+        uuidTimeMap.put(uuid, System.currentTimeMillis());
         // 获取内存中的消息
         List<Message> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
         // 如果内存中不存在就构建消息
@@ -196,6 +203,28 @@ public class AppRuleController {
         appRuleDataList.add(appRuleData);
         ruleDataMap.put(uuid, appRuleDataList);
         return ResponseEntity.ok(appRuleData.getRule());
+    }
+
+    /**
+     * 定时任务：每小时执行一次，清理过期的uuid数据
+     */
+    public void cleanUpOldData() {
+        System.out.println("开始执行定时清理任务...");
+        long now = System.currentTimeMillis();
+        long oneHourAgo = now - 3600000; // 1小时之前的时刻
+        Iterator<Map.Entry<String, Long>> iterator = uuidTimeMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Long> entry = iterator.next();
+            String uuid = entry.getKey();
+            Long timestamp = entry.getValue();
+            if (timestamp != null && timestamp < oneHourAgo) {
+                // 清理三个map中的旧数据
+                messageMap.remove(uuid);
+                ruleDataMap.remove(uuid);
+                iterator.remove(); // 同时移除时间戳记录
+                System.out.println("清理 uuid 对应的数据: " + uuid);
+            }
+        }
     }
 
 }

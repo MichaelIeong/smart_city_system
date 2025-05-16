@@ -362,14 +362,13 @@ export function generateJsonRule (uuid, message) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, uuid, description, ruleJson) {
+export function createTapRule (projectId, description, ruleJson) {
   const token = store.state.token
   return request({
     url: `${api.tap}`,
     method: 'post',
     data: {
       description,
-      uuid,
       ruleJson,
       projectId
     },

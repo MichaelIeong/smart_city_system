@@ -149,7 +149,7 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        await createTapRule(projectId, uuid, selectedRule.value.content, selectedRule.value.jsonRule)
+        await createTapRule(projectId, selectedRule.value.content, selectedRule.value.jsonRule)
         message.success('规则创建成功')
     } catch (error) {
         message.error('规则创建失败: ' + error.message)
