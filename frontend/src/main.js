@@ -22,6 +22,7 @@ import './utils/filter' // global filter
 import './global.less' // global style
 import 'element-ui/lib/theme-chalk/index.css'
 import Element from 'element-ui'
+import JsonViewer from 'vue-json-viewer'
 
 Vue.config.productionTip = false
 
@@ -29,6 +30,8 @@ Vue.config.productionTip = false
 Vue.use(Element)
 // mount axios to `Vue.$http` and `this.$http`
 Vue.use(VueAxios)
+// vue json viewer
+Vue.use(JsonViewer)
 // use pro-layout components
 Vue.component('pro-layout', ProLayout)
 Vue.component('page-container', PageHeaderWrapper)

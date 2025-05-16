@@ -3,8 +3,6 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleData;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
@@ -18,7 +16,6 @@ import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
-import org.glassfish.jaxb.core.v2.TODO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -69,10 +66,10 @@ public class AppRuleController {
 
     @PostMapping
     public void create(@RequestBody AppRuleRequest rule) throws NoApiKeyException {
-        String uuid = rule.uuid();
+         String uuid = rule.uuid();
         // 本地删除
-        messageMap.remove(uuid);
-        ruleDataMap.remove(uuid);
+         messageMap.remove(uuid);
+         ruleDataMap.remove(uuid);
         appRuleService.createRule(rule);
     }
 
@@ -197,7 +194,6 @@ public class AppRuleController {
         // 加入规则和对应的事件、动作、属性
         List<AppRuleData> appRuleDataList = ruleDataMap.getOrDefault(uuid, new ArrayList<>());
         appRuleDataList.add(appRuleData);
-        System.out.println(appRuleDataList);
         ruleDataMap.put(uuid, appRuleDataList);
         return ResponseEntity.ok(appRuleData.getRule());
     }

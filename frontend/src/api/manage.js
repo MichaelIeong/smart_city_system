@@ -311,3 +311,70 @@ export function getSensors (projectId) {
     }
   })
 }
+
+// 生成自然语言描述 tap 规则
+export function generateNaturalRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateNaturalRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 15000
+  })
+}
+
+// 匹配已有的tap规则
+export function findSimilarRules (message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/findSimilarRule`,
+    method: 'post',
+    data: {
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 生成 json 形式的 tap 规则
+export function generateJsonRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateJsonRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 15000
+  })
+}
+
+// 保存tap规则
+export function createTapRule (projectId, uuid, description, ruleJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}`,
+    method: 'post',
+    data: {
+      description,
+      uuid,
+      ruleJson,
+      projectId
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
