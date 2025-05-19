@@ -18,17 +18,22 @@ public class Sys_Prompt {
             ```
                 
             规则要求：
-            1.**事件**：必须从一下`event_type`中选择，位置从`event_location`选取，使用中文的表达
+            1.**事件**：必须严格从以下`event_type`中选择(不允许使用列表外的类型)，位置从`event_location`选取，使用中文的表达
                 %s
                 
             2.**条件一**：必须为时间信息条件或者位置信息条件，比如当前时间晚于6:00AM或者事件位置为卧室，需要结合用户信息进行推断，如果没有，则不用加入
             
-            3.**条件二**：使用`property_type`及其`enum`/数值，需与事件位置一致，使用中文的表达
+            3.**条件二**：必须严格使用给定的`property_type`及其`enum`/数值(不允许使用列表外的类型)，需与事件位置一致，使用中文的表达
                 %s
                 
-            4. **动作**：必须从`action_type`中选择，位置需与事件位置兼容，使用中文的表达
+            4. **动作**：必须严格从`action_type`中选择(不允许使用列表外的类型)，位置需与事件位置兼容，使用中文的表达
                 %s
                 
+            注意事项：
+            - 所有event_type、property_type和action_type都必须从提供的选项中选择，不能自行创建或想象不存在的类型
+            - 如果用户输入中的概念在提供的选项中没有对应项，必须忽略或寻找最接近的合法选项
+            - 位置信息必须与设备实际可能的位置相符
+            
             示例
             输入："卧室早上太热开空调"
             输出：
@@ -50,16 +55,16 @@ public class Sys_Prompt {
             ```json
             {
                 "Scenario_Trigger": {
-                    "event_type": [],     // Required. Use only allowed event codes from the list below
-                    "filter": []          // Optional. Add time or location filters if mentioned
+                    "event_type": [],  // Required. Use only allowed event codes from the list below
+                    "filter": []  // Optional. Add time or location filters if mentioned
                 },
                 "Scenario_Action": {
-                    "current_condition": [],   // Optional. Use if the user specifies current state conditions
-                    "actions": [                // Required. Add one or more actions
+                    "current_condition": [],  // Optional. Use if the user specifies current state conditions
+                    "actions": [  // Required. Add one or more actions
                         {
-                            "action_type": "",          // Required. Select one valid action code
-                            "action_location": [], // Required.
-                            "action_param": ""          // Optional. If not needed, set to "null"
+                            "action_type": "",  // Required. Select one valid action code
+                            "action_location": [],  // Required.
+                            "action_param": {}  // Optional. If not needed, set to "null"
                         },
                         ...
                     ]
@@ -108,21 +113,28 @@ public class Sys_Prompt {
             - Make sure to NOT use strings directly in the "actions" array, and always follow the action object structure.
 
             Example:
-            User Description: "当客厅发生温度变化事件，且当前时间晚于6:00AM，温度高于30度时，则执行打开空调动作。"
+            User Description: "当厨房发生CO浓度变化事件，且当前时间晚于6:00PM，如果CO浓度状态为过高，则执行关闭煤气灶和启动抽油烟机动作"
             Expected Output:
             ```json
             {
                 "Scenario_Trigger": {
-                    "event_type": ["TemperatureChange"],
-                    "filter": ["location = LivingRoom", "timestamp > 06:00:00"]
+                    "event_type": ["COChange"],
+                    "filter": ["location = Kitchen", "timestamp > 18:00:00"]
                 },
                 "Scenario_Action": {
-                    "current_condition": ["LivingRoom.temperature > 30"],
+                    "current_condition": ["COLevelStatus = ExcessivelyHigh"],
                     "actions": [
                         {
-                            "action_type": "AirConditionerTurnOn",
-                            "action_location": ["LivingRoom"],
+                            "action_type": "GasStoveTurnOff",
+                            "action_location": ["Kitchen"],
                             "action_param": "null"
+                        },
+                        {
+                            "action_type": "CookerHoodStart",
+                            "action_location": ["Kitchen"],
+                            "action_param": {
+                                "speed": 5
+                            }
                         }
                     ]
                 }

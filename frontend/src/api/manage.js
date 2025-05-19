@@ -108,8 +108,9 @@ export function saveSub (sub) {
 }
 
 export function getTapList (parameter) {
+  const projectId = localStorage.getItem('project_id')
   return request({
-    url: api.tap + `?project=1`,
+    url: api.tap + `?project=${projectId}`,
     method: 'get',
     params: parameter
   })

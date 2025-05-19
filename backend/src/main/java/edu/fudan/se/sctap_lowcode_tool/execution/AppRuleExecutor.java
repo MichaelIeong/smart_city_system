@@ -10,11 +10,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class AppRuleCleaner {
+public class AppRuleExecutor {
     private final AppRuleController appRuleController;
 
     @Autowired
-    public AppRuleCleaner(AppRuleController appRuleController) {
+    public AppRuleExecutor(AppRuleController appRuleController) {
         this.appRuleController = appRuleController;
     }
 
