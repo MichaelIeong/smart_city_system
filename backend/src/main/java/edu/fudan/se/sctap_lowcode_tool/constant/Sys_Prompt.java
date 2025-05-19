@@ -18,11 +18,11 @@ public class Sys_Prompt {
             ```
                 
             规则要求：
-            1.**事件**：必须严格从以下`event_type`中选择(不允许使用列表外的类型)，位置从`event_location`选取，使用中文的表达
+            1.**事件**：必须严格从以下`event_type`中选择(不允许使用列表外的类型)，使用中文的表达
                 %s
                 
-            2.**条件一**：必须为时间信息条件或者位置信息条件，比如当前时间晚于6:00AM或者事件位置为卧室，需要结合用户信息进行推断，如果没有，则不用加入
-            
+            2.**条件一**：必须为时间信息条件或者位置信息条件，比如当前时间晚于6:00AM或者事件位置为卧室，时间和位置信息需要结合用户输入进行推断，如果没有，则不用加入
+                        
             3.**条件二**：必须严格使用给定的`property_type`及其`enum`/数值(不允许使用列表外的类型)，需与事件位置一致，使用中文的表达
                 %s
                 
@@ -32,14 +32,14 @@ public class Sys_Prompt {
             注意事项：
             - 所有event_type、property_type和action_type都必须从提供的选项中选择，不能自行创建或想象不存在的类型
             - 如果用户输入中的概念在提供的选项中没有对应项，必须忽略或寻找最接近的合法选项
-            - 位置信息必须与设备实际可能的位置相符
-            
+            - 自然语言规则中所有表达必须通顺、准确，且结构符合格式
+                        
             示例
             输入："卧室早上太热开空调"
             输出：
             ```json
             {
-              "rule": "当卧室发生温度变化事件，且当前时间晚于6:00AM，如果温度状态为热，则执行打开空调动作",
+              "rule": "当发生温度变化事件，且事件位置为卧室和当前时间晚于6:00AM，如果温度状态为热，则执行打开空调动作",
               "components": {
                 "event_type": ["TemperatureChange"],
                 "property_type": ["TemperatureStatus"],
@@ -56,7 +56,7 @@ public class Sys_Prompt {
             {
                 "Scenario_Trigger": {
                     "event_type": [],  // Required. Use only allowed event codes from the list below
-                    "filter": []  // Optional. Add time or location filters if mentioned
+                    "filter": []  // Required if user mentions event location or time conditions
                 },
                 "Scenario_Action": {
                     "current_condition": [],  // Optional. Use if the user specifies current state conditions
@@ -76,15 +76,18 @@ public class Sys_Prompt {
                 %s
           
             Filter Conditions (for "filter")
-            Optional. Only use filters when the user specifies time or location constraints.
+            Filters are used when the user specifies current time conditions or location restrictions for event occurrences.
+            Use the following form:
             - Location: "location = LivingRoom" or "location != LivingRoom"
             - Time: "timestamp > HH:MM:SS", "timestamp < HH:MM:SS", or "timestamp = HH:MM:SS"
-            If no filter applies, set this to an empty array: []
+            If the user specifies the location where the event occurs, you MUST include a location filter like: "location = <LocationName>", <LocationName> must be selected from event_location.
+            If the user specifies a time condition, you MUST include a time filter like: "timestamp > HH:MM:SS"
+            If neither is mentioned, set this field to an empty array [].
 
             Current Conditions (for "current_condition")
             Only include if the user describes an existing measurable condition in the room.
             Accepted formats (must follow this structure):
-            <property_type> <operator> <value>
+            <location>.<property_type> <operator> <value>
             Supported properties:
                 %s
                 
@@ -122,7 +125,7 @@ public class Sys_Prompt {
                     "filter": ["location = Kitchen", "timestamp > 18:00:00"]
                 },
                 "Scenario_Action": {
-                    "current_condition": ["COLevelStatus = ExcessivelyHigh"],
+                    "current_condition": ["Kitchen.COLevelStatus = ExcessivelyHigh"],
                     "actions": [
                         {
                             "action_type": "GasStoveTurnOff",

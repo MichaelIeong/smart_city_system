@@ -28,6 +28,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/taps")
@@ -125,7 +127,13 @@ public class AppRuleController {
         ChatResponse response = chatClient.prompt(prompt)
                 .call()
                 .chatResponse();
-        return ResponseEntity.ok(response.getResult().getOutput().getText());
+        String jsonRule = response.getResult().getOutput().getText();
+        Pattern pattern = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(jsonRule);
+        if (matcher.find()) {
+            jsonRule = matcher.group(1);
+        }
+        return ResponseEntity.ok(jsonRule.trim());
     }
 
     /**

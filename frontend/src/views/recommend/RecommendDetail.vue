@@ -126,7 +126,7 @@ async function findSimilarRule(index) {
   try {
     const jsonRes = await findSimilarRules(message.content)
     selectedRule.value.similarContent = jsonRes.description
-    selectedRule.value.jsonRule = jsonRes.ruleJson;
+    selectedRule.value.jsonRule = JSON.parse(jsonRes.ruleJson);
   } catch (error) {
     selectedRule.value.jsonRule = 'JSON规则生成失败: ' + error.message
   }
@@ -149,7 +149,7 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        await createTapRule(projectId, selectedRule.value.content, selectedRule.value.jsonRule)
+        await createTapRule(projectId, selectedRule.value.content, JSON.stringify(selectedRule.value.jsonRule, null, 2))
         message.success('规则创建成功')
     } catch (error) {
         message.error('规则创建失败: ' + error.message)
