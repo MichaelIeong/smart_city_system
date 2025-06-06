@@ -5,5 +5,5 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface DeviceTypeNodeRepository extends Neo4jRepository<DeviceTypeNode, Integer> {
+public interface DeviceTypeNodeRepository extends Neo4jRepository<DeviceTypeNode, Long> {
 }
