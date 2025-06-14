@@ -1,7 +1,7 @@
-package edu.fudan.se.sctap_lowcode_tool.neo4jrepository;
+package edu.fudan.se.sctap_lowcode_tool.neo4jRepository;
 
-import edu.fudan.se.sctap_lowcode_tool.neo4jmodel.PersonNode;
-import edu.fudan.se.sctap_lowcode_tool.neo4jmodel.SpaceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.PersonNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 

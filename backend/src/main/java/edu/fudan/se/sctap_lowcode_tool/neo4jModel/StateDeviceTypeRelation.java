@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.neo4jmodel;
+package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
 import lombok.Data;
 import lombok.ToString;
