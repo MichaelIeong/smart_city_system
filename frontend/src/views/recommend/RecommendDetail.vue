@@ -150,9 +150,9 @@ async function submitRule() {
     try {
         const projectId = localStorage.getItem('project_id')
         await createTapRule(projectId, selectedRule.value.content, JSON.stringify(selectedRule.value.jsonRule, null, 2))
-        message.success('规则创建成功')
+        message.success('应用创建成功')
     } catch (error) {
-        message.error('规则创建失败: ' + error.message)
+        message.error('应用创建失败: ' + error.message)
     }
   }
 }
