@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.execution;
 
 import edu.fudan.se.sctap_lowcode_tool.controller.AppRuleController;
+import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -11,11 +12,11 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class AppRuleExecutor {
-    private final AppRuleController appRuleController;
+    private final AppRuleService appRuleService;
 
     @Autowired
-    public AppRuleExecutor(AppRuleController appRuleController) {
-        this.appRuleController = appRuleController;
+    public AppRuleExecutor(AppRuleService appRuleService) {
+        this.appRuleService = appRuleService;
     }
 
     @PostConstruct
@@ -24,6 +25,6 @@ public class AppRuleExecutor {
 
         // 每隔 1 小时执行一次清理任务
         // 调用 cleanUpOldData 方法
-        scheduler.scheduleAtFixedRate(appRuleController::cleanUpOldData, 0, 1, TimeUnit.HOURS);
+        scheduler.scheduleAtFixedRate(appRuleService::cleanUpOldData, 0, 1, TimeUnit.HOURS);
     }
 }
