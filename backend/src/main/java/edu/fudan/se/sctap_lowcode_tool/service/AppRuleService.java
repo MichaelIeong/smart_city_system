@@ -3,8 +3,12 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
+import edu.fudan.se.sctap_lowcode_tool.DTO.app.AppRule;
+import edu.fudan.se.sctap_lowcode_tool.constant.Json_Example;
 import edu.fudan.se.sctap_lowcode_tool.constant.Redis_Constant;
 import edu.fudan.se.sctap_lowcode_tool.constant.Sys_Prompt;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
@@ -246,6 +250,28 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
+    public ResponseEntity<Void> triggerAppRule(EventTriggerDTO eventTriggerDTO) {
+        // 根据事件类型从数据库中获取全部对应的应用规则，由于当前数据库表结构不太符合需求，这里使用一个示例JSON规则
+        String json = Json_Example.json;
+        // 解析JSON规则
+        ObjectMapper mapper = new ObjectMapper();
+        AppRule appRule = null;
+        try {
+            appRule = mapper.readValue(json, AppRule.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(appRule);
+        // 解析参数
+
+        // 判断filter是否满足
+
+        // 解析response
+
+        // 处理branch或者chain
+
+        return ResponseEntity.ok().build();
+    }
     /**
      * 定时任务：每小时执行一次，清理过期的uuid数据
      */

@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.RecommendRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
@@ -76,6 +77,14 @@ public class AppRuleController {
     @PostMapping("/recommend/generateNaturalRule")
     public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
         return appRuleService.generateNaturalRule(recommendRequest);
+    }
+
+    /**
+     * 触发应用规则
+     * */
+    @PostMapping("/trigger")
+    public ResponseEntity<Void> triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO){
+        return appRuleService.triggerAppRule(eventTriggerDTO);
     }
 
 }
