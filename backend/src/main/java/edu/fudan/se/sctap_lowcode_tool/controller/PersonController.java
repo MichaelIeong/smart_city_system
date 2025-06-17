@@ -22,6 +22,7 @@ public class PersonController {
     @Autowired
     private PersonService personService;
 
+
     /**
      * 根據 ID 獲取單個人員
      */
@@ -80,21 +81,34 @@ public class PersonController {
      * 新增人員（使用 DTO）
      */
     @PostMapping
-    public ResponseEntity<PersonInfo> createPerson(@RequestBody PersonCreateRequest request) {
-        return ResponseEntity.ok(personService.createPerson(request));
+    public ResponseEntity<PersonDTO> createPerson(@RequestBody PersonCreateRequest request) {
+        PersonDTO newPerson = personService.createPerson(request);
+        return ResponseEntity.ok(newPerson);
     }
 
     /**
      * 更新人員（使用 DTO）
      */
+//    @PatchMapping("/{id}")
+//    public ResponseEntity<PersonInfo> updatePerson(@PathVariable Integer id,
+//                                                   @RequestBody PersonUpdateRequest request) {
+//        return personService.updatePerson(id, request)
+//                .map(ResponseEntity::ok)
+//                .orElse(ResponseEntity.notFound().build());
+//    }
+
     @PatchMapping("/{id}")
-    public ResponseEntity<PersonInfo> updatePerson(@PathVariable Integer id,
-                                                   @RequestBody PersonUpdateRequest request) {
-        return personService.updatePerson(id, request)
+    public ResponseEntity<PersonDTO> updatePerson(@PathVariable Integer id,
+                                                  @RequestBody PersonUpdateRequest request) {
+        return personService.updatePersonNode(id, request)
+                .map(person -> new PersonDTO(
+                        person.getPersonId(),
+                        person.getPersonName(),
+                        person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null
+                ))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
     /**
      * 設定人員的空間（可傳 null 表示離開空間）
      */
