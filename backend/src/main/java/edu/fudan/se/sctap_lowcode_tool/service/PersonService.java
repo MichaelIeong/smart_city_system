@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonCreateRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.PersonDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.PersonInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
@@ -33,6 +34,9 @@ public class PersonService {
 
     @Autowired
     private KafkaProducerUtil kafkaProducerUtil;
+
+    private final Object personIdLock = new Object();
+
 
     /**
      * 獲取所有人員
@@ -72,15 +76,27 @@ public class PersonService {
     /**
      * 建立新的人員
      */
-    public PersonInfo createPerson(PersonCreateRequest request) {
-        PersonInfo person = new PersonInfo();
-        person.setPersonName(request.getPersonName());
+    public PersonDTO createPerson(PersonCreateRequest request) {
+        synchronized (personIdLock) {
+            Integer maxId = personNodeRepository.findMaxPersonId();
+            int newId = (maxId != null ? maxId + 1 : 1);
 
-        if (request.getSpaceId() != null) {
-            spaceRepository.findBySpaceId(request.getSpaceId()).ifPresent(person::setCurrentSpace);
+            PersonNode person = new PersonNode();
+            person.setPersonId(newId);
+            person.setPersonName(request.getPersonName());
+
+            if (request.getSpaceId() != null) {
+                spaceNodeRepository.findById(request.getSpaceId())
+                        .ifPresent(person::setCurrentSpace);
+            }
+
+            PersonNode saved = personNodeRepository.save(person);
+            return new PersonDTO(
+                    saved.getPersonId(),
+                    saved.getPersonName(),
+                    saved.getCurrentSpace() != null ? saved.getCurrentSpace().getSpaceId() : null
+            );
         }
-
-        return personRepository.save(person);
     }
 
     /**
@@ -126,20 +142,23 @@ public class PersonService {
             person.setPersonName(request.getPersonName());
         }
 
+        // 断开旧关系（执行 Cypher 删除）
+        personNodeRepository.deletePersonSpaceRelation(person.getPersonId());
+
         if (request.getSpaceId() != null) {
             // 你需要确保 spaceId 是 SpaceNode 中的某个唯一字段，比如 spaceId（不是数据库ID）
-            Optional<SpaceNode> spaceOpt = spaceNodeRepository.findBySpaceId(request.getSpaceId());
+            Optional<SpaceNode> spaceOpt = spaceNodeRepository.findBySpaceId(Integer.valueOf(request.getSpaceId()));
             person.setCurrentSpace(spaceOpt.orElse(null));
         } else {
             person.setCurrentSpace(null); // 明确设为 null 表示移除关系
         }
 
         // 消息队列（同原逻辑）
-        Map<String, Object> message = new HashMap<>();
-        message.put("currentSpaceId", person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null);
-        message.put("name", person.getPersonName());
-
-        kafkaProducerUtil.sendMessage("person_info", message);
+//        Map<String, Object> message = new HashMap<>();
+//        message.put("currentSpaceId", person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null);
+//        message.put("name", person.getPersonName());
+//
+//        kafkaProducerUtil.sendMessage("person_info", message);
         return Optional.of(personNodeRepository.save(person));
     }
     /**
