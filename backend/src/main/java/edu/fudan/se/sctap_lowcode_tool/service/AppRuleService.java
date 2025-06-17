@@ -330,6 +330,10 @@ public class AppRuleService {
                     handleBranchStep((BranchStep) step, params, eventType);
                     break;
             }
+            // 如果处理的是wait，需要终止后续step
+            if (step instanceof WaitStep) {
+                break;
+            }
         }
     }
 
@@ -358,7 +362,7 @@ public class AppRuleService {
         // 从ignoreLocationMap中移除
         Set<String> ignoreLocations = ignoreLocationsMap.get(resumeStep.getResume().getEvent_type());
         if(resumeStep.getResume().getLocation()==null|| resumeStep.getResume().getLocation().isEmpty() ||resumeStep.getResume().getLocation().equals("location")){
-            ignoreLocations.remove(params.get("location"));
+            ignoreLocations.remove((String) params.get("location"));
         }
         else{
             ignoreLocations.remove(resumeStep.getResume().getLocation());
