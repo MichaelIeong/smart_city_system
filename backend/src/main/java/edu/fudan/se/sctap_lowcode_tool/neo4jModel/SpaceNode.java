@@ -2,10 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
 import org.springframework.data.neo4j.core.schema.*;
 import lombok.Data;
-import lombok.ToString;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Node("Space")
