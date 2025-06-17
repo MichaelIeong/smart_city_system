@@ -86,7 +86,7 @@ public class PersonService {
             person.setPersonName(request.getPersonName());
 
             if (request.getSpaceId() != null) {
-                spaceNodeRepository.findById(request.getSpaceId())
+                spaceNodeRepository.findById(Integer.valueOf(request.getSpaceId()))
                         .ifPresent(person::setCurrentSpace);
             }
 
