@@ -1,10 +1,14 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
+import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +17,9 @@ public class DeviceService {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     public Optional<DeviceResponse> findById(int id) {
         return deviceRepository.findById(id).map(DeviceResponse::new);
@@ -27,4 +34,43 @@ public class DeviceService {
         return deviceRepository.findByDeviceId(deviceId).map(DeviceResponse::new);
     }
 
+    public DeviceInfo saveDevice(DeviceInfo device) {
+        if (device.getLastUpdateTime() == null) {
+            device.setLastUpdateTime(LocalDateTime.now());
+        }
+
+        if (device.getSpace() != null && device.getSpace().getId() != null) {
+            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
+        } else {
+            device.setSpace(null);
+        }
+
+        return deviceRepository.save(device);
+    }
+
+    public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
+        return deviceRepository.findById(id).map(existing -> {
+            existing.setDeviceId(updatedDevice.getDeviceId());
+            existing.setDeviceName(updatedDevice.getDeviceName());
+            existing.setFixedProperties(updatedDevice.getFixedProperties());
+            existing.setCoordinateX(updatedDevice.getCoordinateX());
+            existing.setCoordinateY(updatedDevice.getCoordinateY());
+            existing.setCoordinateZ(updatedDevice.getCoordinateZ());
+            existing.setLastUpdateTime(LocalDateTime.now());
+            existing.setDeviceType(updatedDevice.getDeviceType());
+
+            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
+                Optional<SpaceInfo> spaceOpt = spaceRepository.findById(updatedDevice.getSpace().getId());
+                spaceOpt.ifPresent(existing::setSpace);
+            } else {
+                existing.setSpace(null);
+            }
+
+            return deviceRepository.save(existing);
+        });
+    }
+
+    public void deleteDevice(int id) {
+        deviceRepository.deleteById(id);
+    }
 }
