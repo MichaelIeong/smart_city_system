@@ -289,7 +289,9 @@ public class AppRuleService {
             params.put(key, eventTriggerDTO.getParams().get(key));
         }
         // 处理filter
-        // TODO
+        if(!isFilterSatisfied(appRule.getTrigger().getFilter(), eventTriggerDTO)){
+            return;
+        }
 
         // 处理response
         Response response = appRule.getResponse();
@@ -307,6 +309,39 @@ public class AppRuleService {
             handleBranchStep(branchStep, params, eventType);
         }
     }
+    //判断过滤条件是否满足
+    private boolean isFilterSatisfied(List<Map<String, Object>> filters,EventTriggerDTO triggerDTO){
+        if(filters == null || filters.isEmpty()){
+            //无过滤器默认通过
+            return true;
+        }
+        for(Map<String, Object> filter : filters){
+            //处理location
+            if(filter.containsKey("location")){
+                @SuppressWarnings("unchecked")
+                Map<String, Object> locationFilter = (Map<String, Object>) filter.get("location");
+                String operator = (String) locationFilter.get("operator");
+                String targetLocation = (String) locationFilter.get("targetLocation");
+                String currentLocation = (String) triggerDTO.getParams().get("currentLocation");
+                if(!checkLocationCondition(operator,targetLocation,currentLocation)){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    //检查位置条件
+    private boolean checkLocationCondition(String operator, String targetLocation, String currentLocation){
+        if(currentLocation == null){
+            return false;
+        }
+        return switch(operator){
+            case "not in" -> !targetLocation.equals(currentLocation);
+            case "in" -> targetLocation.equals(currentLocation);
+            default -> throw new IllegalStateException("未知操作符: " + operator);
+        };
+    }
+
 
     // 处理chain
     private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType){
