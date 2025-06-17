@@ -63,6 +63,8 @@ public class AppRuleService {
     private final Map<String, Long> uuidTimeMap = new HashMap<>();
     // 保存event_type对应的参数
     private final Map<String, Map<String, Object>> eventParamMap = new HashMap<>();
+    // 维护event_type和ignoreLocations的映射关系
+    Map<String, Set<String>> ignoreLocationsMap = new HashMap<>();
 
     public AppRuleService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
@@ -300,28 +302,88 @@ public class AppRuleService {
         // response从branch开始
         if(response.isBranchType()){
             List<BranchNode> branch = response.getBranch();
-            for(BranchNode node : branch){
-                if(node.isCurrentCondition()){
-                    // 处理history_condition
-                    // TODO
-
-                    List<ChainStep> chain = node.getChain();
-                    handleChain(chain, params, eventType);
-                }
-                if(node.isHistoryCondition()){
-                    // 处理current_condition
-                    // TODO
-
-                    List<ChainStep> chain = node.getChain();
-                    handleChain(chain, params, eventType);
-                }
-            }
+            BranchStep branchStep = new BranchStep();
+            branchStep.setBranch(branch);
+            handleBranchStep(branchStep, params, eventType);
         }
     }
 
     // 处理chain
     private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType){
+        int size = chain.size();
+        for(int i = 0; i < size; i++){
+            ChainStep step = chain.get(i);
+            switch (step.getType()){
+                case "action":
+                    handleActionStep((ActionStep) step, params, eventType);
+                    break;
+                case "wait":
+                    handleWaitStep((WaitStep) step, params, eventType);
+                    break;
+                case "ignore":
+                    handleIgnoreStep((IgnoreStep) step, params, eventType);
+                    break;
+                case "resume":
+                    handleResumeStep((ResumeStep) step, params, eventType);
+                    break;
+                case "branch":
+                    handleBranchStep((BranchStep) step, params, eventType);
+                    break;
+            }
+        }
+    }
 
+    private void handleActionStep(ActionStep actionStep, Map<String, Object> params, String eventType){
+        // 执行动作，这里模拟动作的下发
+        log.info("执行动作：{} 地点：{}", actionStep.getAction().getAction_name(), actionStep.getAction().getAction_location());
+    }
+
+    private void handleWaitStep(WaitStep waitStep, Map<String, Object> params, String eventType){
+        // TODO
+    }
+
+    private void handleIgnoreStep(IgnoreStep ignoreStep, Map<String, Object> params, String eventType){
+        // 添加到ignoreLocationsMap中
+        Set<String> ignoreLocations = ignoreLocationsMap.getOrDefault(ignoreStep.getIgnore().getEvent_type(), new HashSet<>());
+        if(ignoreStep.getIgnore().getLocation()==null||ignoreStep.getIgnore().getLocation().isEmpty()||ignoreStep.getIgnore().getLocation().equals("location")){
+            ignoreLocations.add((String) params.get("location"));
+        }
+        else{
+            ignoreLocations.add(ignoreStep.getIgnore().getLocation());
+        }
+        ignoreLocationsMap.put(ignoreStep.getIgnore().getEvent_type(), ignoreLocations);
+    }
+
+    private void handleResumeStep(ResumeStep resumeStep, Map<String, Object> params, String eventType){
+        // 从ignoreLocationMap中移除
+        Set<String> ignoreLocations = ignoreLocationsMap.get(resumeStep.getResume().getEvent_type());
+        if(resumeStep.getResume().getLocation()==null|| resumeStep.getResume().getLocation().isEmpty() ||resumeStep.getResume().getLocation().equals("location")){
+            ignoreLocations.remove(params.get("location"));
+        }
+        else{
+            ignoreLocations.remove(resumeStep.getResume().getLocation());
+        }
+        ignoreLocationsMap.put(resumeStep.getResume().getEvent_type(), ignoreLocations);
+    }
+
+    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType){
+        List<BranchNode> branch = branchStep.getBranch();
+        for(BranchNode node : branch){
+            if(node.isCurrentCondition()){
+                // 处理history_condition
+                // TODO
+
+                List<ChainStep> chain = node.getChain();
+                handleChain(chain, params, eventType);
+            }
+            if(node.isHistoryCondition()){
+                // 处理current_condition
+                // TODO
+
+                List<ChainStep> chain = node.getChain();
+                handleChain(chain, params, eventType);
+            }
+        }
     }
 
 

@@ -17,7 +17,7 @@ public class Json_Example {
                   {
                     "location": {
                       "operator": "not in",
-                      "targetLocation": "IllegalParking.ignoreLocationList"
+                      "targetLocation": "IllegalParking.ignoreLocations"
                     }
                   }
                 ]

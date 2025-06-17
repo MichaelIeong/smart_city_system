@@ -12,4 +12,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = BranchStep.class)
 })
 public interface ChainStep {
+    String getType();
 }

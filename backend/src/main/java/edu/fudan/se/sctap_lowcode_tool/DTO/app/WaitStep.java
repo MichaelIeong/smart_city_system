@@ -9,6 +9,11 @@ public class WaitStep implements ChainStep {
 
     private Wait wait;
 
+    @Override
+    public String getType() {
+        return "wait";
+    }
+
     @Data
     public static class Wait {
 

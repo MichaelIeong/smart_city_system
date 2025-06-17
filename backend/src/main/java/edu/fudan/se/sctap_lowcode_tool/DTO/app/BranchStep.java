@@ -8,4 +8,9 @@ import java.util.List;
 public class BranchStep implements ChainStep {
 
     private List<BranchNode> branch;
+
+    @Override
+    public String getType() {
+        return "branch";
+    }
 }

@@ -7,6 +7,11 @@ public class IgnoreStep implements ChainStep {
 
     private Ignore ignore;
 
+    @Override
+    public String getType() {
+        return "ignore";
+    }
+
     @Data
     public static class Ignore {
 
