@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface SpaceNodeRepository extends Neo4jRepository<SpaceNode, Integer> {
-    Optional<SpaceNode> findBySpaceId(String spaceId);
+    Optional<SpaceNode> findBySpaceId(Integer spaceId);
 }
