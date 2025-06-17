@@ -52,7 +52,7 @@ public class PersonService {
         return personRepository.findById(id);
     }
 
-    public Optional<PersonNode> getPersonNodeById(Long id) {
+    public Optional<PersonNode> getPersonNodeById(Integer id) {
         return personNodeRepository.findById(id);
     }
 
@@ -64,7 +64,7 @@ public class PersonService {
         return spaceOpt.map(personRepository::findByCurrentSpace).orElse(Collections.emptyList());
     }
 
-    public List<PersonNode> getPersonNodesBySpaceId(Long spaceNodeId) {
+    public List<PersonNode> getPersonNodesBySpaceId(Integer spaceNodeId) {
         Optional<SpaceNode> spaceNodeOpt = spaceNodeRepository.findById(spaceNodeId);
         return spaceNodeOpt.map(personNodeRepository::findByCurrentSpace).orElse(Collections.emptyList());
     }
@@ -114,7 +114,7 @@ public class PersonService {
         return Optional.of(personRepository.save(person));
     }
 
-    public Optional<PersonNode> updatePersonNode(Long id, PersonUpdateRequest request) {
+    public Optional<PersonNode> updatePersonNode(Integer id, PersonUpdateRequest request) {
         Optional<PersonNode> personOpt = personNodeRepository.findById(id);
         if (personOpt.isEmpty()) {
             return Optional.empty();
