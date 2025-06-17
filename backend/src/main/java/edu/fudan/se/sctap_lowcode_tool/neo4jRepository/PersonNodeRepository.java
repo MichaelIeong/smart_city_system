@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PersonNodeRepository extends Neo4jRepository<PersonNode, Long> {
+public interface PersonNodeRepository extends Neo4jRepository<PersonNode, Integer> {
     List<PersonNode> findByCurrentSpace(SpaceNode spaceNode);
 }

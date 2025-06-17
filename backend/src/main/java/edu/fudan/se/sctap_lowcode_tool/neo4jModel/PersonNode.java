@@ -10,8 +10,7 @@ import java.util.Objects;
 public class PersonNode {
 
     @Id
-    @GeneratedValue
-    private Long id;   // Neo4j唯一主键
+    private Integer personId;   // 自定义字符串主键（建议为 UUID）
 
     private String personName;   // 人员姓名
 
@@ -22,12 +21,12 @@ public class PersonNode {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PersonNode that)) return false;
-        return Objects.equals(id, that.id) &&
+        return Objects.equals(personId, that.personId) &&
                 Objects.equals(personName, that.personName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, personName);
+        return Objects.hash(personId, personName);
     }
 }

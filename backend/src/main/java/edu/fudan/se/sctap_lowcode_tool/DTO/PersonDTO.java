@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PersonDTO {
 
-    private Integer id;
+    private Integer personId;
     private String personName;
     private Integer spaceId;
 }
