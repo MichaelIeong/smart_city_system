@@ -83,8 +83,8 @@ public class AppRuleController {
      * 触发应用规则
      * */
     @PostMapping("/trigger")
-    public ResponseEntity<Void> triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO){
-        return appRuleService.triggerAppRule(eventTriggerDTO);
+    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO){
+        appRuleService.triggerAppRule(eventTriggerDTO);
     }
 
 }

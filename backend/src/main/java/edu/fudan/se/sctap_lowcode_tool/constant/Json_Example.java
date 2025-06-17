@@ -7,14 +7,10 @@ public class Json_Example {
                 "event":[
                     {
                         "event_type": "IllegalParking",
-                        "params":  [
-                            {
-                                "location": "string"
-                            },
-                            {
-                                "license": "string"
-                            }
-                        ]
+                        "params":  {
+                            "location": "string",
+                             "license": "string"
+                        }
                     }
                  ],
                 "filter": [
@@ -68,8 +64,8 @@ public class Json_Example {
                               {
                                 "wait": {
                                   "action_condition": {
-                                    "action_name": "IssueWorkOrder",
-                                    "action_location": ["location"]
+                                    "event_type": "IllegalParking",
+                                    "location": "location"
                                   }
                                 }
                               },
@@ -149,8 +145,8 @@ public class Json_Example {
                       {
                         "wait": {
                           "action_condition": {
-                            "action_name": "IssueWorkOrder",
-                            "action_location": ["location"]
+                            "event_type": "IllegalParking",
+                            "location": "location"
                           }
                         }
                       },

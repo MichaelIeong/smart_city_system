@@ -27,9 +27,9 @@ public class WaitStep implements ChainStep {
         @Data
         public static class ActionCondition {
 
-            private String action_name;
+            private String event_type;
 
-            private List<String> action_location;
+            private String location;
         }
 
         public boolean isTimeCondition() {

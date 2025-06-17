@@ -9,5 +9,5 @@ import java.util.Map;
 public class Event {
     private String event_type;
 
-    private List<Map<String, String>> params;
+    private Map<String, String> params;
 }

@@ -3,11 +3,12 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
-import edu.fudan.se.sctap_lowcode_tool.DTO.app.AppRule;
+import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
 import edu.fudan.se.sctap_lowcode_tool.constant.Json_Example;
 import edu.fudan.se.sctap_lowcode_tool.constant.Redis_Constant;
 import edu.fudan.se.sctap_lowcode_tool.constant.Sys_Prompt;
@@ -18,6 +19,8 @@ import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.glassfish.jaxb.core.v2.TODO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -29,12 +32,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class AppRuleService {
 
     @Resource
@@ -56,6 +61,8 @@ public class AppRuleService {
     private final Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
     // 记录每个uuid最后的访问时间
     private final Map<String, Long> uuidTimeMap = new HashMap<>();
+    // 保存event_type对应的参数
+    private final Map<String, Map<String, Object>> eventParamMap = new HashMap<>();
 
     public AppRuleService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
@@ -250,28 +257,74 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
-    public ResponseEntity<Void> triggerAppRule(EventTriggerDTO eventTriggerDTO) {
+    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
         // 根据事件类型从数据库中获取全部对应的应用规则，由于当前数据库表结构不太符合需求，这里使用一个示例JSON规则
         String json = Json_Example.json;
         // 解析JSON规则
         ObjectMapper mapper = new ObjectMapper();
-        AppRule appRule = null;
+        AppRule appRule;
         try {
             appRule = mapper.readValue(json, AppRule.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("解析JSON规则失败", e);
+            return;
         }
-        System.out.println(appRule);
-        // 解析参数
+        // 提取参数
+        String eventType = eventTriggerDTO.getEvent_type();
+        Event  event = null;
+        for(Event e: appRule.getTrigger().getEvent()){
+            if(e.getEvent_type().equals(eventType)){
+                event = e;
+            }
+        }
+        if(event==null){
+            log.error("未找到对应的事件类型");
+            return;
+        }
+        Map<String, Object> params = new HashMap<>();
+        for(Map.Entry<String, String> entry: event.getParams().entrySet()){
+            String key = entry.getKey();
+            params.put(key, eventTriggerDTO.getParams().get(key));
+        }
+        // 处理filter
+        // TODO
 
-        // 判断filter是否满足
+        // 处理response
+        Response response = appRule.getResponse();
+        // response从chain开始
+        if(response.isChainType()){
+            List<ChainStep> chain = response.getChain();
+            handleChain(chain, params, eventType);
+            return;
+        }
+        // response从branch开始
+        if(response.isBranchType()){
+            List<BranchNode> branch = response.getBranch();
+            for(BranchNode node : branch){
+                if(node.isCurrentCondition()){
+                    // 处理history_condition
+                    // TODO
 
-        // 解析response
+                    List<ChainStep> chain = node.getChain();
+                    handleChain(chain, params, eventType);
+                }
+                if(node.isHistoryCondition()){
+                    // 处理current_condition
+                    // TODO
 
-        // 处理branch或者chain
-
-        return ResponseEntity.ok().build();
+                    List<ChainStep> chain = node.getChain();
+                    handleChain(chain, params, eventType);
+                }
+            }
+        }
     }
+
+    // 处理chain
+    private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType){
+
+    }
+
+
     /**
      * 定时任务：每小时执行一次，清理过期的uuid数据
      */
