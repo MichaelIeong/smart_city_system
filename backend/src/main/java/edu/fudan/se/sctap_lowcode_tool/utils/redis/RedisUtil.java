@@ -36,16 +36,11 @@ public class RedisUtil {
     /**
      * 存储Chain
      * */
-    public void setChain(String key, Map<String, Object> data, boolean isTimeCondition) throws JsonProcessingException {
+    public void setChain(String key, Map<String, Object> data) throws JsonProcessingException {
         // 序列化 Map<String, Object> 为 JSON 字符串
         String json = objectMapper.writeValueAsString(data);
         // 写入 Redis
-        if(isTimeCondition){
-            stringRedisTemplate.opsForValue().set(key, json, Duration.ofHours(1));
-        }
-        else{
-            stringRedisTemplate.opsForValue().set(key, json);
-        }
+        stringRedisTemplate.opsForValue().set(key, json);
     }
 
     /**

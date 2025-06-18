@@ -33,7 +33,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -435,7 +434,7 @@ public class AppRuleService {
             data.put("chain", subChain);
             data.put("params", params);
             data.put("eventType", eventType);
-            redisUtil.setChain(redisKey, data, false);
+            redisUtil.setChain(redisKey, data);
         }
         // 处理time_condition
         if(waitStep.getWait().isTimeCondition()){
@@ -456,7 +455,7 @@ public class AppRuleService {
             data.put("eventType", eventType);
             // 存储到redis
             String redisKey = Redis_Constant.Time_Condition + eventType + ":" + params.get("location");
-            redisUtil.setChain(redisKey, data, true);
+            redisUtil.setChain(redisKey, data);
         }
     }
 
@@ -530,6 +529,9 @@ public class AppRuleService {
         long now = System.currentTimeMillis();
         for (String json : chains) {
             try {
+                if(json == null){
+                    continue;
+                }
                 // 反序列化 json 数据
                 Map<String, Object> dataMap = objectMapper.readValue(json, new TypeReference<>() {});
                 long expireTime = Long.parseLong(dataMap.get("expireTime").toString());
@@ -538,6 +540,10 @@ public class AppRuleService {
                     List<ChainStep> chain = objectMapper.convertValue(dataMap.get("chain"), new TypeReference<>() {});
                     Map<String, Object> params = objectMapper.convertValue(dataMap.get("params"), new TypeReference<>() {});
                     String eventType = (String) dataMap.get("eventType");
+                    String location = (String) params.get("location");
+                    String redisKey = Redis_Constant.Time_Condition + eventType + ":" + location;
+                    // 从redis中删除
+                    redisUtil.deleteSingle(redisKey);
                     //提交线程池处理
                     ruleExecutor.execute(() -> {
                         try {
