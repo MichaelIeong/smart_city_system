@@ -3,9 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
@@ -20,7 +18,6 @@ import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.glassfish.jaxb.core.v2.TODO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -32,9 +29,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,8 +58,6 @@ public class AppRuleService {
     private final Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
     // 记录每个uuid最后的访问时间
     private final Map<String, Long> uuidTimeMap = new HashMap<>();
-    // 保存event_type对应的参数
-    private final Map<String, Map<String, Object>> eventParamMap = new HashMap<>();
     // 维护event_type和ignoreLocations的映射关系
     Map<String, Set<String>> ignoreLocationsMap = new HashMap<>();
 
@@ -259,8 +254,9 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
-    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
+    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) throws JsonProcessingException {
         // 根据事件类型从数据库中获取全部对应的应用规则，由于当前数据库表结构不太符合需求，这里使用一个示例JSON规则
+        // TODO
         String json = Json_Example.json;
         // 解析JSON规则
         ObjectMapper mapper = new ObjectMapper();
@@ -309,7 +305,7 @@ public class AppRuleService {
     }
 
     // 处理chain
-    private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType){
+    private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType) throws JsonProcessingException {
         int size = chain.size();
         for(int i = 0; i < size; i++){
             ChainStep step = chain.get(i);
@@ -318,7 +314,7 @@ public class AppRuleService {
                     handleActionStep((ActionStep) step, params, eventType);
                     break;
                 case "wait":
-                    handleWaitStep((WaitStep) step, params, eventType);
+                    handleWaitStep((WaitStep) step, params, eventType, chain, i);
                     break;
                 case "ignore":
                     handleIgnoreStep((IgnoreStep) step, params, eventType);
@@ -339,38 +335,62 @@ public class AppRuleService {
 
     private void handleActionStep(ActionStep actionStep, Map<String, Object> params, String eventType){
         // 执行动作，这里模拟动作的下发
-        log.info("执行动作：{} 地点：{}", actionStep.getAction().getAction_name(), actionStep.getAction().getAction_location());
+        // TODO
+        log.info("执行动作：{} 地点：{}", actionStep.getAction().getAction_name(), params.get("location"));
     }
 
-    private void handleWaitStep(WaitStep waitStep, Map<String, Object> params, String eventType){
-        // TODO
+    private void handleWaitStep(WaitStep waitStep, Map<String, Object> params, String eventType, List<ChainStep> chain, int index) throws JsonProcessingException {
+        // 提取待执行的ChainStep
+        List<ChainStep> subChain = chain.subList(index + 1, chain.size());
+        // 处理action_condition
+        if(waitStep.getWait().isActionCondition()){
+            String waitEventType = waitStep.getWait().getAction_condition().getEvent_type();
+            String redisKey = Redis_Constant.Action_Condition + waitEventType + ":"+ params.get("location");
+            // 存储到redis
+            Map<String, Object> data = new HashMap<>();
+            data.put("chain", subChain);
+            data.put("params", params);
+            data.put("eventType", eventType);
+            redisUtil.setChain(redisKey, data);
+        }
+        // 处理time_condition
+        if(waitStep.getWait().isTimeCondition()){
+            int waitDuration = Integer.parseInt(waitStep.getWait().getTime_condition().getDuration());
+            String waitUnit = waitStep.getWait().getTime_condition().getUnit();
+            long currentTimeMillis = System.currentTimeMillis();
+            long expireTimeMillis = switch (waitUnit.toLowerCase()) {
+                case "second" -> currentTimeMillis + waitDuration * 1000L;
+                case "minute" -> currentTimeMillis + waitDuration * 60 * 1000L;
+                case "hour" -> currentTimeMillis + waitDuration * 60 * 60 * 1000L;
+                case "day" -> currentTimeMillis + waitDuration * 24 * 60 * 60 * 1000L;
+                default -> throw new IllegalArgumentException("Unsupported time unit: " + waitUnit);
+            };
+            Map<String, Object> data = new HashMap<>();
+            data.put("chain", subChain);
+            data.put("expireTime", expireTimeMillis);
+            data.put("params", params);
+            data.put("eventType", eventType);
+            // 存储到redis
+            String redisKey = Redis_Constant.Time_Condition + eventType + ":" + params.get("location");
+            redisUtil.setChain(redisKey, data);
+        }
     }
 
     private void handleIgnoreStep(IgnoreStep ignoreStep, Map<String, Object> params, String eventType){
         // 添加到ignoreLocationsMap中
         Set<String> ignoreLocations = ignoreLocationsMap.getOrDefault(ignoreStep.getIgnore().getEvent_type(), new HashSet<>());
-        if(ignoreStep.getIgnore().getLocation()==null||ignoreStep.getIgnore().getLocation().isEmpty()||ignoreStep.getIgnore().getLocation().equals("location")){
-            ignoreLocations.add((String) params.get("location"));
-        }
-        else{
-            ignoreLocations.add(ignoreStep.getIgnore().getLocation());
-        }
+        ignoreLocations.add((String) params.get("location"));
         ignoreLocationsMap.put(ignoreStep.getIgnore().getEvent_type(), ignoreLocations);
     }
 
     private void handleResumeStep(ResumeStep resumeStep, Map<String, Object> params, String eventType){
         // 从ignoreLocationMap中移除
         Set<String> ignoreLocations = ignoreLocationsMap.get(resumeStep.getResume().getEvent_type());
-        if(resumeStep.getResume().getLocation()==null|| resumeStep.getResume().getLocation().isEmpty() ||resumeStep.getResume().getLocation().equals("location")){
-            ignoreLocations.remove((String) params.get("location"));
-        }
-        else{
-            ignoreLocations.remove(resumeStep.getResume().getLocation());
-        }
+        ignoreLocations.remove((String) params.get("location"));
         ignoreLocationsMap.put(resumeStep.getResume().getEvent_type(), ignoreLocations);
     }
 
-    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType){
+    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType) throws JsonProcessingException {
         List<BranchNode> branch = branchStep.getBranch();
         for(BranchNode node : branch){
             if(node.isCurrentCondition()){
@@ -411,5 +431,13 @@ public class AppRuleService {
                 System.out.println("清理 uuid 对应的数据: " + uuid);
             }
         }
+    }
+
+    /**
+     * 定时任务：每隔30s执行一次，检查到期的chain并执行
+     * */
+    public void checkExpiredChain() {
+        System.out.println("开始检查到期的chain...");
+
     }
 }
