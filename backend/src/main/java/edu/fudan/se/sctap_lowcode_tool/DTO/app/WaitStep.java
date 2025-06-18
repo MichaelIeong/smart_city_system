@@ -2,17 +2,10 @@ package edu.fudan.se.sctap_lowcode_tool.DTO.app;
 
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 public class WaitStep implements ChainStep {
 
     private Wait wait;
-
-    @Override
-    public String getType() {
-        return "wait";
-    }
 
     @Data
     public static class Wait {

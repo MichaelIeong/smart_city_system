@@ -1,10 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import com.alibaba.dashscope.exception.NoApiKeyException;
-import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
-import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerDTO;
-import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
-import edu.fudan.se.sctap_lowcode_tool.DTO.RecommendRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
 import jakarta.annotation.Resource;
@@ -34,14 +30,14 @@ public class AppRuleController {
     }
 
     @PostMapping
-    public void create(@RequestBody AppRuleRequest rule) throws NoApiKeyException {
+    public void create(@RequestBody AppRuleRequest rule) {
         appRuleService.createRule(rule);
     }
 
     @PutMapping("/{id}")
     public void update(
             @PathVariable("id") Integer id,
-            @RequestBody AppRuleRequest rule) throws NoApiKeyException {
+            @RequestBody AppRuleRequest rule) {
         appRuleService.updateRule(id, rule);
     }
 
@@ -67,7 +63,7 @@ public class AppRuleController {
      * 从向量数据库中匹配
      * */
     @PostMapping("/recommend/findSimilarRule")
-    public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) throws NoApiKeyException {
+    public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) {
         return appRuleService.findSimilarRules(recommendRequest);
     }
 
@@ -83,8 +79,16 @@ public class AppRuleController {
      * 触发应用规则
      * */
     @PostMapping("/trigger")
-    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO){
+    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
         appRuleService.triggerAppRule(eventTriggerDTO);
+    }
+
+    /**
+     * 动作完成上报
+     * */
+    @PostMapping("/action/complete")
+    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
+        appRuleService.actionComplete(actionCompleteDTO);
     }
 
 }

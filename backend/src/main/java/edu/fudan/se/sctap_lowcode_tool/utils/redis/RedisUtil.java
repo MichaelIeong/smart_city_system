@@ -1,5 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.utils.redis;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.fudan.se.sctap_lowcode_tool.DTO.app.ChainStep;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
@@ -8,16 +11,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class RedisUtil {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     /**
      * 查询单条
      * */
@@ -32,6 +33,20 @@ public class RedisUtil {
         stringRedisTemplate.opsForValue().set(key, value, Duration.ofHours(1));
     }
 
+    /**
+     * 存储Chain
+     * */
+    public void setChain(String key, Map<String, Object> data, boolean isTimeCondition) throws JsonProcessingException {
+        // 序列化 Map<String, Object> 为 JSON 字符串
+        String json = objectMapper.writeValueAsString(data);
+        // 写入 Redis
+        if(isTimeCondition){
+            stringRedisTemplate.opsForValue().set(key, json, Duration.ofHours(1));
+        }
+        else{
+            stringRedisTemplate.opsForValue().set(key, json);
+        }
+    }
 
     /**
      * 查询多条
@@ -86,5 +101,12 @@ public class RedisUtil {
             }
         }
         return list;
+    }
+
+    /**
+     * 删除单条
+     * */
+    public void deleteSingle(String key) {
+        stringRedisTemplate.delete(key);
     }
 }

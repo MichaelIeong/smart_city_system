@@ -9,11 +9,6 @@ import java.util.Map;
 public class ActionStep implements ChainStep {
     private Action action;
 
-    @Override
-    public String getType() {
-        return "action";
-    }
-
     @Data
     public static class Action {
         private String action_name;

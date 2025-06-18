@@ -7,11 +7,6 @@ public class ResumeStep implements ChainStep {
 
     private Resume resume;
 
-    @Override
-    public String getType() {
-        return "resume";
-    }
-
     @Data
     public static class Resume {
 

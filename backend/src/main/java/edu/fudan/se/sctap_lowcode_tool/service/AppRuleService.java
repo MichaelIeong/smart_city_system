@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,6 +54,10 @@ public class AppRuleService {
 
     @Resource
     private RedisUtil redisUtil;
+
+    @Resource(name = "ruleExecutor")
+    private Executor ruleExecutor;
+
     // 保存生成自然语言规则消息
     private final Map<String, List<Message>> messageMap = new HashMap<>();
     // 保存自然语言规则和对应的事件、属性、动作
@@ -60,6 +66,8 @@ public class AppRuleService {
     private final Map<String, Long> uuidTimeMap = new HashMap<>();
     // 维护event_type和ignoreLocations的映射关系
     Map<String, Set<String>> ignoreLocationsMap = new HashMap<>();
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AppRuleService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
@@ -87,15 +95,19 @@ public class AppRuleService {
         }
     }
 
-    public void createRule(AppRuleRequest rule) throws NoApiKeyException {
+    public void createRule(AppRuleRequest rule) {
         var appRuleInfo = getEntityFromRequest(rule);
         appRuleInfo = appRuleRepository.save(appRuleInfo);
         // 加入向量数据库
         AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), rule.description());
-        milvusUtil.insertRecord(record);
+        try{
+            milvusUtil.insertRecord(record);
+        } catch (NoApiKeyException e) {
+            log.error("No api key");
+        }
     }
 
-    public void updateRule(Integer ruleId, AppRuleRequest rule) throws NoApiKeyException {
+    public void updateRule(Integer ruleId, AppRuleRequest rule) {
         var appRuleInfo = getEntityFromRequest(rule);
         if (appRuleRepository.findById(ruleId).isEmpty()) {
             throw new BadRequestException(
@@ -108,7 +120,11 @@ public class AppRuleService {
         // 更新向量数据库
         milvusUtil.deleteRecordById(ruleId.toString());
         AppRuleRecord record = new AppRuleRecord(ruleId.toString(), rule.description());
-        milvusUtil.insertRecord(record);
+        try{
+            milvusUtil.insertRecord(record);
+        } catch (NoApiKeyException e) {
+            log.error("No api key found");
+        }
     }
 
     private AppRuleInfo getEntityFromRequest(AppRuleRequest rule) {
@@ -226,8 +242,7 @@ public class AppRuleService {
         }
         AppRuleData appRuleData;
         try{
-            ObjectMapper mapper = new ObjectMapper();
-            appRuleData = mapper.readValue(jsonContent, AppRuleData.class);
+            appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
         } catch (Exception e){
             return ResponseEntity.badRequest().body("输出格式错误，请稍后重试");
         }
@@ -243,9 +258,14 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleData.getRule());
     }
 
-    public ResponseEntity<AppRuleInfo> findSimilarRules(RecommendRequest recommendRequest) throws NoApiKeyException {
+    public ResponseEntity<AppRuleInfo> findSimilarRules(RecommendRequest recommendRequest) {
         String message = recommendRequest.getMessage();
-        List<AppRuleRecord> records = milvusUtil.queryVector(message, 1);
+        List<AppRuleRecord> records = null;
+        try{
+            records = milvusUtil.queryVector(message, 1);
+        } catch (NoApiKeyException e){
+            return ResponseEntity.badRequest().build();
+        }
         AppRuleInfo appRuleInfo = null;
         if (!records.isEmpty()) {
             AppRuleRecord record = records.getFirst();
@@ -254,15 +274,14 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
-    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) throws JsonProcessingException {
+    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
         // 根据事件类型从数据库中获取全部对应的应用规则，由于当前数据库表结构不太符合需求，这里使用一个示例JSON规则
         // TODO
         String json = Json_Example.json;
         // 解析JSON规则
-        ObjectMapper mapper = new ObjectMapper();
         AppRule appRule;
         try {
-            appRule = mapper.readValue(json, AppRule.class);
+            appRule = objectMapper.readValue(json, AppRule.class);
         } catch (JsonProcessingException e) {
             log.error("解析JSON规则失败", e);
             return;
@@ -273,6 +292,7 @@ public class AppRuleService {
         for(Event e: appRule.getTrigger().getEvent()){
             if(e.getEvent_type().equals(eventType)){
                 event = e;
+                break;
             }
         }
         if(event==null){
@@ -285,16 +305,19 @@ public class AppRuleService {
             params.put(key, eventTriggerDTO.getParams().get(key));
         }
         // 处理filter
-        if(!isFilterSatisfied(appRule.getTrigger().getFilter(), eventTriggerDTO)){
-            return;
-        }
-
+//        if(!isFilterSatisfied(appRule.getTrigger().getFilter(), eventTriggerDTO)){
+//            return;
+//        }
         // 处理response
         Response response = appRule.getResponse();
         // response从chain开始
         if(response.isChainType()){
             List<ChainStep> chain = response.getChain();
-            handleChain(chain, params, eventType);
+            try{
+                handleChain(chain, params, eventType);
+            } catch (Exception e) {
+                log.error("处理chain出错", e);
+            }
             return;
         }
         // response从branch开始
@@ -302,9 +325,42 @@ public class AppRuleService {
             List<BranchNode> branch = response.getBranch();
             BranchStep branchStep = new BranchStep();
             branchStep.setBranch(branch);
-            handleBranchStep(branchStep, params, eventType);
+            try{
+                handleBranchStep(branchStep, params, eventType);
+            } catch (Exception e) {
+                log.error("处理branch出错", e);
+            }
         }
     }
+
+    public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
+        String eventType = actionCompleteDTO.getEvent_type();
+        String location = actionCompleteDTO.getLocation();
+        String redisKey = Redis_Constant.Action_Condition + eventType + ":" + location;
+        // 从redis中获取chain
+        String data = redisUtil.getSingle(redisKey);
+        if(data==null){
+            return;
+        }
+        // 从redis中删除
+        redisUtil.deleteSingle(redisKey);
+        try{
+            Map<String, Object> dataMap = objectMapper.readValue(data, new TypeReference<>() {});
+            List<ChainStep> chain = objectMapper.convertValue(dataMap.get("chain"), new TypeReference<>() {});
+            Map<String, Object> params = objectMapper.convertValue(dataMap.get("params"), new TypeReference<>() {});
+            // 加入线程池处理
+            ruleExecutor.execute(() -> {
+                try {
+                    handleChain(chain, params, eventType);
+                } catch (Exception e) {
+                    log.error("线程池执行出错: {}", e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            log.error("解析chain失败: {}", e.getMessage());
+        }
+    }
+
     //判断过滤条件是否满足
     private boolean isFilterSatisfied(List<Map<String, Object>> filters,EventTriggerDTO triggerDTO){
         if(filters == null || filters.isEmpty()){
@@ -344,26 +400,19 @@ public class AppRuleService {
         int size = chain.size();
         for(int i = 0; i < size; i++){
             ChainStep step = chain.get(i);
-            switch (step.getType()){
-                case "action":
-                    handleActionStep((ActionStep) step, params, eventType);
-                    break;
-                case "wait":
-                    handleWaitStep((WaitStep) step, params, eventType, chain, i);
-                    break;
-                case "ignore":
-                    handleIgnoreStep((IgnoreStep) step, params, eventType);
-                    break;
-                case "resume":
-                    handleResumeStep((ResumeStep) step, params, eventType);
-                    break;
-                case "branch":
-                    handleBranchStep((BranchStep) step, params, eventType);
-                    break;
-            }
-            // 如果处理的是wait，需要终止后续step
-            if (step instanceof WaitStep) {
-                break;
+            if (step instanceof ActionStep actionStep) {
+                handleActionStep(actionStep, params, eventType);
+            } else if (step instanceof WaitStep waitStep) {
+                handleWaitStep(waitStep, params, eventType, chain, i);
+                break; // wait后续不再处理
+            } else if (step instanceof IgnoreStep ignoreStep) {
+                handleIgnoreStep(ignoreStep, params, eventType);
+            } else if (step instanceof ResumeStep resumeStep) {
+                handleResumeStep(resumeStep, params, eventType);
+            } else if (step instanceof BranchStep branchStep) {
+                handleBranchStep(branchStep, params, eventType);
+            } else {
+                log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
             }
         }
     }
@@ -386,7 +435,7 @@ public class AppRuleService {
             data.put("chain", subChain);
             data.put("params", params);
             data.put("eventType", eventType);
-            redisUtil.setChain(redisKey, data);
+            redisUtil.setChain(redisKey, data, false);
         }
         // 处理time_condition
         if(waitStep.getWait().isTimeCondition()){
@@ -407,7 +456,7 @@ public class AppRuleService {
             data.put("eventType", eventType);
             // 存储到redis
             String redisKey = Redis_Constant.Time_Condition + eventType + ":" + params.get("location");
-            redisUtil.setChain(redisKey, data);
+            redisUtil.setChain(redisKey, data, true);
         }
     }
 
@@ -416,6 +465,7 @@ public class AppRuleService {
         Set<String> ignoreLocations = ignoreLocationsMap.getOrDefault(ignoreStep.getIgnore().getEvent_type(), new HashSet<>());
         ignoreLocations.add((String) params.get("location"));
         ignoreLocationsMap.put(ignoreStep.getIgnore().getEvent_type(), ignoreLocations);
+        log.info("ignore: event_type {}, location {}", ignoreStep.getIgnore().getEvent_type(), params.get("location"));
     }
 
     private void handleResumeStep(ResumeStep resumeStep, Map<String, Object> params, String eventType){
@@ -423,6 +473,7 @@ public class AppRuleService {
         Set<String> ignoreLocations = ignoreLocationsMap.get(resumeStep.getResume().getEvent_type());
         ignoreLocations.remove((String) params.get("location"));
         ignoreLocationsMap.put(resumeStep.getResume().getEvent_type(), ignoreLocations);
+        log.info("resume: event_type {}, location {}", resumeStep.getResume().getEvent_type(), params.get("location"));
     }
 
     private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType) throws JsonProcessingException {
@@ -473,6 +524,32 @@ public class AppRuleService {
      * */
     public void checkExpiredChain() {
         System.out.println("开始检查到期的chain...");
-
+        // 获取所有以 timeCondition 前缀开头的 key 对应的值
+        List<String> chains = redisUtil.getAll(Redis_Constant.Time_Condition);
+        if (chains == null || chains.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        for (String json : chains) {
+            try {
+                // 反序列化 json 数据
+                Map<String, Object> dataMap = objectMapper.readValue(json, new TypeReference<>() {});
+                long expireTime = Long.parseLong(dataMap.get("expireTime").toString());
+                // 判断是否到期
+                if (expireTime <= now) {
+                    List<ChainStep> chain = objectMapper.convertValue(dataMap.get("chain"), new TypeReference<>() {});
+                    Map<String, Object> params = objectMapper.convertValue(dataMap.get("params"), new TypeReference<>() {});
+                    String eventType = (String) dataMap.get("eventType");
+                    //提交线程池处理
+                    ruleExecutor.execute(() -> {
+                        try {
+                            handleChain(chain, params, eventType);
+                        } catch (Exception e) {
+                            log.error("线程池执行出错: {}", e.getMessage());
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                log.error("解析chain失败: {}", e.getMessage());
+            }
+        }
     }
 }
