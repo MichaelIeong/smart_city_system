@@ -312,11 +312,14 @@ public class AppRuleService {
         // response从chain开始
         if(response.isChainType()){
             List<ChainStep> chain = response.getChain();
-            try{
-                handleChain(chain, params, eventType);
-            } catch (Exception e) {
-                log.error("处理chain出错", e);
-            }
+            //提交线程池处理
+            ruleExecutor.execute(() -> {
+                try {
+                    handleChain(chain, params, eventType);
+                } catch (Exception e) {
+                    log.error("线程池执行出错: {}", e.getMessage());
+                }
+            });
             return;
         }
         // response从branch开始
@@ -483,14 +486,28 @@ public class AppRuleService {
                 // TODO
 
                 List<ChainStep> chain = node.getChain();
-                handleChain(chain, params, eventType);
+                //提交线程池处理
+                ruleExecutor.execute(() -> {
+                    try {
+                        handleChain(chain, params, eventType);
+                    } catch (Exception e) {
+                        log.error("线程池执行出错: {}", e.getMessage());
+                    }
+                });
             }
             if(node.isHistoryCondition()){
                 // 处理current_condition
                 // TODO
 
                 List<ChainStep> chain = node.getChain();
-                handleChain(chain, params, eventType);
+                //提交线程池处理
+                ruleExecutor.execute(() -> {
+                    try {
+                        handleChain(chain, params, eventType);
+                    } catch (Exception e) {
+                        log.error("线程池执行出错: {}", e.getMessage());
+                    }
+                });
             }
         }
     }
