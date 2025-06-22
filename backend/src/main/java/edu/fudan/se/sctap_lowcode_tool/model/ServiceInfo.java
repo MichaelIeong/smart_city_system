@@ -34,8 +34,8 @@ public class ServiceInfo {
     @Column(name = "service_json", columnDefinition = "TEXT")
     private String serviceJson; // 服务组合的node-red的json
 
-    @Column(name = "service_csp", nullable = true)
-    private String serviceCsp; // 服务的CSP模型
+    @Column(name = "service_des", nullable = true)
+    private String description; // 服务的CSP模型
 
 
 }

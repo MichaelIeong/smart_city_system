@@ -109,22 +109,22 @@ public class ServiceController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "查看CSP", description = "返回服务的CSP模型")
-    @GetMapping ("/getCSP")
-    public ResponseEntity<?> getCSP(@RequestParam Integer serviceId) {
-        ServiceInfo serviceInfo = serviceService.getService(serviceId);
-        //System.out.println(serviceInfo.getServiceCsp());
-        return ResponseEntity.ok(serviceInfo.getServiceCsp());
-    }
+//    @Operation(summary = "查看CSP", description = "返回服务的CSP模型")
+//    @GetMapping ("/getCSP")
+//    public ResponseEntity<?> getCSP(@RequestParam Integer serviceId) {
+//        ServiceInfo serviceInfo = serviceService.getService(serviceId);
+//        //System.out.println(serviceInfo.getServiceCsp());
+//        return ResponseEntity.ok(serviceInfo.getServiceCsp());
+//    }
 
-    @Operation(summary = "手动生成CSP", description = "手敲的CSP，放到数据库")
-    @PostMapping("/generateCSPbyHand")
-    public ResponseEntity<Void> CSPbyHand(@RequestParam Integer serviceId, @RequestBody String Csp){
-        ServiceInfo serviceInfo = serviceService.getService(serviceId);
-        serviceInfo.setServiceCsp(Csp);
-        serviceService.addOrUpdateService(serviceInfo);
-        return ResponseEntity.ok().build();
-    }
+//    @Operation(summary = "手动生成CSP", description = "手敲的CSP，放到数据库")
+//    @PostMapping("/generateCSPbyHand")
+//    public ResponseEntity<Void> CSPbyHand(@RequestParam Integer serviceId, @RequestBody String Csp){
+//        ServiceInfo serviceInfo = serviceService.getService(serviceId);
+//        serviceInfo.setServiceCsp(Csp);
+//        serviceService.addOrUpdateService(serviceInfo);
+//        return ResponseEntity.ok().build();
+//    }
 
     @Operation(summary = "LLM生成CSP", description = "用LLM生成CSP，放到数据库")
     @GetMapping("/generateCSPbyLLM")
