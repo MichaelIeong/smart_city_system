@@ -3,6 +3,9 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
+import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +24,20 @@ public class DeviceService {
     @Autowired
     private SpaceRepository spaceRepository;
 
-    public Optional<DeviceResponse> findById(int id) {
-        return deviceRepository.findById(id).map(DeviceResponse::new);
+    @Autowired
+    private DeviceNodeRepository deviceNodeRepository;
+
+    @Autowired
+    private SpaceNodeRepository spaceNodeRepository;
+
+//    public Optional<DeviceResponse> findById(int id) {
+//        return deviceRepository.findById(id).map(DeviceResponse::new);
+//    }
+    public Optional<DeviceNode> findByDeviceId(Integer deviceId) {
+        System.out.println("设备信息"+deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId));
+        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId);
     }
+
 
     public List<DeviceResponse> findAllByProjectId(int projectId) {
         return deviceRepository.findAllByProjectId(projectId)

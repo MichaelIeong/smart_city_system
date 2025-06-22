@@ -73,8 +73,8 @@ public class PersonController {
      * 根據空間 ID 查詢人員
      */
     @GetMapping("/by-space/{spaceId}")
-    public ResponseEntity<List<PersonInfo>> getPersonsBySpace(@PathVariable Integer spaceId) {
-        return ResponseEntity.ok(personService.getPersonsBySpaceId(spaceId));
+    public ResponseEntity<List<PersonNode>> getPersonsBySpace(@PathVariable Integer spaceId) {
+        return ResponseEntity.ok(personService.getPersonNodesBySpaceId(spaceId));
     }
 
     /**

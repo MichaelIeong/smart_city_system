@@ -18,9 +18,9 @@ public class DeviceController {
     @Autowired
     private DeviceService deviceService;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<DeviceResponse> getDevice(@PathVariable int id) {
-        return ResponseEntity.of(deviceService.findById(id));
+    @GetMapping("/{deviceId}")
+    public ResponseEntity<?> getDevice(@PathVariable Integer deviceId) {
+        return ResponseEntity.of(deviceService.findByDeviceId(deviceId));
     }
 
     @GetMapping

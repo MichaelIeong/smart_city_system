@@ -14,12 +14,9 @@ public class ActuatingFunctionDeviceRelation {
     @GeneratedValue
     private Long id;
 
-    @Relationship(type = "HAS_FUNCTION", direction = Relationship.Direction.INCOMING)
-    private ActuatingFunctionNode actuatingFunction;
+    @TargetNode
+    private ActuatingFunctionNode actuatingFunction;  // 改这里！
 
     private String url;          // 控制该设备的 URL
     private String description;  // 控制说明或备注信息
-
-    @TargetNode
-    private DeviceNode device;
 }
