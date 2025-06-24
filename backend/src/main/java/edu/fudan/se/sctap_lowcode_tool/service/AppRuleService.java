@@ -259,7 +259,7 @@ public class AppRuleService {
 
     public ResponseEntity<AppRuleInfo> findSimilarRules(RecommendRequest recommendRequest) {
         String message = recommendRequest.getMessage();
-        List<AppRuleRecord> records = null;
+        List<AppRuleRecord> records;
         try{
             records = milvusUtil.queryVector(message, 1);
         } catch (NoApiKeyException e){
@@ -400,21 +400,28 @@ public class AppRuleService {
     // 处理chain
     private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType) throws JsonProcessingException {
         int size = chain.size();
+        label:
         for(int i = 0; i < size; i++){
             ChainStep step = chain.get(i);
-            if (step instanceof ActionStep actionStep) {
-                handleActionStep(actionStep, params, eventType);
-            } else if (step instanceof WaitStep waitStep) {
-                handleWaitStep(waitStep, params, eventType, chain, i);
-                break; // wait后续不再处理
-            } else if (step instanceof IgnoreStep ignoreStep) {
-                handleIgnoreStep(ignoreStep, params, eventType);
-            } else if (step instanceof ResumeStep resumeStep) {
-                handleResumeStep(resumeStep, params, eventType);
-            } else if (step instanceof BranchStep branchStep) {
-                handleBranchStep(branchStep, params, eventType);
-            } else {
-                log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
+            switch (step) {
+                case ActionStep actionStep:
+                    handleActionStep(actionStep, params, eventType);
+                    break;
+                case WaitStep waitStep:
+                    handleWaitStep(waitStep, params, eventType, chain, i);
+                    break label; // wait后续不再处理
+                case IgnoreStep ignoreStep:
+                    handleIgnoreStep(ignoreStep, params, eventType);
+                    break;
+                case ResumeStep resumeStep:
+                    handleResumeStep(resumeStep, params, eventType);
+                    break;
+                case BranchStep branchStep:
+                    handleBranchStep(branchStep, params, eventType);
+                    break;
+                default:
+                    log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
+                    break;
             }
         }
     }
@@ -478,7 +485,7 @@ public class AppRuleService {
         log.info("resume: event_type {}, location {}", resumeStep.getResume().getEvent_type(), params.get("location"));
     }
 
-    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType) throws JsonProcessingException {
+    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType) {
         List<BranchNode> branch = branchStep.getBranch();
         for(BranchNode node : branch){
             if(node.isCurrentCondition()){
