@@ -31,6 +31,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
@@ -274,8 +276,7 @@ public class AppRuleService {
     }
 
     public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
-        // 根据事件类型从数据库中获取全部对应的应用规则，由于当前数据库表结构不太符合需求，这里使用一个示例JSON规则
-        // TODO
+        // TODO，暂时使用示例JSON模拟
         String json = Json_Example.json;
         // 解析JSON规则
         AppRule appRule;
@@ -304,9 +305,9 @@ public class AppRuleService {
             params.put(key, eventTriggerDTO.getParams().get(key));
         }
         // 处理filter
-//        if(!isFilterSatisfied(appRule.getTrigger().getFilter(), eventTriggerDTO)){
-//            return;
-//        }
+        if(!isFilterSatisfied(appRule.getTrigger().getFilter(), params, eventType)){
+            return;
+        }
         // 处理response
         Response response = appRule.getResponse();
         // response从chain开始
@@ -364,7 +365,7 @@ public class AppRuleService {
     }
 
     //判断过滤条件是否满足
-    private boolean isFilterSatisfied(List<Map<String, Object>> filters,EventTriggerDTO triggerDTO){
+    private boolean isFilterSatisfied(List<Map<String, Object>> filters,Map<String, Object> params, String eventType){
         if(filters == null || filters.isEmpty()){
             //无过滤器默认通过
             return true;
@@ -372,12 +373,20 @@ public class AppRuleService {
         for(Map<String, Object> filter : filters){
             //处理location
             if(filter.containsKey("location")){
-                @SuppressWarnings("unchecked")
                 Map<String, Object> locationFilter = (Map<String, Object>) filter.get("location");
-                String operator = (String) locationFilter.get("operator");
+                String operator = (String) locationFilter.get("locationOperator");
                 String targetLocation = (String) locationFilter.get("targetLocation");
-                String currentLocation = (String) triggerDTO.getParams().get("currentLocation");
-                if(!checkLocationCondition(operator,targetLocation,currentLocation)){
+                String currentLocation = (String) params.get("location");
+                if(!checkLocationCondition(operator,targetLocation,currentLocation, eventType)){
+                    return false;
+                }
+            }
+            // 处理time
+            if(filter.containsKey("time")) {
+                Map<String, Object> timeFilter = (Map<String, Object>) filter.get("time");
+                String operator = (String) timeFilter.get("timeOperator");
+                String targetTime = (String) timeFilter.get("targetTime");
+                if(!checkTimeCondition(operator, targetTime)) {
                     return false;
                 }
             }
@@ -385,17 +394,35 @@ public class AppRuleService {
         return true;
     }
     //检查位置条件
-    private boolean checkLocationCondition(String operator, String targetLocation, String currentLocation){
+    private boolean checkLocationCondition(String operator, String targetLocation, String currentLocation, String eventType){
         if(currentLocation == null){
             return false;
         }
-        return switch(operator){
-            case "not in" -> !targetLocation.equals(currentLocation);
-            case "in" -> targetLocation.equals(currentLocation);
-            default -> throw new IllegalStateException("未知操作符: " + operator);
-        };
+        if(operator.equals("not in")) {
+            if(targetLocation.contains("ignoreLocations")&&ignoreLocationsMap.containsKey(eventType)) {
+                Set<String> ignoreLocations = ignoreLocationsMap.get(eventType);
+                return !ignoreLocations.contains(currentLocation);
+            }
+        }
+        if(operator.equals("in")) {
+            return currentLocation.equals(targetLocation);
+        }
+        return false;
     }
 
+    // 检查时间条件
+    private boolean checkTimeCondition(String operator, String targetTime){
+        LocalTime currentTime = LocalTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+        LocalTime target = LocalTime.parse(targetTime, formatter);
+        if("before".equalsIgnoreCase(operator)) {
+            return currentTime.isBefore(target);
+        }
+        else if("after".equalsIgnoreCase(operator)) {
+            return currentTime.isAfter(target);
+        }
+        return false;
+    }
 
     // 处理chain
     private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType) throws JsonProcessingException {
@@ -427,8 +454,7 @@ public class AppRuleService {
     }
 
     private void handleActionStep(ActionStep actionStep, Map<String, Object> params, String eventType){
-        // 执行动作，这里模拟动作的下发
-        // TODO
+        // TODO，这里暂时模拟执行动作
         log.info("执行动作：{} 地点：{}", actionStep.getAction().getAction_name(), params.get("location"));
     }
 
@@ -489,36 +515,55 @@ public class AppRuleService {
         List<BranchNode> branch = branchStep.getBranch();
         for(BranchNode node : branch){
             if(node.isCurrentCondition()){
-                // 处理history_condition
-                // TODO
-
-                List<ChainStep> chain = node.getChain();
-                //提交线程池处理
-                ruleExecutor.execute(() -> {
-                    try {
-                        handleChain(chain, params, eventType);
-                    } catch (Exception e) {
-                        log.error("线程池执行出错: {}", e.getMessage());
-                    }
-                });
+                // 处理current_condition
+                if(checkCurrentCondition(node.getCurrentCondition(), params,  eventType)) {
+                    List<ChainStep> chain = node.getChain();
+                    //提交线程池处理
+                    ruleExecutor.execute(() -> {
+                        try {
+                            handleChain(chain, params, eventType);
+                        } catch (Exception e) {
+                            log.error("线程池执行出错: {}", e.getMessage());
+                        }
+                    });
+                }
             }
             if(node.isHistoryCondition()){
-                // 处理current_condition
-                // TODO
-
-                List<ChainStep> chain = node.getChain();
-                //提交线程池处理
-                ruleExecutor.execute(() -> {
-                    try {
-                        handleChain(chain, params, eventType);
-                    } catch (Exception e) {
-                        log.error("线程池执行出错: {}", e.getMessage());
-                    }
-                });
+                // 处理history_condition
+                if(checkHistoryCondition(node.getHistoryCondition(), params, eventType)) {
+                    List<ChainStep> chain = node.getChain();
+                    //提交线程池处理
+                    ruleExecutor.execute(() -> {
+                        try {
+                            handleChain(chain, params, eventType);
+                        } catch (Exception e) {
+                            log.error("线程池执行出错: {}", e.getMessage());
+                        }
+                    });
+                }
             }
         }
     }
 
+    private boolean checkCurrentCondition(List<Condition> currentConditions, Map<String, Object> params, String eventType){
+        //TODO，涉及查数据库暂不处理
+        for(Condition currentCondition : currentConditions) {
+            String left = currentCondition.getLeft();
+            String operator = currentCondition.getOperator();
+            String right = currentCondition.getRight();
+        }
+        return true;
+    }
+
+    private boolean checkHistoryCondition(List<Condition> historyConditions, Map<String, Object> params, String eventType){
+        //TODO，涉及查数据库暂不处理
+        for(Condition historyCondition : historyConditions) {
+            String left = historyCondition.getLeft();
+            String operator = historyCondition.getOperator();
+            String right = historyCondition.getRight();
+        }
+        return true;
+    }
 
     /**
      * 定时任务：每小时执行一次，清理过期的uuid数据
