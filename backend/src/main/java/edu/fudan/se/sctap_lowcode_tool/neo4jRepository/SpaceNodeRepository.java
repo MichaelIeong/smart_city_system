@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface SpaceNodeRepository extends Neo4jRepository<SpaceNode, Long> {
-    Optional<SpaceNode> findBySpaceId(String spaceId);
+public interface SpaceNodeRepository extends Neo4jRepository<SpaceNode, Integer> {
+    Optional<SpaceNode> findBySpaceId(Integer spaceId);
 }

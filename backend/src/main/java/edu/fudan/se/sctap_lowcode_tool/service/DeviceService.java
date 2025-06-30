@@ -31,9 +31,14 @@ public class DeviceService {
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;
 
-    public Optional<DeviceResponse> findById(int id) {
-        return deviceRepository.findById(id).map(DeviceResponse::new);
+//    public Optional<DeviceResponse> findById(int id) {
+//        return deviceRepository.findById(id).map(DeviceResponse::new);
+//    }
+    public Optional<DeviceNode> findByDeviceId(Integer deviceId) {
+        System.out.println("设备信息"+deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId));
+        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId);
     }
+
 
     public List<DeviceResponse> findAllByProjectId(int projectId) {
         return deviceRepository.findAllByProjectId(projectId)
@@ -44,41 +49,58 @@ public class DeviceService {
         return deviceRepository.findByDeviceId(deviceId).map(DeviceResponse::new);
     }
 
-    public DeviceInfo saveDevice(DeviceInfo device) {
+//    public DeviceInfo saveDevice(DeviceInfo device) {
+//        if (device.getLastUpdateTime() == null) {
+//            device.setLastUpdateTime(LocalDateTime.now());
+//        }
+//
+//        if (device.getSpace() != null && device.getSpace().getId() != null) {
+//            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
+//        } else {
+//            device.setSpace(null);
+//        }
+//
+//        return deviceRepository.save(device);
+//    }
+
+    public DeviceNode saveDevice(DeviceNode device) {
         if (device.getLastUpdateTime() == null) {
             device.setLastUpdateTime(LocalDateTime.now());
         }
 
-        if (device.getSpace() != null && device.getSpace().getId() != null) {
-            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
+        if (device.getSpace() != null && device.getSpace().getSpaceId() != null) {
+            spaceNodeRepository.findBySpaceId(device.getSpace().getSpaceId()).ifPresent(device::setSpace);
         } else {
             device.setSpace(null);
         }
 
-        DeviceInfo saved = deviceRepository.save(device);
-
-        // 同步 Neo4j
-        DeviceNode node = new DeviceNode();
-        node.setDeviceId(saved.getDeviceId());
-        node.setDeviceName(saved.getDeviceName());
-        node.setFixedProperties(saved.getFixedProperties());
-        node.setCoordinateX(saved.getCoordinateX());
-        node.setCoordinateY(saved.getCoordinateY());
-        node.setCoordinateZ(saved.getCoordinateZ());
-        node.setLastUpdateTime(saved.getLastUpdateTime());
-
-        if (saved.getSpace() != null && saved.getSpace().getSpaceId() != null) {
-            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-                    .ifPresent(node::setSpace);
-        }
-
-        deviceNodeRepository.save(node);
-
-        return saved;
+        return deviceNodeRepository.save(device);
     }
 
-    public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
-        return deviceRepository.findById(id).map(existing -> {
+//    public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
+//        return deviceRepository.findById(id).map(existing -> {
+//            existing.setDeviceId(updatedDevice.getDeviceId());
+//            existing.setDeviceName(updatedDevice.getDeviceName());
+//            existing.setFixedProperties(updatedDevice.getFixedProperties());
+//            existing.setCoordinateX(updatedDevice.getCoordinateX());
+//            existing.setCoordinateY(updatedDevice.getCoordinateY());
+//            existing.setCoordinateZ(updatedDevice.getCoordinateZ());
+//            existing.setLastUpdateTime(LocalDateTime.now());
+//            existing.setDeviceType(updatedDevice.getDeviceType());
+//
+//            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
+//                Optional<SpaceInfo> spaceOpt = spaceRepository.findById(updatedDevice.getSpace().getId());
+//                spaceOpt.ifPresent(existing::setSpace);
+//            } else {
+//                existing.setSpace(null);
+//            }
+//
+//            return deviceRepository.save(existing);
+//        });
+//    }
+
+    public Optional<DeviceNode> updateDevice(Integer id, DeviceNode updatedDevice) {
+        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(id).map(existing -> {
             existing.setDeviceId(updatedDevice.getDeviceId());
             existing.setDeviceName(updatedDevice.getDeviceName());
             existing.setFixedProperties(updatedDevice.getFixedProperties());
@@ -88,60 +110,21 @@ public class DeviceService {
             existing.setLastUpdateTime(LocalDateTime.now());
             existing.setDeviceType(updatedDevice.getDeviceType());
 
-            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
-                spaceRepository.findById(updatedDevice.getSpace().getId()).ifPresent(existing::setSpace);
+            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getSpaceId() != null) {
+                Optional<SpaceNode> spaceOpt = spaceNodeRepository.findBySpaceId(updatedDevice.getSpace().getSpaceId());
+                spaceOpt.ifPresent(existing::setSpace);
             } else {
                 existing.setSpace(null);
             }
 
-            DeviceInfo saved = deviceRepository.save(existing);
-
-            // 更新 Neo4j
-            deviceNodeRepository.findByDeviceId(saved.getDeviceId()).ifPresentOrElse(node -> {
-                node.setDeviceName(saved.getDeviceName());
-                node.setFixedProperties(saved.getFixedProperties());
-                node.setCoordinateX(saved.getCoordinateX());
-                node.setCoordinateY(saved.getCoordinateY());
-                node.setCoordinateZ(saved.getCoordinateZ());
-                node.setLastUpdateTime(saved.getLastUpdateTime());
-
-                if (saved.getSpace() != null && saved.getSpace().getSpaceId() != null) {
-                    spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-                            .ifPresent(node::setSpace);
-                } else {
-                    node.setSpace(null);
-                }
-
-                deviceNodeRepository.save(node);
-            }, () -> {
-                // 若未同步過，創建新節點
-                DeviceNode newNode = new DeviceNode();
-                newNode.setDeviceId(saved.getDeviceId());
-                newNode.setDeviceName(saved.getDeviceName());
-                newNode.setFixedProperties(saved.getFixedProperties());
-                newNode.setCoordinateX(saved.getCoordinateX());
-                newNode.setCoordinateY(saved.getCoordinateY());
-                newNode.setCoordinateZ(saved.getCoordinateZ());
-                newNode.setLastUpdateTime(saved.getLastUpdateTime());
-
-                if (saved.getSpace() != null && saved.getSpace().getSpaceId() != null) {
-                    spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-                            .ifPresent(newNode::setSpace);
-                }
-
-                deviceNodeRepository.save(newNode);
-            });
-
-            return saved;
+            return deviceNodeRepository.save(existing);
         });
     }
 
+//    public void deleteDevice(int id) {
+//        deviceRepository.deleteById(id);
+//    }
     public void deleteDevice(int id) {
-        deviceRepository.findById(id).ifPresent(device -> {
-            deviceNodeRepository.findByDeviceId(device.getDeviceId()).ifPresent(node -> {
-                deviceNodeRepository.deleteById(node.getId());
-            });
-        });
-        deviceRepository.deleteById(id);
-    }
+        deviceNodeRepository.deleteByDeviceId(id);
+}
 }
