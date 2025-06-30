@@ -4,6 +4,7 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
@@ -19,53 +20,73 @@ import java.util.Optional;
 public class DeviceService {
 
     @Autowired
-    private DeviceRepository deviceRepository;
+    private DeviceRepository deviceRepository;         // MySQL
 
     @Autowired
-    private SpaceRepository spaceRepository;
+    private SpaceRepository spaceRepository;           // MySQL
 
     @Autowired
-    private DeviceNodeRepository deviceNodeRepository;
+    private DeviceNodeRepository deviceNodeRepository; // Neo4j
 
     @Autowired
-    private SpaceNodeRepository spaceNodeRepository;
+    private SpaceNodeRepository spaceNodeRepository;   // Neo4j
 
-//    public Optional<DeviceResponse> findById(int id) {
-//        return deviceRepository.findById(id).map(DeviceResponse::new);
-//    }
-    public Optional<DeviceNode> findByDeviceId(Integer deviceId) {
-        System.out.println("设备信息"+deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId));
-        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId);
+    // === Neo4j 查询 ===
+    public Optional<DeviceNode> findByDeviceId(String deviceId) {
+        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId); // neo4j
     }
 
+    // === MySQL 查询 ===
+    public Optional<DeviceResponse> findByDeviceIdFromMySQL(String deviceId) {
+        return deviceRepository.findByDeviceId(deviceId)
+                .map(DeviceResponse::new); // mysql
+    }
 
     public List<DeviceResponse> findAllByProjectId(int projectId) {
         return deviceRepository.findAllByProjectId(projectId)
-                .stream().map(DeviceResponse::new).toList();
+                .stream()
+                .map(DeviceResponse::new)
+                .toList(); // mysql
     }
 
-    public Optional<DeviceResponse> findByDeviceId(String deviceId) {
-        return deviceRepository.findByDeviceId(deviceId).map(DeviceResponse::new);
-    }
-
+    // === 创建设备：MySQL + Neo4j ===
     public DeviceInfo saveDevice(DeviceInfo device) {
         if (device.getLastUpdateTime() == null) {
             device.setLastUpdateTime(LocalDateTime.now());
         }
 
-        if (device.getSpace() != null && device.getSpace().getId() != null) {
-            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
-        } else {
-            device.setSpace(null);
+        // MySQL 保存
+        if (device.getSpace() != null && device.getSpace().getSpaceId() != null) {
+            spaceRepository.findById(device.getSpace().getSpaceId()).ifPresent(device::setSpace);
+        }
+        DeviceInfo saved = deviceRepository.save(device); // mysql
+
+        // Neo4j 同步保存
+        DeviceNode node = new DeviceNode();
+        node.setDeviceId(saved.getDeviceId()); // string 类型
+        node.setDeviceName(saved.getDeviceName());
+        node.setFixedProperties(saved.getFixedProperties());
+        node.setCoordinateX(saved.getCoordinateX());
+        node.setCoordinateY(saved.getCoordinateY());
+        node.setCoordinateZ(saved.getCoordinateZ());
+        node.setLastUpdateTime(saved.getLastUpdateTime());
+
+        if (saved.getSpace() != null) {
+            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                    .ifPresent(node::setSpace); // neo4j
         }
 
-        return deviceRepository.save(device);
+        node.setDeviceType(null); // 可按需处理
+        deviceNodeRepository.save(node); // neo4j
+        return saved;
     }
 
+    // === 更新设备：MySQL + Neo4j ===
     public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
         return deviceRepository.findById(id).map(existing -> {
-            existing.setDeviceId(updatedDevice.getDeviceId());
+            // MySQL 更新
             existing.setDeviceName(updatedDevice.getDeviceName());
+            existing.setDeviceId(updatedDevice.getDeviceId());
             existing.setFixedProperties(updatedDevice.getFixedProperties());
             existing.setCoordinateX(updatedDevice.getCoordinateX());
             existing.setCoordinateY(updatedDevice.getCoordinateY());
@@ -73,18 +94,60 @@ public class DeviceService {
             existing.setLastUpdateTime(LocalDateTime.now());
             existing.setDeviceType(updatedDevice.getDeviceType());
 
-            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
-                Optional<SpaceInfo> spaceOpt = spaceRepository.findById(updatedDevice.getSpace().getId());
-                spaceOpt.ifPresent(existing::setSpace);
+            if (updatedDevice.getSpace() != null) {
+                spaceRepository.findById(updatedDevice.getSpace().getSpaceId())
+                        .ifPresent(existing::setSpace);
             } else {
                 existing.setSpace(null);
             }
 
-            return deviceRepository.save(existing);
+            DeviceInfo saved = deviceRepository.save(existing); // mysql
+
+            // Neo4j 更新
+            deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(saved.getDeviceId())
+                    .ifPresentOrElse(node -> {
+                        node.setDeviceName(saved.getDeviceName());
+                        node.setFixedProperties(saved.getFixedProperties());
+                        node.setCoordinateX(saved.getCoordinateX());
+                        node.setCoordinateY(saved.getCoordinateY());
+                        node.setCoordinateZ(saved.getCoordinateZ());
+                        node.setLastUpdateTime(saved.getLastUpdateTime());
+
+                        if (saved.getSpace() != null) {
+                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                                    .ifPresent(node::setSpace); // neo4j
+                        } else {
+                            node.setSpace(null);
+                        }
+
+                        deviceNodeRepository.save(node); // neo4j
+                    }, () -> {
+                        DeviceNode newNode = new DeviceNode();
+                        newNode.setDeviceId(saved.getDeviceId());
+                        newNode.setDeviceName(saved.getDeviceName());
+                        newNode.setFixedProperties(saved.getFixedProperties());
+                        newNode.setCoordinateX(saved.getCoordinateX());
+                        newNode.setCoordinateY(saved.getCoordinateY());
+                        newNode.setCoordinateZ(saved.getCoordinateZ());
+                        newNode.setLastUpdateTime(saved.getLastUpdateTime());
+
+                        if (saved.getSpace() != null) {
+                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                                    .ifPresent(newNode::setSpace); // neo4j
+                        }
+
+                        deviceNodeRepository.save(newNode); // neo4j
+                    });
+
+            return saved;
         });
     }
 
-    public void deleteDevice(int id) {
-        deviceRepository.deleteById(id);
+    // === 删除设备：MySQL + Neo4j ===
+    public void deleteDevice(Integer id) {
+        deviceRepository.findById(id).ifPresent(device -> {
+            deviceNodeRepository.deleteByDeviceId(device.getDeviceId()); // neo4j
+            deviceRepository.deleteById(id);                             // mysql
+        });
     }
 }

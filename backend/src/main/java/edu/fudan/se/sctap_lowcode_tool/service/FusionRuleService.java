@@ -46,7 +46,7 @@ public class FusionRuleService {
 
     // 全局状态 & 空间 ID
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
-    private String spaceId = "";
+    private Integer spaceId = null;
 
     // 每条规则的执行旗标：ruleId -> 是否继续执行
     private final Map<Integer, AtomicBoolean> runningFlags = new ConcurrentHashMap<>();
@@ -133,7 +133,9 @@ public class FusionRuleService {
                             fusionRuleRepository.findById(ruleId).ifPresent(freshRule -> {
                                 PersonUpdateRequest req = new PersonUpdateRequest();
                                 req.setPersonName("mmhu");
-                                req.setSpaceId(spaceId);
+                                if (spaceId != null) {
+                                    req.setSpaceId(spaceId);
+                                }
                                 nodeRedService.updateFusionTable(freshRule.getFusionTarget(), req);
                             });
                         }
@@ -213,9 +215,8 @@ public class FusionRuleService {
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
         int sensorId = sensorNode.path("sensorId").asInt();
         // 在事务上下文内安全地取到 DTO，且不再泄露任何懒加载代理
-        DeviceResponse dr = deviceService.findByDeviceId(String.valueOf(sensorId))
+        DeviceResponse dr = deviceService.findByDeviceIdFromMySQL(String.valueOf(sensorId))
                 .orElseThrow(() -> new RuntimeException("Device not found"));
-        spaceId = dr.getSpaceId();
 
         double value = getSensorValue(sensorId);
         Map<String, Object> data = new HashMap<>();

@@ -30,7 +30,7 @@ public class SpaceController {
             SpaceInfo spaceInfo = spaceInfoOptional.get();
 
             Map<String, Object> result = new HashMap<>();
-            result.put("id", spaceInfo.getId());
+            result.put("id", spaceInfo.getSpaceId());
             result.put("projectId", spaceInfo.getProjectInfo().getProjectId());
             result.put("spaceId", spaceInfo.getSpaceId());
             result.put("spaceName", spaceInfo.getSpaceName());
@@ -97,7 +97,7 @@ public class SpaceController {
         List<Map<String, Object>> result = spaces.stream()
                 .map(space -> {
                     Map<String, Object> spaceMap = new HashMap<>();
-                    spaceMap.put("id", space.getId());
+                    spaceMap.put("id", space.getSpaceId());
                     spaceMap.put("spaceId", space.getSpaceId());
                     spaceMap.put("spaceName", space.getSpaceName());
                     return spaceMap;

@@ -127,16 +127,27 @@ public class ImportService {
      */
     private void addSpace(Meta meta, ProjectInfo projectInfo) throws InvalidJsonValueException {
         if (meta == null) return;
+
         requireNotNull(meta, "Id");
         requireNotNull(meta, "Name");
+
+        // 安全地将 Id 转为 Integer（原本是 String）
+        Integer spaceId;
+        try {
+            spaceId = Integer.valueOf(meta.Id());
+        } catch (NumberFormatException e) {
+            throw new InvalidJsonValueException(meta.Name(), "Id must be an integer", "Id", meta.Id());
+        }
+
+        // 构造并保存 SpaceInfo
         SpaceInfo spaceInfo = new SpaceInfo();
-        spaceInfo.setSpaceId(meta.Id());
+        spaceInfo.setSpaceId(spaceId);
         spaceInfo.setSpaceName(meta.Name());
         spaceInfo.setProjectInfo(projectInfo);
-        // TODO: maintain the relations of adjacent spaces
+
+        // TODO: maintain the relations of adjacent spaces (如有需要)
         spaceRepository.save(spaceInfo);
     }
-
 
     /**
      * **Entry Method of this class** <br>

@@ -29,8 +29,8 @@ public class DeviceInfo {
     @JsonBackReference
     private SpaceInfo space;   // 设备所属的空间
 
-    @Column(name = "device_id", nullable = false)
-    private String deviceId; // 用户设定的设备ID(Space内唯一)
+    @Column(name = "device_id", nullable = false, unique = true)
+    private String deviceId; // 用户设定的设备ID
 
     @Column(nullable = false)
     private String deviceName;   // 设备的名称
