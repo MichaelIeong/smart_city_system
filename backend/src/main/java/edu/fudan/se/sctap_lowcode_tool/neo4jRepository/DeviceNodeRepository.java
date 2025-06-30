@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, Integer> {
+public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, String> {
 
     @Query("""
         MATCH (d:Device {deviceId: $deviceId})
