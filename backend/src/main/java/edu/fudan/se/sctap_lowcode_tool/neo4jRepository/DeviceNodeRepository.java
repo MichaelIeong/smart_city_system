@@ -1,12 +1,10 @@
 package edu.fudan.se.sctap_lowcode_tool.neo4jRepository;
 
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -24,9 +22,4 @@ public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, Intege
               collect(r4), collect(f)
 """)
     Optional<DeviceNode> findDeviceWithAllRelationsByDeviceId(Integer deviceId);
-
-    @Modifying
-    @Transactional
-    @Query("MATCH (d:Device {deviceId: $deviceId}) DETACH DELETE d")
-    void deleteByDeviceId(Integer deviceId);
 }

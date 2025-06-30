@@ -4,7 +4,6 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
-import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
@@ -49,58 +48,22 @@ public class DeviceService {
         return deviceRepository.findByDeviceId(deviceId).map(DeviceResponse::new);
     }
 
-//    public DeviceInfo saveDevice(DeviceInfo device) {
-//        if (device.getLastUpdateTime() == null) {
-//            device.setLastUpdateTime(LocalDateTime.now());
-//        }
-//
-//        if (device.getSpace() != null && device.getSpace().getId() != null) {
-//            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
-//        } else {
-//            device.setSpace(null);
-//        }
-//
-//        return deviceRepository.save(device);
-//    }
-
-    public DeviceNode saveDevice(DeviceNode device) {
+    public DeviceInfo saveDevice(DeviceInfo device) {
         if (device.getLastUpdateTime() == null) {
             device.setLastUpdateTime(LocalDateTime.now());
         }
 
-        if (device.getSpace() != null && device.getSpace().getSpaceId() != null) {
-            spaceNodeRepository.findBySpaceId(device.getSpace().getSpaceId()).ifPresent(device::setSpace);
+        if (device.getSpace() != null && device.getSpace().getId() != null) {
+            spaceRepository.findById(device.getSpace().getId()).ifPresent(device::setSpace);
         } else {
             device.setSpace(null);
         }
 
-        return deviceNodeRepository.save(device);
+        return deviceRepository.save(device);
     }
 
-//    public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
-//        return deviceRepository.findById(id).map(existing -> {
-//            existing.setDeviceId(updatedDevice.getDeviceId());
-//            existing.setDeviceName(updatedDevice.getDeviceName());
-//            existing.setFixedProperties(updatedDevice.getFixedProperties());
-//            existing.setCoordinateX(updatedDevice.getCoordinateX());
-//            existing.setCoordinateY(updatedDevice.getCoordinateY());
-//            existing.setCoordinateZ(updatedDevice.getCoordinateZ());
-//            existing.setLastUpdateTime(LocalDateTime.now());
-//            existing.setDeviceType(updatedDevice.getDeviceType());
-//
-//            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
-//                Optional<SpaceInfo> spaceOpt = spaceRepository.findById(updatedDevice.getSpace().getId());
-//                spaceOpt.ifPresent(existing::setSpace);
-//            } else {
-//                existing.setSpace(null);
-//            }
-//
-//            return deviceRepository.save(existing);
-//        });
-//    }
-
-    public Optional<DeviceNode> updateDevice(Integer id, DeviceNode updatedDevice) {
-        return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(id).map(existing -> {
+    public Optional<DeviceInfo> updateDevice(Integer id, DeviceInfo updatedDevice) {
+        return deviceRepository.findById(id).map(existing -> {
             existing.setDeviceId(updatedDevice.getDeviceId());
             existing.setDeviceName(updatedDevice.getDeviceName());
             existing.setFixedProperties(updatedDevice.getFixedProperties());
@@ -110,21 +73,18 @@ public class DeviceService {
             existing.setLastUpdateTime(LocalDateTime.now());
             existing.setDeviceType(updatedDevice.getDeviceType());
 
-            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getSpaceId() != null) {
-                Optional<SpaceNode> spaceOpt = spaceNodeRepository.findBySpaceId(updatedDevice.getSpace().getSpaceId());
+            if (updatedDevice.getSpace() != null && updatedDevice.getSpace().getId() != null) {
+                Optional<SpaceInfo> spaceOpt = spaceRepository.findById(updatedDevice.getSpace().getId());
                 spaceOpt.ifPresent(existing::setSpace);
             } else {
                 existing.setSpace(null);
             }
 
-            return deviceNodeRepository.save(existing);
+            return deviceRepository.save(existing);
         });
     }
 
-//    public void deleteDevice(int id) {
-//        deviceRepository.deleteById(id);
-//    }
     public void deleteDevice(int id) {
-        deviceNodeRepository.deleteByDeviceId(id);
-}
+        deviceRepository.deleteById(id);
+    }
 }
