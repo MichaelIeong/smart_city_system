@@ -3,163 +3,140 @@ package edu.fudan.se.sctap_lowcode_tool.constant;
 public class Json_Example {
     public static final String json = """
             {
-              "trigger": {
-                "event":[
-                    {
-                        "event_type": "IllegalParking",
-                        "params":  {
-                            "location": "string",
-                             "license": "string"
+                "trigger": {
+                    "event": [
+                        {
+                            "event_type": "IllegalParking",
+                            "params": {
+                                "location": "string",
+                                "license": "string"
+                            }
                         }
-                    }
-                 ],
-                "filter": [
-                  {
-                    "location": {
-                      "locationOperator": "not in",
-                      "targetLocation": "IllegalParking.ignoreLocations"
-                    }
-                  }
-                ]
-              },
-              "response": {
-                "branch": [
-                  {
-                    "current_condition": [
-                      {
-                        "left": "location.NetworkAudioNum",
-                        "operator": ">",
-                        "right": "0"
-                      }
-                    ],
-                    "chain": [
-                      {
-                        "ignore": {
-                          "event_type": "IllegalParking",
-                          "location": "location"
-                        }
-                      },
-                      {
-                        "branch": [
-                          {
-                            "history_condition": [
-                              {
-                                "left": "event_count(license, IllegalParking, 1, hour)",
-                                "operator": ">",
-                                "right": "0"
-                              }
+                    ]
+                },
+                "response": {
+                    "branch": [
+                        {
+                            "current_condition": [
+                                {
+                                    "left": "location.NetworkAudioNum",
+                                    "operator": ">",
+                                    "right": "0"
+                                }
                             ],
                             "chain": [
-                              {
-                                "action": {
-                                  "action_name": "IssueWorkOrder",
-                                  "action_location": ["location"],
-                                  "action_param": {
-                                    "event_type": "IllegalParking",
-                                    "location": "location",
-                                    "data": "Vehicle illegal parking information"
-                                  }
+                                {
+                                    "branch": [
+                                        {
+                                            "history_condition": [
+                                                {
+                                                    "left": {
+                                                        "func": "event_count(IllegalParking, 1, hour)",
+                                                        "params": {
+                                                            "license": "license"
+                                                        }
+                                                    },
+                                                    "operator": ">",
+                                                    "right": "0"
+                                                }
+                                            ],
+                                            "chain": [
+                                                {
+                                                    "action": {
+                                                        "action_name": "IssueWorkOrder",
+                                                        "params": {
+                                                            "event_type": "IllegalParking",
+                                                            "location": "location",
+                                                            "data": "Vehicle illegal parking information"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "wait": {
+                                                        "action_condition": {
+                                                            "event_type": "IllegalParking",
+                                                            "params": {
+                                                                "location": "location"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "history_condition": [
+                                                {
+                                                    "left": {
+                                                        "func": "event_count(IllegalParking, 1, hour)",
+                                                        "params": {
+                                                            "license": "license"
+                                                        }
+                                                    },
+                                                    "operator": "==",
+                                                    "right": "0"
+                                                }
+                                            ],
+                                            "chain": [
+                                                {
+                                                    "action": {
+                                                        "action_name": "Broadcast",
+                                                        "params": {
+                                                            "event_type": "IllegalParking",
+                                                            "location": "location"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "wait": {
+                                                        "time_condition": {
+                                                            "event_type": "IllegalParking",
+                                                            "duration": "3",
+                                                            "unit": "minute",
+                                                            "params": {
+                                                                "location": "location"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
                                 }
-                              },
-                              {
-                                "wait": {
-                                  "action_condition": {
-                                    "event_type": "IllegalParking",
-                                    "location": "location"
-                                  }
-                                }
-                              },
-                              {
-                                "resume": {
-                                  "event_type": "IllegalParking",
-                                  "location": "location"
-                                }
-                              }
                             ]
-                          },
-                          {
-                            "history_condition": [
-                              {
-                                "left": "event_count(license, IllegalParking, 1, hour)",
-                                "operator": "==",
-                                "right": "0"
-                              }
+                        },
+                        {
+                            "current_condition": [
+                                {
+                                    "left": "location.NetworkAudioNum",
+                                    "operator": "==",
+                                    "right": "0"
+                                }
                             ],
                             "chain": [
-                              {
-                                "action": {
-                                  "action_name": "Broadcast",
-                                  "action_location": ["location"],
-                                  "action_param": {
-                                    "event_type": "IllegalParking",
-                                    "location": "location"
-                                  }
+                                {
+                                    "action": {
+                                        "action_name": "IssueWorkOrder",
+                                        "params": {
+                                            "event_type": "IllegalParking",
+                                            "location": "location",
+                                            "data": "Vehicle illegal parking information"
+                                        }
+                                    }
+                                },
+                                {
+                                    "wait": {
+                                        "action_condition": {
+                                            "event_type": "IllegalParking",
+                                            "params": {
+                                                "location": "location"
+                                            }
+                                        }
+                                    }
                                 }
-                              },
-                              {
-                                "wait": {
-                                  "time_condition": {
-                                    "duration": "3",
-                                    "unit": "minute"
-                                  }
-                                }
-                              },
-                              {
-                                "resume": {
-                                  "event_type": "IllegalParking",
-                                  "location": "location"
-                                }
-                              }
                             ]
-                          }
-                        ]
-                      }
+                        }
                     ]
-                  },
-                  {
-                    "current_condition": [
-                      {
-                        "left": "location.NetworkAudioNum",
-                        "operator": "==",
-                        "right": "0"
-                      }
-                    ],
-                    "chain": [
-                      {
-                        "ignore": {
-                          "event_type": "IllegalParking",
-                          "location": "location"
-                        }
-                      },
-                      {
-                        "action": {
-                          "action_name": "IssueWorkOrder",
-                          "action_location": ["location"],
-                          "action_param": {
-                            "event_type": "IllegalParking",
-                            "location": "location",
-                            "data": "Vehicle illegal parking information"
-                          }
-                        }
-                      },
-                      {
-                        "wait": {
-                          "action_condition": {
-                            "event_type": "IllegalParking",
-                            "location": "location"
-                          }
-                        }
-                      },
-                      {
-                        "resume": {
-                          "event_type": "IllegalParking",
-                          "location": "location"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+                }
             }
             """;
 }

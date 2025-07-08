@@ -7,7 +7,7 @@ public class Redis_Constant {
     public static final String Event_Prefix = "event:";
     public static final String Property_Prefix = "property:";
     public static final String Action_Prefix = "action:";
-    public static final String SYSTEM_PROMPT1 = "system_prompt1";
+    public static final String NATURAL_PROMPT = "natural_prompt";
     public static final String Action_Condition = "action_condition:";
     public static final String Time_Condition = "time_condition:";
 }

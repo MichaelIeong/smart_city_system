@@ -60,6 +60,14 @@ public class AppRuleController {
     }
 
     /**
+     * 复杂应用json规则生成
+     * */
+    @PostMapping("/recommend/generateComplexJsonRule")
+    public ResponseEntity<String> generateComplexJsonRule(@RequestBody RecommendRequest recommendRequest) {
+        return appRuleService.generateComplexJsonRule(recommendRequest);
+    }
+
+    /**
      * 从向量数据库中匹配
      * */
     @PostMapping("/recommend/findSimilarRule")
