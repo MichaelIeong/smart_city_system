@@ -222,6 +222,27 @@ public class AppRuleService {
         return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
     }
 
+    public  ResponseEntity<String> convertComplexJsonRule(AppRuleRequest appRuleRequest) {
+        String ruleJson = appRuleRequest.ruleJson();
+        // 构建系统消息和用户消息
+        List<Message> messages = new ArrayList<>();
+        messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_CONVERT_PROMPT));
+        messages.add(new UserMessage(ruleJson));
+        Prompt prompt = new Prompt(messages);
+        // 规定输出的格式为 JSON
+        ChatResponse response = chatClient.prompt(prompt)
+                .call()
+                .chatResponse();
+        if (response != null) {
+            String text = response.getResult().getOutput().getText();
+            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
+            if (matcher.find()) {
+                return ResponseEntity.ok(matcher.group(1).trim());
+            }
+        }
+        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+    }
+
     public ResponseEntity<String> generateNaturalRule(RecommendRequest recommendRequest){
         String uuid = recommendRequest.getUuid();
         String message = recommendRequest.getMessage();

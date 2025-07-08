@@ -19,6 +19,9 @@
                   boxed
                   theme="dark"
                 />
+                <button class="view-nodered-btn" @click="viewInNodeRed(msg.jsonResult)">
+                  在 Node-RED 中查看
+                </button>
               </div>
             </div>
           </div>
@@ -44,8 +47,9 @@
 <script setup>
  /* eslint-disable */
 import { ref, nextTick, computed } from 'vue'
-import { generateComplexJsonRule } from '@/api/manage'
+import { generateComplexJsonRule, convertComplexJsonRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
+import { message } from 'ant-design-vue'
 
 const uuid = uuidv4()
 const inputContent = ref('')
@@ -102,6 +106,27 @@ async function sendMessage() {
     }
   }
 }
+
+async function viewInNodeRed(json) {
+  const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0) // 显示 loading，0 表示不会自动关闭
+
+  try {
+    const flowJson = await convertComplexJsonRule(JSON.stringify(json))
+
+    await fetch('http://127.0.0.1:1880/flows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(flowJson)
+    })
+
+    hide() // 手动关闭 loading
+    message.success('已成功推送至 Node-RED！')
+    window.open('http://127.0.0.1:1880/', '_blank')
+  } catch (error) {
+    hide()
+    message.error('推送失败，请稍后重试')
+  }
+}
 </script>
 <style lang="less" scoped>
 html, body, #app {
@@ -111,7 +136,7 @@ html, body, #app {
 
 .complex-recommend-page {
   display: flex;
-  height: calc(100vh - 250px); // 留出头部高度
+  height: calc(100vh - 250px); 
   overflow: hidden;
 }
 
@@ -262,6 +287,22 @@ html, body, #app {
 
   .jv-copy:hover {
     color: #ffffff !important;
+  }
+}
+
+.view-nodered-btn {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background-color: #569cd6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #059669;
   }
 }
 </style>

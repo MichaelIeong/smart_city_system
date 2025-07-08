@@ -379,6 +379,22 @@ export function generateComplexJsonRule (uuid, message) {
   })
 }
 
+// 复杂应用 json 转换
+export function convertComplexJsonRule (ruleJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/convertComplexJsonRule`,
+    method: 'post',
+    data: {
+      ruleJson
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
+  })
+}
+
 // 保存tap规则
 export function createTapRule (projectId, description, ruleJson) {
   const token = store.state.token

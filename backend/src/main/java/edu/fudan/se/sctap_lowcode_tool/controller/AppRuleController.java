@@ -68,6 +68,14 @@ public class AppRuleController {
     }
 
     /**
+     * 复杂应用json规则node red转换
+     * */
+    @PostMapping("/recommend/convertComplexJsonRule")
+    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
+        return appRuleService.convertComplexJsonRule(appRuleRequest);
+    }
+
+    /**
      * 从向量数据库中匹配
      * */
     @PostMapping("/recommend/findSimilarRule")
