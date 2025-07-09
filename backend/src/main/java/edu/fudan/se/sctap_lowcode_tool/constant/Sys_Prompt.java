@@ -225,7 +225,7 @@ public class Sys_Prompt {
                   "left": {
                     "func": "event_count(<EventType>, <时间跨度>, <单位>)",
                     "params": {
-                      "<key>": "<value>" // 可引用事件参数，如 license、vendor_id
+                      "<key>": "<value>" // 可引用事件参数，如 license、location
                     }
                   },
                   "operator": "<比较符>", // 可选: >, <, ==, >=, <=, !=
@@ -482,7 +482,7 @@ public class Sys_Prompt {
             - 映射来源：JSON 的 branch 中。
             - 用于表达条件判断，支持两种类型：
               1. conditionType: "current_condition" → 用于判断当前属性值
-                - currentProperty: 映射 left
+                - currentProperty: 映射 left，如"location.NetworkAudioNum"
                 - 示例描述：`"判断是否有广播音响"`
               2. conditionType: "history_condition" → 用于判断历史事件统计
                 - historyEventType: 映射 event_count 中第一个参数（事件类型）
@@ -712,7 +712,7 @@ public class Sys_Prompt {
                     "id": "fb21c3562411615b",
                     "type": "Switch",
                     "z": "9d5be5ea01264df9",
-                    "description": "判断有无广播音响",
+                    "description": "判断附近有无广播音响",
                     "conditionType": "current_condition",
                     "currentProperty": "location.NetworkAudioNum",
                     "historyEventType": null,
@@ -732,7 +732,7 @@ public class Sys_Prompt {
                         }
                     ],
                     "outputs": 2,
-                    "x": 340,
+                    "x": 360,
                     "y": 340,
                     "wires": [
                         [
@@ -750,8 +750,8 @@ public class Sys_Prompt {
                     "description": "判断车辆过去1小时有无违停",
                     "conditionType": "history_condition",
                     "currentProperty": null,
-                    "historyEventType": null,
-                    "historyTimeDuration": "",
+                    "historyEventType": "IllegalParking",
+                    "historyTimeDuration": "1",
                     "historyTimeUnit": "hour",
                     "historyParam": "license",
                     "rules": [
@@ -767,7 +767,7 @@ public class Sys_Prompt {
                         }
                     ],
                     "outputs": 2,
-                    "x": 640,
+                    "x": 680,
                     "y": 300,
                     "wires": [
                         [
@@ -783,7 +783,7 @@ public class Sys_Prompt {
                     "type": "Action",
                     "z": "9d5be5ea01264df9",
                     "action_name": "IssueWorkOrder",
-                    "x": 590,
+                    "x": 630,
                     "y": 380,
                     "wires": [
                         [
@@ -801,7 +801,7 @@ public class Sys_Prompt {
                     "param": "location",
                     "duration": "",
                     "unit": null,
-                    "x": 850,
+                    "x": 880,
                     "y": 380,
                     "wires": [
                         []
@@ -812,7 +812,7 @@ public class Sys_Prompt {
                     "type": "Action",
                     "z": "9d5be5ea01264df9",
                     "action_name": "IssueWorkOrder",
-                    "x": 930,
+                    "x": 970,
                     "y": 260,
                     "wires": [
                         [
@@ -830,7 +830,7 @@ public class Sys_Prompt {
                     "param": "location",
                     "duration": "",
                     "unit": null,
-                    "x": 1190,
+                    "x": 1220,
                     "y": 260,
                     "wires": [
                         []
@@ -841,7 +841,7 @@ public class Sys_Prompt {
                     "type": "Action",
                     "z": "9d5be5ea01264df9",
                     "action_name": "Broadcast",
-                    "x": 930,
+                    "x": 970,
                     "y": 340,
                     "wires": [
                         [
@@ -855,11 +855,11 @@ public class Sys_Prompt {
                     "z": "9d5be5ea01264df9",
                     "description": "语音广播后等待3分钟",
                     "waitType": "time_condition",
-                    "eventType": null,
+                    "eventType": "IllegalParking",
                     "param": "location",
                     "duration": "3",
                     "unit": "minute",
-                    "x": 1200,
+                    "x": 1240,
                     "y": 340,
                     "wires": [
                         []
