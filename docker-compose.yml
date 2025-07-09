@@ -8,12 +8,12 @@ services:
       - "8080:8080"
     networks:
       - app-network
+    restart: always
 
   smart_city_frontend:
     container_name: smart-city-frontend
     environment:
       - NODE_ENV=production
-      - VUE_APP_API_BASE_URL=http://localhost:8080
     build: ./frontend
     depends_on:
       - smart_city_backend
@@ -22,14 +22,16 @@ services:
       - "8000:80"
     networks:
       - app-network
+    restart: always
 
   smart_city_node-red:
-    container_name: custom-node-red
+    container_name: smart_city_node-red
     build: ./node-red
     ports:
       - "1880:1880"
     networks:
       - app-network
+    restart: always
 
 networks:
   app-network:
