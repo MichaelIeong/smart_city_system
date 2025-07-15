@@ -1,51 +1,82 @@
 <template>
   <page-header-wrapper>
-    <div class="complex-recommend-page">
-      <!-- 左侧聊天区域 -->
-      <div class="chat-wrapper">
-        <div class="chat-container" ref="chatContainer">
-          <div
-            v-for="(msg, index) in chatHistory"
-            :key="index"
-            :class="['chat-message', msg.role]"
-          >
-            <div class="message-bubble">{{ msg.content }}</div>
-            <div v-if="msg.role === 'assistant' && msg.jsonResult" class="json-result">
+    <div class="main-container">
+      <div class="content-wrapper">
+        <!-- 左侧聊天区域 -->
+        <div class="chat-wrapper">
+          <div class="chat-container" ref="chatContainer">
+            <div
+              v-for="(msg, index) in chatHistory"
+              :key="index"
+              :class="['chat-message', msg.role]"
+            >
+              <div class="message-bubble">{{ msg.content }}</div>
+              <div v-if="msg.role === 'assistant' && msg.jsonResult" class="json-result">
+                <div class="json-rule-container">
+                  <json-viewer
+                    :value="msg.jsonResult"
+                    :expand-depth="10"
+                    copyable
+                    boxed
+                    theme="dark"
+                  />
+                  <button class="view-nodered-btn" @click="viewInNodeRed(msg.jsonResult)">
+                    在 Node-RED 中查看
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 输入区域 -->
+          <div class="input-area">
+            <input
+              v-model="inputContent"
+              type="text"
+              placeholder="请输入复杂应用描述..."
+              @keyup.enter="sendMessage"
+              :disabled="isLoading"
+            />
+            <button @click="sendMessage" :disabled="isLoading">
+              {{ isLoading ? '生成中...' : '发送' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 右侧JSON规则展示区域 -->
+        <div class="json-viewer">
+          <div class="json-header">
+            <h3>应用详情</h3>
+            <div class="json-actions" v-if="latestJson">
+              <button @click="submitRule" class="action-btn submit-btn">提交应用</button>
+              <button @click="regenerateRule" class="action-btn regenerate-btn">大模型生成</button>
+            </div>
+          </div>
+          <div class="json-content">
+            <div v-if="latestJson" class="rule-section">
+              <h4>JSON规则</h4>
               <div class="json-rule-container">
                 <json-viewer
-                  :value="msg.jsonResult"
-                  :expand-depth="10"
+                  :value="latestJson"
+                  :expand-depth="5"
                   copyable
                   boxed
                   theme="dark"
                 />
-                <button class="view-nodered-btn" @click="viewInNodeRed(msg.jsonResult)">
-                  在 Node-RED 中查看
-                </button>
               </div>
             </div>
+            <div v-else class="empty-state">
+              <p>请点击"发送"按钮查看应用详情</p>
+            </div>
           </div>
-        </div>
-
-        <!-- 输入区域 -->
-        <div class="input-area">
-          <input
-            v-model="inputContent"
-            type="text"
-            placeholder="请输入复杂应用描述..."
-            @keyup.enter="sendMessage"
-            :disabled="isLoading"
-          />
-          <button @click="sendMessage" :disabled="isLoading">
-            {{ isLoading ? '生成中...' : '发送' }}
-          </button>
         </div>
       </div>
     </div>
   </page-header-wrapper>
 </template>
+
 <script setup>
- /* eslint-disable */
+/* eslint-disable */
 import { ref, nextTick, computed } from 'vue'
 import { generateComplexJsonRule, convertComplexJsonRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
@@ -108,7 +139,7 @@ async function sendMessage() {
 }
 
 async function viewInNodeRed(json) {
-  const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0) // 显示 loading，0 表示不会自动关闭
+  const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
 
   try {
     const flowJson = await convertComplexJsonRule(JSON.stringify(json))
@@ -119,7 +150,7 @@ async function viewInNodeRed(json) {
       body: JSON.stringify(flowJson)
     })
 
-    hide() // 手动关闭 loading
+    hide()
     message.success('已成功推送至 Node-RED！')
     window.open('http://127.0.0.1:1880/', '_blank')
   } catch (error) {
@@ -128,90 +159,90 @@ async function viewInNodeRed(json) {
   }
 }
 </script>
+
 <style lang="less" scoped>
-html, body, #app {
-  height: 100%;
-  margin: 0;
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 250px); /* 根据你的布局调整 */
 }
 
-.complex-recommend-page {
+.content-wrapper {
   display: flex;
-  height: calc(100vh - 250px); 
-  overflow: hidden;
+  flex: 1;
+  gap: 1rem;
+  height: 100%;
 }
 
 .chat-wrapper {
-  flex: 1;
+  flex: 6;
   display: flex;
   flex-direction: column;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   background: #fff;
-  border-right: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chat-container {
   flex: 1;
-  overflow-y: auto;
   padding: 1rem;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .chat-message {
+  max-width: 70%;
   display: flex;
-  flex-direction: column;
-  max-width: 90%;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .chat-message.user {
   align-self: flex-end;
-  .message-bubble {
-    background-color: #3b82f6;
-    color: white;
-    border-bottom-right-radius: 0;
-  }
-  // 宽度控制：让包含 JSON 的区域放宽
-  .json-result {
-    margin-top: 0.5rem;
-    width: 100%;
-    max-width: 100%; // 放开限制
-  }
-
-  .json-rule-container {
-    width: 100%;
-  }
+  text-align: right;
 }
 
 .chat-message.assistant {
   align-self: flex-start;
-  .message-bubble {
-    background-color: #e5e7eb;
-    color: #374151;
-    border-bottom-left-radius: 0;
-  }
+  text-align: left;
 }
 
 .message-bubble {
   padding: 0.5rem 1rem;
   border-radius: 1rem;
   font-size: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
+  line-height: 1.4;
+}
+
+.chat-message.user .message-bubble {
+  background-color: #3b82f6;
+  color: white;
+  border-bottom-right-radius: 0;
+}
+
+.chat-message.assistant .message-bubble {
+  background-color: #e5e7eb;
+  color: #374151;
+  border-bottom-left-radius: 0;
 }
 
 .input-area {
   display: flex;
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   border-top: 1px solid #d1d5db;
   background: #f9fafb;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .input-area input {
   flex: 1;
   padding: 0.5rem 1rem;
-  border: 1px solid #cbd5e1;
   border-radius: 9999px;
+  border: 1px solid #cbd5e1;
   font-size: 14px;
 }
 
@@ -219,8 +250,8 @@ html, body, #app {
   padding: 0.5rem 1.2rem;
   background-color: #3b82f6;
   color: white;
-  border: none;
   border-radius: 9999px;
+  border: none;
   font-weight: 600;
   cursor: pointer;
 }
@@ -230,79 +261,95 @@ html, body, #app {
   cursor: not-allowed;
 }
 
+/* JSON展示区域样式 */
+.json-viewer {
+  flex: 4;
+  height: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.json-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.json-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.json-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-btn {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #2563eb;
+}
+
+.regenerate-btn {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.regenerate-btn:hover {
+  background-color: #d97706;
+}
+
+.json-content {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.rule-section {
+  margin-bottom: 1.5rem;
+}
+
+.rule-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
 .json-rule-container {
-  background-color: #1e1e1e; // 深色背景
-  color: #d4d4d4; // 主体字体颜色
+  background-color: #1e1e1e;
+  color: #d4d4d4;
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
-  max-height: 500px; // 限制最大高度，支持滚动
   font-family: 'Courier New', monospace;
-
-  // 统一 vue-json-viewer 字体和颜色风格
-  * {
-    font-family: 'Courier New', monospace !important;
-    color: #d4d4d4 !important;
-  }
-
-  // vue-json-viewer 容器背景透明，避免颜色叠加冲突
-  .jv-container {
-    background: transparent !important;
-  }
-
-  // JSON key 颜色
-  .jv-key {
-    color: #9cdcfe !important;
-  }
-
-  // JSON string 颜色
-  .jv-string {
-    color: #ce9178 !important;
-  }
-
-  // JSON number 颜色
-  .jv-number {
-    color: #b5cea8 !important;
-  }
-
-  // JSON boolean 颜色
-  .jv-boolean {
-    color: #569cd6 !important;
-  }
-
-  // JSON null 颜色
-  .jv-null {
-    color: #dcdcaa !important;
-  }
-
-  // 缩进条目样式调整（上下留白）
-  .jv-item {
-    padding: 2px 0;
-  }
-
-  // 拷贝按钮 hover 效果（可选）
-  .jv-copy {
-    color: #6b7280 !important;
-  }
-
-  .jv-copy:hover {
-    color: #ffffff !important;
-  }
-}
-
-.view-nodered-btn {
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.8rem;
-  background-color: #569cd6;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #059669;
-  }
 }
 </style>
