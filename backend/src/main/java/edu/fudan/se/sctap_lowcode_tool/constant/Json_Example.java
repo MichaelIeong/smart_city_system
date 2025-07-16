@@ -6,10 +6,10 @@ public class Json_Example {
                 "trigger": {
                     "event": [
                         {
-                            "event_type": "IllegalParking",
+                            "event_type": "ill_parking",
                             "params": {
                                 "location": "string",
-                                "license": "string"
+                                "plate_number": "string"
                             }
                         }
                     ]
@@ -31,9 +31,9 @@ public class Json_Example {
                                             "history_condition": [
                                                 {
                                                     "left": {
-                                                        "func": "event_count(IllegalParking, 1, hour)",
+                                                        "func": "event_count(ill_parking, 1, hour)",
                                                         "params": {
-                                                            "license": "license"
+                                                            "plate_number": "plate_number"
                                                         }
                                                     },
                                                     "operator": ">",
@@ -45,7 +45,7 @@ public class Json_Example {
                                                     "action": {
                                                         "action_name": "IssueWorkOrder",
                                                         "params": {
-                                                            "event_type": "IllegalParking",
+                                                            "event_type": "ill_parking",
                                                             "location": "location",
                                                             "data": "Vehicle illegal parking information"
                                                         }
@@ -54,9 +54,9 @@ public class Json_Example {
                                                 {
                                                     "wait": {
                                                         "action_condition": {
-                                                            "event_type": "IllegalParking",
+                                                            "event_type": "ill_parking",
                                                             "params": {
-                                                                "location": "location"
+                                                                "location": "location",
                                                             }
                                                         }
                                                     }
@@ -67,12 +67,12 @@ public class Json_Example {
                                             "history_condition": [
                                                 {
                                                     "left": {
-                                                        "func": "event_count(IllegalParking, 1, hour)",
+                                                        "func": "event_count(ill_parking, 1, hour)",
                                                         "params": {
-                                                            "license": "license"
+                                                            "plate_number": "plate_number"
                                                         }
                                                     },
-                                                    "operator": "==",
+                                                    "operator": "=",
                                                     "right": "0"
                                                 }
                                             ],
@@ -81,7 +81,7 @@ public class Json_Example {
                                                     "action": {
                                                         "action_name": "Broadcast",
                                                         "params": {
-                                                            "event_type": "IllegalParking",
+                                                            "event_type": "ill_parking",
                                                             "location": "location"
                                                         }
                                                     }
@@ -89,11 +89,11 @@ public class Json_Example {
                                                 {
                                                     "wait": {
                                                         "time_condition": {
-                                                            "event_type": "IllegalParking",
+                                                            "event_type": "ill_parking",
                                                             "duration": "3",
                                                             "unit": "minute",
                                                             "params": {
-                                                                "location": "location"
+                                                                "location": "location",
                                                             }
                                                         }
                                                     }
@@ -108,7 +108,7 @@ public class Json_Example {
                             "current_condition": [
                                 {
                                     "left": "location.NetworkAudioNum",
-                                    "operator": "==",
+                                    "operator": "=",
                                     "right": "0"
                                 }
                             ],
@@ -117,7 +117,7 @@ public class Json_Example {
                                     "action": {
                                         "action_name": "IssueWorkOrder",
                                         "params": {
-                                            "event_type": "IllegalParking",
+                                            "event_type": "ill_parking",
                                             "location": "location",
                                             "data": "Vehicle illegal parking information"
                                         }
@@ -126,9 +126,9 @@ public class Json_Example {
                                 {
                                     "wait": {
                                         "action_condition": {
-                                            "event_type": "IllegalParking",
+                                            "event_type": "ill_parking",
                                             "params": {
-                                                "location": "location"
+                                                "location": "location",
                                             }
                                         }
                                     }

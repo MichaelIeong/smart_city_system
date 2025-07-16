@@ -52,11 +52,27 @@ public class AppRuleController {
     }
 
     /**
+     * 生成自然语言规则
+     * */
+    @PostMapping("/recommend/generateNaturalRule")
+    public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
+        return appRuleService.generateNaturalRule(recommendRequest);
+    }
+
+    /**
      * 生成json规则
      * */
     @PostMapping("/recommend/generateJsonRule")
     public ResponseEntity<String> generateJsonRule(@RequestBody RecommendRequest recommendRequest) {
         return appRuleService.generateJsonRule(recommendRequest);
+    }
+
+    /**
+     * 生成自然语言规则
+     * */
+    @PostMapping("/recommend/generateComplexNaturalRule")
+    public ResponseEntity<String> generateComplexNaturalRule(@RequestBody RecommendRequest recommendRequest){
+        return appRuleService.generateComplexNaturalRule(recommendRequest);
     }
 
     /**
@@ -81,14 +97,6 @@ public class AppRuleController {
     @PostMapping("/recommend/findSimilarRule")
     public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) {
         return appRuleService.findSimilarRules(recommendRequest);
-    }
-
-    /**
-     * 生成自然语言规则
-     * */
-    @PostMapping("/recommend/generateNaturalRule")
-    public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
-        return appRuleService.generateNaturalRule(recommendRequest);
     }
 
     /**

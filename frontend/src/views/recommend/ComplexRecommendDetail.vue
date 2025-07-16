@@ -78,7 +78,7 @@
 <script setup>
 /* eslint-disable */
 import { ref, nextTick, computed } from 'vue'
-import { generateComplexJsonRule, convertComplexJsonRule } from '@/api/manage'
+import { generateComplexJsonRule, convertComplexJsonRule, generateComplexNaturalRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 
@@ -117,7 +117,7 @@ async function sendMessage() {
   isLoading.value = true
 
   try {
-    const json = await generateComplexJsonRule(uuid, content)
+    const json = await generateComplexNaturalRule(uuid, content)
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
       content: 'JSON规则已生成：',

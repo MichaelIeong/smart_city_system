@@ -362,6 +362,23 @@ export function generateJsonRule (uuid, message) {
   })
 }
 
+// 生成复杂应用自然语言描述规则
+export function generateComplexNaturalRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateComplexNaturalRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 30000
+  })
+}
+
 // 生成复杂应用 json 形式规则
 export function generateComplexJsonRule (uuid, message) {
   const token = store.state.token

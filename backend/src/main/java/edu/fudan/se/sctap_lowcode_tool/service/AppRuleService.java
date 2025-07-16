@@ -191,19 +191,39 @@ public class AppRuleService {
         return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
     }
 
-    public ResponseEntity<String> generateComplexJsonRule(RecommendRequest recommendRequest) {
-        String uuid = recommendRequest.getUuid();
+    public ResponseEntity<String> generateComplexNaturalRule(RecommendRequest recommendRequest) {
         String message = recommendRequest.getMessage();
+        String uuid = recommendRequest.getUuid();
         // 更新uuid的时间戳
         uuidTimeMap.put(uuid, System.currentTimeMillis());
         // 获取内存中的消息
         List<Message> messages = complexMessageMap.getOrDefault(uuid, new ArrayList<>());
         // 如果内存中不存在就构建消息
         if(messages.isEmpty()){
-            String systemPrompt = Sys_Prompt.COMPLEX_RULE_PROMPT;
-            messages.add(new SystemMessage(systemPrompt));
+            messages.add(new SystemMessage(Sys_Prompt.COMPLEX_NATURAL_RULE_PROMPT));
         }
         // 将用户输入的消息加入
+        messages.add(new UserMessage(message));
+        Prompt prompt = new Prompt(messages);
+        ChatResponse response = chatClient.prompt(prompt)
+                .call()
+                .chatResponse();
+        // 解析输出的内容
+        if (response != null) {
+            // 加入消息
+            messages.add(response.getResult().getOutput());
+            complexMessageMap.put(uuid, messages);
+            String text = response.getResult().getOutput().getText();
+            return ResponseEntity.ok(text);
+        }
+        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+    }
+
+    public ResponseEntity<String> generateComplexJsonRule(RecommendRequest recommendRequest) {
+        String message = recommendRequest.getMessage();
+        // 构造消息
+        List<Message> messages = new ArrayList<>();
+        messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_PROMPT));
         messages.add(new UserMessage(message));
         Prompt prompt = new Prompt(messages);
         // 规定输出的格式为 JSON
@@ -211,8 +231,6 @@ public class AppRuleService {
                 .call()
                 .chatResponse();
         if (response != null) {
-            messages.add(response.getResult().getOutput());
-            complexMessageMap.put(uuid, messages);
             String text = response.getResult().getOutput().getText();
             Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
             if (matcher.find()) {
@@ -262,7 +280,7 @@ public class AppRuleService {
                 String eventOptions    = String.join("\n", eventList);
                 String propertyOptions = String.join("\n", propertyList);
                 String actionOptions   = String.join("\n", actionList);
-                systemPrompt = String.format(Sys_Prompt.NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
+                systemPrompt = String.format(Sys_Prompt.SIMPLE_NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
                 // 存入redis
                 redisUtil.setSingle(Redis_Constant.NATURAL_PROMPT, systemPrompt);
             }
