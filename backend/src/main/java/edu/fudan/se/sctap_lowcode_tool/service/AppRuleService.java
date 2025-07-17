@@ -570,21 +570,26 @@ public class AppRuleService {
         eventWaitMap.put(eventType, waitSet);
         // 如无特殊情况，wait 是 chain 的最后一个步骤
         if(chain.size() == index + 1) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("eventType", eventType);
+            data.put("waitValue", waitValue);
+            long currentTimeMillis = System.currentTimeMillis();
+            String redisKey = "";
             // 处理action_condition
             if(wait.isActionCondition()) {
                 log.info("事件 {} 加入动作等待中, Value: {}", eventType, waitValue);
+                redisKey = Redis_Constant.Action_Wait + eventType + ":" + waitValue;
+                // 这里设定 action_condition 的超时时间为 1 小时
+                long expireTimeMillis = currentTimeMillis + 60 * 60 * 1000L;
+                data.put("expireTime", expireTimeMillis);
             }
             // 处理time_condition
             if(wait.isTimeCondition()) {
                 log.info("事件 {} 加入时间等待, Value: {}", eventType, waitValue);
-                String redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
-                Map<String, Object> data = new HashMap<>();
-                data.put("eventType", eventType);
-                data.put("waitValue", waitValue);
+                redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
                 // 存储到期时间
                 int waitDuration = Integer.parseInt(wait.getTime_condition().getDuration());
                 String waitUnit = wait.getTime_condition().getUnit();
-                long currentTimeMillis = System.currentTimeMillis();
                 long expireTimeMillis = switch (waitUnit.toLowerCase()) {
                        case "second", "seconds" -> currentTimeMillis + waitDuration * 1000L;
                        case "minute", "minutes" -> currentTimeMillis + waitDuration * 60 * 1000L;
@@ -593,12 +598,12 @@ public class AppRuleService {
                        default -> currentTimeMillis + waitDuration * 60 * 1000L;
                 };
                 data.put("expireTime", expireTimeMillis);
-                // 存储到 redis 中
-                try {
-                    redisUtil.setWait(redisKey, data);
-                } catch (JsonProcessingException e) {
-                    log.error("wait 数据序列化失败");
-                }
+            }
+            // 存储到 redis 中
+            try {
+                redisUtil.setWait(redisKey, data);
+            } catch (JsonProcessingException e) {
+                log.error("wait 数据序列化失败");
             }
         }
     }
@@ -606,6 +611,9 @@ public class AppRuleService {
     public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
         String eventType = actionCompleteDTO.getEvent_type();
         String waitValue = actionCompleteDTO.getValue();
+        String redisKey = Redis_Constant.Action_Wait + eventType + ":" + waitValue;
+        // 从 redis 中删除
+        redisUtil.deleteSingle(redisKey);
         // 从等待中移除
         Set<String> waitSet = eventWaitMap.get(eventType);
         waitSet.remove(waitValue);
