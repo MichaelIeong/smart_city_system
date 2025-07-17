@@ -9,10 +9,11 @@
               v-for="(msg, index) in chatHistory"
               :key="index"
               :class="['chat-message', msg.role]"
+              v-if="msg.content.trim() !== ''"
             >
               <div class="message-content">
                 <div class="message-bubble">{{ msg.content }}</div>
-                <div v-if="msg.role === 'assistant' && msg.isSuccess" class="action-buttons">
+                <div v-if="msg.role === 'assistant' && !msg.isGenerated && msg.isSuccess" class="action-buttons">
                   <!-- 在聊天区域添加“大模型生成”按钮 -->
                   <button @click="generateComplexRule" class="generate-btn">大模型生成</button>
                 </div>
@@ -27,11 +28,9 @@
               type="text"
               placeholder="请输入复杂应用描述..."
               @keyup.enter="sendMessage"
-              :disabled="isLoading"
+              class="input-box"
             />
-            <button @click="sendMessage" :disabled="isLoading">
-              {{ isLoading ? '生成中...' : '发送' }}
-            </button>
+            <button @click="sendMessage">发送</button>
           </div>
 
         </div>
@@ -61,7 +60,7 @@
               </div>
             </div>
             <div v-else class="empty-state">
-              <p>请点击"发送"按钮查看应用详情</p>
+              <p>请点击"大模型生成"按钮查看应用详情</p>
             </div>
           </div>
         </div>
@@ -102,12 +101,14 @@ const latestJson = computed(() => {
 
 async function sendMessage() {
   const content = inputContent.value.trim()
+  console.log("发送内容:", content); // 调试输出：显示发送的消息内容
   if (!content) return
 
   // 添加用户消息
   chatHistory.value.push({ role: 'user', content })
 
   const loadingIndex = chatHistory.value.length
+  console.log("加载消息索引:", loadingIndex); // 调试输出：显示消息的索引
   chatHistory.value.push({
     role: 'assistant',
     content: '生成中...',
@@ -117,27 +118,34 @@ async function sendMessage() {
 
   inputContent.value = ''
   isLoading.value = true
+  console.log("请求状态: 正在加载", isLoading.value); // 调试输出：检查 isLoading 的状态
 
   try {
     // 只发送消息，不生成 JSON 规则
+    const res = await generateComplexNaturalRule(uuid, content)
+    console.log("生成的响应:", res); // 调试输出：显示生成的响应内容
+
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
-      content: '消息已发送，点击“大模型生成”按钮生成JSON规则。',
+      content: res,
       jsonResult: null,
-      isSuccess: false
+      isSuccess: true
     })
   } catch (error) {
+    console.error("发送失败错误:", error); // 调试输出：显示错误信息
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
       content: '发送失败，请重试',
       jsonResult: { error: error.message },
       isSuccess: false
     })
-
   } finally {
     isLoading.value = false
+    console.log("加载状态已解除:", isLoading.value); // 调试输出：检查 isLoading 的状态
+    inputContent.value = ''
     await nextTick()
     if (chatContainer.value) {
+      console.log("滚动到最新消息"); // 调试输出：显示滚动操作
       chatContainer.value.scrollTop = chatContainer.value.scrollHeight
     }
   }
@@ -146,25 +154,33 @@ async function sendMessage() {
 async function generateComplexRule() {
   // 获取最后一条消息的内容
   const lastMessage = chatHistory.value[chatHistory.value.length - 1]
+  console.log("获取的最后一条消息内容:", lastMessage.content); // 调试输出：显示最后一条消息内容
   const messageContent = lastMessage.content
-
-  latestJson.value = '正在生成复杂应用JSON规则...'
+  const hide = message.loading('大模型生成中...', 0)
 
   try {
     // 调用 API 生成复杂规则
     const jsonRes = await generateComplexJsonRule(uuid, messageContent)
+    console.log("生成的 JSON 规则:", jsonRes); // 调试输出：显示生成的 JSON 规则
     latestJson.value = jsonRes  // 更新生成的 JSON 规则
+    hide()
+    message.success('大模型生成完成！')
 
-    // 更新聊天消息显示生成的 JSON
     chatHistory.value.push({
       role: 'assistant',
-      content: '大模型生成完成！',
+      content: '对应json规则已生成',
       jsonResult: jsonRes,
-      isSuccess: true  // 生成成功后设置为 true
+      isSuccess: true,
+      isGenerated: true
     })
+    inputContent.value = '' // 清空输入框
+    isLoading.value = false  // 解除加载状态
+    console.log("加载状态已解除:", isLoading.value); // 调试输出：检查 isLoading 的状态
   } catch (error) {
+    console.error("生成复杂规则失败错误:", error); // 调试输出：显示生成失败的错误信息
     latestJson.value = '生成复杂应用JSON规则失败: ' + error.message
     message.error('生成失败：' + error.message)
+    isLoading.value = false  // 即使失败，也确保解除加载状态
   }
 }
 
@@ -188,6 +204,7 @@ async function viewInNodeRed(json) {
     message.error('推送失败，请稍后重试')
   }
 }
+
 </script>
 
 <style lang="less" scoped>
@@ -381,5 +398,16 @@ async function viewInNodeRed(json) {
   border-radius: 0.5rem;
   overflow-x: auto;
   font-family: 'Courier New', monospace;
+}
+
+.generate-btn {
+  padding: 0.3rem 0.8rem;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 </style>

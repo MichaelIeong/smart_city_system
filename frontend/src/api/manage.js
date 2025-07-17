@@ -392,7 +392,7 @@ export function generateComplexJsonRule (uuid, message) {
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    timeout: 30000
+    timeout: 60000
   })
 }
 
