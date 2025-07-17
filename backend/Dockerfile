@@ -29,4 +29,4 @@ EXPOSE 8080
 COPY --from=build /app/target/*.war app.war
 
 # 运行WAR包
-ENTRYPOINT ["java","-jar","/app.war"]
+ENTRYPOINT ["java","--add-opens", "java.base/java.lang=ALL-UNNAMED","-jar","/app.war"]
