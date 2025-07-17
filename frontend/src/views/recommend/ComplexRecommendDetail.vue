@@ -10,19 +10,11 @@
               :key="index"
               :class="['chat-message', msg.role]"
             >
-              <div class="message-bubble">{{ msg.content }}</div>
-              <div v-if="msg.role === 'assistant' && msg.jsonResult" class="json-result">
-                <div class="json-rule-container">
-                  <json-viewer
-                    :value="msg.jsonResult"
-                    :expand-depth="10"
-                    copyable
-                    boxed
-                    theme="dark"
-                  />
-                  <button class="view-nodered-btn" @click="viewInNodeRed(msg.jsonResult)">
-                    在 Node-RED 中查看
-                  </button>
+              <div class="message-content">
+                <div class="message-bubble">{{ msg.content }}</div>
+                <div v-if="msg.role === 'assistant' && msg.isSuccess" class="action-buttons">
+                  <!-- 在聊天区域添加“大模型生成”按钮 -->
+                  <button @click="generateComplexRule" class="generate-btn">大模型生成</button>
                 </div>
               </div>
             </div>
@@ -41,6 +33,7 @@
               {{ isLoading ? '生成中...' : '发送' }}
             </button>
           </div>
+
         </div>
 
         <!-- 右侧JSON规则展示区域 -->
@@ -49,7 +42,9 @@
             <h3>应用详情</h3>
             <div class="json-actions" v-if="latestJson">
               <button @click="submitRule" class="action-btn submit-btn">提交应用</button>
-              <button @click="regenerateRule" class="action-btn regenerate-btn">大模型生成</button>
+              <button class="action-btn regenerate-btn" @click="viewInNodeRed(latestJson)">
+                在 Node-RED 中查看
+              </button>
             </div>
           </div>
           <div class="json-content">
@@ -78,7 +73,12 @@
 <script setup>
 /* eslint-disable */
 import { ref, nextTick, computed } from 'vue'
-import { generateComplexJsonRule, convertComplexJsonRule, generateComplexNaturalRule } from '@/api/manage'
+import {
+  generateComplexJsonRule,
+  convertComplexJsonRule,
+  generateComplexNaturalRule,
+  generateJsonRule
+} from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 
@@ -86,6 +86,7 @@ const uuid = uuidv4()
 const inputContent = ref('')
 const isLoading = ref(false)
 const chatContainer = ref(null)
+const selectedRule = ref(null)
 
 const chatHistory = ref([
   {
@@ -104,37 +105,67 @@ async function sendMessage() {
   const content = inputContent.value.trim()
   if (!content) return
 
+  // 添加用户消息
   chatHistory.value.push({ role: 'user', content })
 
   const loadingIndex = chatHistory.value.length
   chatHistory.value.push({
     role: 'assistant',
     content: '生成中...',
-    jsonResult: null
+    jsonResult: null,
+    isSuccess: false  // 初始时设置为false
   })
 
   inputContent.value = ''
   isLoading.value = true
 
   try {
-    const json = await generateComplexNaturalRule(uuid, content)
+    // 只发送消息，不生成 JSON 规则
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
-      content: 'JSON规则已生成：',
-      jsonResult: json
+      content: '消息已发送，点击“大模型生成”按钮生成JSON规则。',
+      jsonResult: null,
+      isSuccess: false
     })
   } catch (error) {
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
-      content: '生成失败，请重试',
-      jsonResult: { error: error.message }
+      content: '发送失败，请重试',
+      jsonResult: { error: error.message },
+      isSuccess: false
     })
+
   } finally {
     isLoading.value = false
     await nextTick()
     if (chatContainer.value) {
       chatContainer.value.scrollTop = chatContainer.value.scrollHeight
     }
+  }
+}
+
+async function generateComplexRule() {
+  // 获取最后一条消息的内容
+  const lastMessage = chatHistory.value[chatHistory.value.length - 1]
+  const messageContent = lastMessage.content
+
+  latestJson.value = '正在生成复杂应用JSON规则...'
+
+  try {
+    // 调用 API 生成复杂规则
+    const jsonRes = await generateComplexJsonRule(uuid, messageContent)
+    latestJson.value = jsonRes  // 更新生成的 JSON 规则
+
+    // 更新聊天消息显示生成的 JSON
+    chatHistory.value.push({
+      role: 'assistant',
+      content: '大模型生成完成！',
+      jsonResult: jsonRes,
+      isSuccess: true  // 生成成功后设置为 true
+    })
+  } catch (error) {
+    latestJson.value = '生成复杂应用JSON规则失败: ' + error.message
+    message.error('生成失败：' + error.message)
   }
 }
 
