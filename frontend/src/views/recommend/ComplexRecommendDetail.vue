@@ -77,7 +77,6 @@ import {
   generateComplexJsonRule,
   convertComplexJsonRule,
   generateComplexNaturalRule,
-  generateJsonRule
 } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
