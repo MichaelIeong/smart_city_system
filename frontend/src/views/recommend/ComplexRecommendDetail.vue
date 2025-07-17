@@ -79,7 +79,7 @@ const chatHistory = ref([
 const inputContent = ref('')
 const isLoading = ref(false)
 const selectedRule = ref(null)
-
+const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 async function sendMessage() {
   const content = inputContent.value.trim()
   if (!content) return
@@ -129,7 +129,7 @@ async function viewInNodeRed() {
     try {
       const flowJson = await convertComplexJsonRule(JSON.stringify(selectedRule.value.jsonRule))
 
-      await fetch('http://127.0.0.1:1880/flows', {
+      await fetch(`${NODE_RED_URL}/flows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(flowJson)
@@ -137,7 +137,7 @@ async function viewInNodeRed() {
 
       hide()
       message.success('已成功推送至 Node-RED！')
-      window.open('http://127.0.0.1:1880/', '_blank')
+      window.open(NODE_RED_URL, '_blank')
     } catch (error) {
       hide()
       message.error('推送失败，请稍后重试')
