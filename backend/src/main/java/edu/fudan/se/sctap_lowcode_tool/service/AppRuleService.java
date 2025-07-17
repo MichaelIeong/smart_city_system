@@ -4,7 +4,6 @@ import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
@@ -31,8 +30,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
@@ -346,7 +343,7 @@ public class AppRuleService {
         try {
             appRule = objectMapper.readValue(json, AppRule.class);
         } catch (JsonProcessingException e) {
-            log.error("解析JSON规则失败", e);
+            log.error("解析JSON规则失败: {}", e.getMessage());
             return;
         }
         // 提取参数event_type
@@ -365,7 +362,7 @@ public class AppRuleService {
         // 判断应用是否处于等待中
         Set<String> waitSet = eventWaitMap.get(eventType);
         if(waitSet!=null) {
-            for(String value : event.getParams().values()) {
+            for(String value : eventTriggerDTO.getParams().values()) {
                 if(waitSet.contains(value)) {
                     log.info("应用处于等待中");
                     return;
@@ -389,266 +386,238 @@ public class AppRuleService {
                     break;
                 default:
                     params.put(paramName, eventTriggerDTO.getParams().get(paramName));
-                    log.error("Unknown param type: {}", paramType);
+                    log.error("不支持的类型: {}", paramType);
             }
         }
-//        // 处理response
-//        Response response = appRule.getResponse();
-//        // response从chain开始
-//        if(response.isChainType()){
-//            List<ChainStep> chain = response.getChain();
-//            //提交线程池处理
-//            ruleExecutor.execute(() -> {
-//                try {
-//                    handleChain(chain, params, eventType);
-//                } catch (Exception e) {
-//                    log.error("线程池执行出错: {}", e.getMessage());
-//                }
-//            });
-//            return;
-//        }
-//        // response从branch开始
-//        if(response.isBranchType()){
-//            List<BranchNode> branch = response.getBranch();
-//            BranchStep branchStep = new BranchStep();
-//            branchStep.setBranch(branch);
-//            try{
-//                handleBranchStep(branchStep, params, eventType);
-//            } catch (Exception e) {
-//                log.error("处理branch出错", e);
-//            }
-//        }
+        // TODO, 将事件存入数据库中
+        // 处理response
+        Response response = appRule.getResponse();
+        // response从chain开始
+        if(response.isChainType()) {
+            List<ChainStep> chain = response.getChain();
+            // 提交线程池处理
+            ruleExecutor.execute(() -> {
+                try {
+                    handleChain(chain, eventType, params);
+                } catch (Exception e) {
+                    log.error("处理 chain 失败: {}", e.getMessage());
+                }
+            });
+        }
+        // response从branch开始
+        if(response.isBranchType()) {
+            List<BranchNode> branchNodes = response.getBranch();
+            BranchStep branchStep = new BranchStep();
+            branchStep.setBranch(branchNodes);
+            try {
+                handleBranchStep(branchStep, eventType, params);
+            } catch (Exception e) {
+                log.error("处理 branch 失败: {}", e.getMessage());
+            }
+        }
     }
 
-//    public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
-//        String eventType = actionCompleteDTO.getEvent_type();
-//        String location = actionCompleteDTO.getLocation();
-//        String redisKey = Redis_Constant.Action_Condition + eventType + ":" + location;
-//        // 从redis中获取chain
-//        String data = redisUtil.getSingle(redisKey);
-//        if(data==null){
-//            return;
-//        }
-//        // 从redis中删除
-//        redisUtil.deleteSingle(redisKey);
-//        try{
-//            Map<String, Object> dataMap = objectMapper.readValue(data, new TypeReference<>() {});
-//            List<ChainStep> chain = objectMapper.convertValue(dataMap.get("chain"), new TypeReference<>() {});
-//            Map<String, Object> params = objectMapper.convertValue(dataMap.get("params"), new TypeReference<>() {});
-//            // 加入线程池处理
-//            ruleExecutor.execute(() -> {
-//                try {
-//                    handleChain(chain, params, eventType);
-//                } catch (Exception e) {
-//                    log.error("线程池执行出错: {}", e.getMessage());
-//                }
-//            });
-//        } catch (Exception e) {
-//            log.error("解析chain失败: {}", e.getMessage());
-//        }
-//    }
+    private void handleChain(List<ChainStep> chain, String eventType, Map<String, Object> params) {
+        for(int i=0;i<chain.size();i++) {
+            ChainStep step = chain.get(i);
+            switch (step) {
+                case ActionStep actionStep -> handleActionStep(actionStep, eventType, params);
+                case WaitStep waitStep -> {
+                    // 处理到 wait 后停止
+                    handleWaitStep(waitStep, eventType, params, chain, i);
+                    return;
+                }
+                case BranchStep branchStep -> handleBranchStep(branchStep, eventType, params);
+                default -> log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
+            }
+        }
+    }
 
-    //判断过滤条件是否满足
-//    private boolean isFilterSatisfied(List<Map<String, Object>> filters,Map<String, Object> params, String eventType){
-//        if(filters == null || filters.isEmpty()){
-//            //无过滤器默认通过
-//            return true;
-//        }
-//        for(Map<String, Object> filter : filters){
-//            //处理location
-//            if(filter.containsKey("location")){
-//                Map<String, Object> locationFilter = (Map<String, Object>) filter.get("location");
-//                String operator = (String) locationFilter.get("locationOperator");
-//                String targetLocation = (String) locationFilter.get("targetLocation");
-//                String currentLocation = (String) params.get("location");
-//                if(!checkLocationCondition(operator,targetLocation,currentLocation, eventType)){
-//                    return false;
-//                }
-//            }
-//            // 处理time
-//            if(filter.containsKey("time")) {
-//                Map<String, Object> timeFilter = (Map<String, Object>) filter.get("time");
-//                String operator = (String) timeFilter.get("timeOperator");
-//                String targetTime = (String) timeFilter.get("targetTime");
-//                if(!checkTimeCondition(operator, targetTime)) {
-//                    return false;
-//                }
-//            }
-//        }
-//        return true;
-//    }
+    private void handleActionStep(ActionStep actionStep, String eventType, Map<String, Object> params){
+        // TODO，这里暂时模拟执行动作
+        ActionStep.Action action = actionStep.getAction();
+        log.info("执行动作：{}, 地点：{}, 事件类型：{}", action.getAction_name(), params.get("location"), eventType);
+    }
 
-    //检查位置条件
-//    private boolean checkLocationCondition(String operator, String targetLocation, String currentLocation, String eventType){
-//        if(currentLocation == null){
-//            return false;
-//        }
-//        if(operator.equals("not in")) {
-//            if(targetLocation.contains("ignoreLocations")&&ignoreLocationsMap.containsKey(eventType)) {
-//                Set<String> ignoreLocations = ignoreLocationsMap.get(eventType);
-//                return !ignoreLocations.contains(currentLocation);
-//            }
-//        }
-//        if(operator.equals("in")) {
-//            return currentLocation.equals(targetLocation);
-//        }
-//        return false;
-//    }
+    private void handleBranchStep(BranchStep branchStep, String eventType, Map<String, Object> params) {
+        List<BranchNode> branchNodes = branchStep.getBranch();
+        for(BranchNode branchNode : branchNodes) {
+            if(branchNode.isCurrentCondition()) {
+                // 处理current_condition
+                if(checkCurrentCondition(branchNode.getEffectiveCondition(), eventType, params)) {
+                    // 提交线程池处理
+                    ruleExecutor.execute(() -> {
+                        try {
+                            handleChain(branchNode.getChain(), eventType, params);
+                        } catch (Exception e) {
+                            log.error("处理 chain 失败: {}", e.getMessage());
+                        }
+                    });
+                }
+            }
+            if(branchNode.isHistoryCondition()) {
+                // 处理history_condition
+                if(checkHistoryCondition(branchNode.getEffectiveCondition(), eventType, params)) {
+                    // 提交线程池处理
+                    ruleExecutor.execute(() -> {
+                        try {
+                            handleChain(branchNode.getChain(), eventType, params);
+                        } catch (Exception e) {
+                            log.error("处理 chain 失败: {}", e.getMessage());
+                        }
+                    });
+                }
+            }
+        }
+    }
 
-    // 检查时间条件
-//    private boolean checkTimeCondition(String operator, String targetTime){
-//        LocalTime currentTime = LocalTime.now();
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-//        LocalTime target = LocalTime.parse(targetTime, formatter);
-//        if("before".equalsIgnoreCase(operator)) {
-//            return currentTime.isBefore(target);
-//        }
-//        else if("after".equalsIgnoreCase(operator)) {
-//            return currentTime.isAfter(target);
-//        }
-//        return false;
-//    }
+    private boolean checkCurrentCondition(List<Condition> currentConditions, String eventType, Map<String, Object> params){
+        for(Condition condition : currentConditions) {
+            String left = condition.getLeft().getValue();
+            String[] parts = left.split("\\.");
+            String leftProperty = parts.length > 1 ? parts[1] : parts[0];
+            String location = params.get("location").toString();
+            //TODO，需要查数据库获取当前位置的属性值,这是暂时随机
+            Random random = new Random();
+            int leftValue = random.nextInt(3);
+            String operator = condition.getOperator();
+            String right = condition.getRight();
+            int rightValue = Integer.parseInt(right);
+            if(compareLeftAndRight(leftValue, rightValue, operator)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-    // 处理chain
-//    private void handleChain(List<ChainStep> chain, Map<String, Object> params, String eventType) throws JsonProcessingException {
-//        int size = chain.size();
-//        label:
-//        for(int i = 0; i < size; i++){
-//            ChainStep step = chain.get(i);
-//            switch (step) {
-//                case ActionStep actionStep:
-//                    handleActionStep(actionStep, params, eventType);
-//                    break;
-//                case WaitStep waitStep:
-//                    handleWaitStep(waitStep, params, eventType, chain, i);
-//                    break label; // wait后续不再处理
-//                case BranchStep branchStep:
-//                    handleBranchStep(branchStep, params, eventType);
-//                    break;
-//                default:
-//                    log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
-//                    break;
-//            }
-//        }
-//    }
+    private boolean checkHistoryCondition(List<Condition> historyConditions, String eventType, Map<String, Object> params){
+        for(Condition condition : historyConditions) {
+            Condition.Func left = condition.getLeft().getFunc();
+            String func = left.getFunc();
+            Map<String, String> funcParams = left.getParams();
+            String regex = "(\\w+)\\(([^)]+)\\)";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(func);
+            if(matcher.find()) {
+                String functionName = matcher.group(1);
+                String parameters = matcher.group(2);
+                String[] paramArray = parameters.split(",\\s*");
+                if(paramArray.length != 3) {
+                    log.error("无效的参数形式：{}", func);
+                    return false;
+                }
+                String duration = paramArray[1];
+                String unit = paramArray[2];
+                //TODO，需要查数据库查询历史事件，暂时用随机数代替
+                Random random = new Random();
+                int leftValue = random.nextInt(3);
+                String operator = condition.getOperator();
+                String right = condition.getRight();
+                int rightValue = Integer.parseInt(right);
+                if(compareLeftAndRight(leftValue, rightValue, operator)) {
+                    return false;
+                }
+            }
+            else {
+                log.error("无效的函数形式：{}", func);
+                return false;
+            }
+        }
+        return true;
+    }
 
-//    private void handleActionStep(ActionStep actionStep, Map<String, Object> params, String eventType){
-//        // TODO，这里暂时模拟执行动作
-//        log.info("执行动作：{} 地点：{}", actionStep.getAction().getAction_name(), params.get("location"));
-//    }
+    private boolean compareLeftAndRight(int leftValue, int rightValue, String operator) {
+        switch (operator) {
+            case "=", "==" -> {
+                return leftValue != rightValue;
+            }
+            case "!=" -> {
+                return leftValue == rightValue;
+            }
+            case "<" -> {
+                return leftValue >= rightValue;
+            }
+            case ">" -> {
+                return leftValue <= rightValue;
+            }
+            case "<=" -> {
+                return leftValue > rightValue;
+            }
+            case ">=" -> {
+                return leftValue < rightValue;
+            }
+            default -> {
+                log.error("未知运算符: {}", operator);
+                return true;
+            }
+        }
+    }
 
-//    private void handleWaitStep(WaitStep waitStep, Map<String, Object> params, String eventType, List<ChainStep> chain, int index) throws JsonProcessingException {
-//        // 提取待执行的ChainStep
-//        List<ChainStep> subChain = chain.subList(index + 1, chain.size());
-//        // 处理action_condition
-//        if(waitStep.getWait().isActionCondition()){
-//            String waitEventType = waitStep.getWait().getAction_condition().getEvent_type();
-//            String redisKey = Redis_Constant.Action_Condition + waitEventType + ":"+ params.get("location");
-//            // 存储到redis
-//            Map<String, Object> data = new HashMap<>();
-//            data.put("chain", subChain);
-//            data.put("params", params);
-//            data.put("eventType", eventType);
-//            redisUtil.setChain(redisKey, data);
-//        }
-//        // 处理time_condition
-//        if(waitStep.getWait().isTimeCondition()){
-//            int waitDuration = Integer.parseInt(waitStep.getWait().getTime_condition().getDuration());
-//            String waitUnit = waitStep.getWait().getTime_condition().getUnit();
-//            long currentTimeMillis = System.currentTimeMillis();
-//            long expireTimeMillis = switch (waitUnit.toLowerCase()) {
-//                case "second" -> currentTimeMillis + waitDuration * 1000L;
-//                case "minute" -> currentTimeMillis + waitDuration * 60 * 1000L;
-//                case "hour" -> currentTimeMillis + waitDuration * 60 * 60 * 1000L;
-//                case "day" -> currentTimeMillis + waitDuration * 24 * 60 * 60 * 1000L;
-//                default -> throw new IllegalArgumentException("Unsupported time unit: " + waitUnit);
-//            };
-//            Map<String, Object> data = new HashMap<>();
-//            data.put("chain", subChain);
-//            data.put("expireTime", expireTimeMillis);
-//            data.put("params", params);
-//            data.put("eventType", eventType);
-//            // 存储到redis
-//            String redisKey = Redis_Constant.Time_Condition + eventType + ":" + params.get("location");
-//            redisUtil.setChain(redisKey, data);
-//        }
-//    }
+    private void handleWaitStep(WaitStep waitStep, String eventType, Map<String, Object> params, List<ChainStep> chain, int index) {
+        // 将应用加入等待
+        WaitStep.Wait wait = waitStep.getWait();
+        Set<String> waitSet = eventWaitMap.getOrDefault(eventType, new HashSet<>());
+        Map<String, String> waitParams;
+        if(wait.isActionCondition()) {
+            waitParams = wait.getAction_condition().getParams();
+        }
+        else {
+            waitParams = wait.getTime_condition().getParams();
+        }
+        String waitKey = waitParams.entrySet().iterator().next().getValue();
+        String waitValue = params.get(waitKey).toString();
+        waitSet.add(waitValue);
+        eventWaitMap.put(eventType, waitSet);
+        // 如无特殊情况，wait 是 chain 的最后一个步骤
+        if(chain.size() == index + 1) {
+            // 处理action_condition
+            if(wait.isActionCondition()) {
+                log.info("事件 {} 加入动作等待中, Value: {}", eventType, waitValue);
+            }
+            // 处理time_condition
+            if(wait.isTimeCondition()) {
+                log.info("事件 {} 加入时间等待, Value: {}", eventType, waitValue);
+                String redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
+                Map<String, Object> data = new HashMap<>();
+                data.put("eventType", eventType);
+                data.put("waitValue", waitValue);
+                // 存储到期时间
+                int waitDuration = Integer.parseInt(wait.getTime_condition().getDuration());
+                String waitUnit = wait.getTime_condition().getUnit();
+                long currentTimeMillis = System.currentTimeMillis();
+                long expireTimeMillis = switch (waitUnit.toLowerCase()) {
+                       case "second", "seconds" -> currentTimeMillis + waitDuration * 1000L;
+                       case "minute", "minutes" -> currentTimeMillis + waitDuration * 60 * 1000L;
+                       case "hour", "hours" -> currentTimeMillis + waitDuration * 60 * 60 * 1000L;
+                       // 默认使用分钟
+                       default -> currentTimeMillis + waitDuration * 60 * 1000L;
+                };
+                data.put("expireTime", expireTimeMillis);
+                // 存储到 redis 中
+                try {
+                    redisUtil.setWait(redisKey, data);
+                } catch (JsonProcessingException e) {
+                    log.error("wait 数据序列化失败");
+                }
+            }
+        }
+    }
 
-//    private void handleIgnoreStep(IgnoreStep ignoreStep, Map<String, Object> params, String eventType){
-//        // 添加到ignoreLocationsMap中
-//        Set<String> ignoreLocations = ignoreLocationsMap.getOrDefault(ignoreStep.getIgnore().getEvent_type(), new HashSet<>());
-//        ignoreLocations.add((String) params.get("location"));
-//        ignoreLocationsMap.put(ignoreStep.getIgnore().getEvent_type(), ignoreLocations);
-//        log.info("ignore: event_type {}, location {}", ignoreStep.getIgnore().getEvent_type(), params.get("location"));
-//    }
-//
-//    private void handleResumeStep(ResumeStep resumeStep, Map<String, Object> params, String eventType){
-//        // 从ignoreLocationMap中移除
-//        Set<String> ignoreLocations = ignoreLocationsMap.get(resumeStep.getResume().getEvent_type());
-//        ignoreLocations.remove((String) params.get("location"));
-//        ignoreLocationsMap.put(resumeStep.getResume().getEvent_type(), ignoreLocations);
-//        log.info("resume: event_type {}, location {}", resumeStep.getResume().getEvent_type(), params.get("location"));
-//    }
-
-//    private void handleBranchStep(BranchStep branchStep, Map<String, Object> params, String eventType) {
-//        List<BranchNode> branch = branchStep.getBranch();
-//        for(BranchNode node : branch){
-//            if(node.isCurrentCondition()){
-//                // 处理current_condition
-//                if(checkCurrentCondition(node.getCurrentCondition(), params,  eventType)) {
-//                    List<ChainStep> chain = node.getChain();
-//                    //提交线程池处理
-//                    ruleExecutor.execute(() -> {
-//                        try {
-//                            handleChain(chain, params, eventType);
-//                        } catch (Exception e) {
-//                            log.error("线程池执行出错: {}", e.getMessage());
-//                        }
-//                    });
-//                }
-//            }
-//            if(node.isHistoryCondition()){
-//                // 处理history_condition
-//                if(checkHistoryCondition(node.getHistoryCondition(), params, eventType)) {
-//                    List<ChainStep> chain = node.getChain();
-//                    //提交线程池处理
-//                    ruleExecutor.execute(() -> {
-//                        try {
-//                            handleChain(chain, params, eventType);
-//                        } catch (Exception e) {
-//                            log.error("线程池执行出错: {}", e.getMessage());
-//                        }
-//                    });
-//                }
-//            }
-//        }
-//    }
-
-//    private boolean checkCurrentCondition(List<Condition> currentConditions, Map<String, Object> params, String eventType){
-//        //TODO，涉及查数据库暂不处理
-//        for(Condition currentCondition : currentConditions) {
-//            String left = currentCondition.getLeft();
-//            String operator = currentCondition.getOperator();
-//            String right = currentCondition.getRight();
-//        }
-//        return true;
-//    }
-
-//    private boolean checkHistoryCondition(List<Condition> historyConditions, Map<String, Object> params, String eventType){
-//        //TODO，涉及查数据库暂不处理
-//        for(Condition historyCondition : historyConditions) {
-//            String left = historyCondition.getLeft();
-//            String operator = historyCondition.getOperator();
-//            String right = historyCondition.getRight();
-//        }
-//        return true;
-//    }
+    public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
+        String eventType = actionCompleteDTO.getEvent_type();
+        String waitValue = actionCompleteDTO.getValue();
+        // 从等待中移除
+        Set<String> waitSet = eventWaitMap.get(eventType);
+        waitSet.remove(waitValue);
+        eventWaitMap.put(eventType, waitSet);
+        log.info("事件 {} 结束动作等待, Value: {}", eventType, waitValue);
+    }
 
     /**
      * 定时任务：每小时执行一次，清理过期的uuid数据
      */
     public void cleanUpOldData() {
-        System.out.println("开始执行定时清理任务...");
+        log.info("开始执行定时清理任务...");
         long now = System.currentTimeMillis();
         long oneHourAgo = now - 3600000; // 1小时之前的时刻
         Iterator<Map.Entry<String, Long>> iterator = uuidTimeMap.entrySet().iterator();
@@ -662,7 +631,7 @@ public class AppRuleService {
                 ruleDataMap.remove(uuid);
                 complexMessageMap.remove(uuid);
                 iterator.remove(); // 同时移除时间戳记录
-                System.out.println("清理 uuid 对应的数据: " + uuid);
+                log.info("清理 uuid 对应的数据: {}", uuid);
             }
         }
     }
@@ -670,41 +639,38 @@ public class AppRuleService {
     /**
      * 定时任务：每隔30s执行一次，检查到期的chain并执行
      * */
-//    public void checkExpiredChain() {
-//        System.out.println("开始检查到期的chain...");
-//        // 获取所有以 timeCondition 前缀开头的 key 对应的值
-//        List<String> chains = redisUtil.getAll(Redis_Constant.Time_Condition);
-//        if (chains == null || chains.isEmpty()) return;
-//        long now = System.currentTimeMillis();
-//        for (String json : chains) {
-//            try {
-//                if(json == null){
-//                    continue;
-//                }
-//                // 反序列化 json 数据
-//                Map<String, Object> dataMap = objectMapper.readValue(json, new TypeReference<>() {});
-//                long expireTime = Long.parseLong(dataMap.get("expireTime").toString());
-//                // 判断是否到期
-//                if (expireTime <= now) {
-//                    List<ChainStep> chain = objectMapper.convertValue(dataMap.get("chain"), new TypeReference<>() {});
-//                    Map<String, Object> params = objectMapper.convertValue(dataMap.get("params"), new TypeReference<>() {});
-//                    String eventType = (String) dataMap.get("eventType");
-//                    String location = (String) params.get("location");
-//                    String redisKey = Redis_Constant.Time_Condition + eventType + ":" + location;
-//                    // 从redis中删除
-//                    redisUtil.deleteSingle(redisKey);
-//                    //提交线程池处理
-//                    ruleExecutor.execute(() -> {
-//                        try {
-//                            handleChain(chain, params, eventType);
-//                        } catch (Exception e) {
-//                            log.error("线程池执行出错: {}", e.getMessage());
-//                        }
-//                    });
-//                }
-//            } catch (Exception e) {
-//                log.error("解析chain失败: {}", e.getMessage());
-//            }
-//        }
-//    }
+    public void checkExpiredChain() {
+        log.info("开始检查到期的 wait 应用...");
+        // 获取所有以 timeCondition 前缀开头的 key 对应的值
+        List<String> waits = redisUtil.getAll(Redis_Constant.Time_Wait);
+        if(waits == null || waits.isEmpty()) {
+            log.info("没有待检查的 wait 应用...");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for(String wait : waits) {
+            try {
+                if(wait.trim().isEmpty()) {
+                    continue;
+                }
+                // 反序列化
+                Map waitData = objectMapper.readValue(wait, Map.class);
+                long expireTime = Long.parseLong(waitData.get("expireTime").toString());
+                if(now >= expireTime) {
+                    String eventType = waitData.get("eventType").toString();
+                    String waitValue = waitData.get("waitValue").toString();
+                    String redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
+                    // 从 redis 中删除
+                    redisUtil.deleteSingle(redisKey);
+                    // 从等待中移除
+                    Set<String> waitSet = eventWaitMap.get(eventType);
+                    waitSet.remove(waitValue);
+                    eventWaitMap.put(eventType, waitSet);
+                    log.info("事件 {} 结束时间等待, Value: {}", eventType, waitValue);
+                }
+            } catch (Exception e) {
+                log.error("反序列化 wait 数据失败：{}", e.getMessage());
+            }
+        }
+    }
 }

@@ -110,9 +110,9 @@ public class AppRuleController {
     /**
      * 动作完成上报
      * */
-//    @PostMapping("/action/complete")
-//    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
-//        appRuleService.actionComplete(actionCompleteDTO);
-//    }
+    @PostMapping("/action/complete")
+    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
+        appRuleService.actionComplete(actionCompleteDTO);
+    }
 
 }

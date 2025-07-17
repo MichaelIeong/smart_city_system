@@ -6,5 +6,5 @@ import lombok.Data;
 public class ActionCompleteDTO {
     private String event_type;
 
-    private String location;
+    private String value;
 }

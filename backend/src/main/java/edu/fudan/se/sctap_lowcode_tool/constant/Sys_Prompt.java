@@ -78,8 +78,8 @@ public class Sys_Prompt {
             Filter Conditions (for "filter")
             Filters are used when the user specifies current time conditions or location restrictions for event occurrences.
             Use the following form:
-            - Location: "location = LivingRoom" or "location != LivingRoom"
-            - Time: "timestamp > HH:MM:SS", "timestamp < HH:MM:SS", or "timestamp = HH:MM:SS"
+            - Location: "location == LivingRoom" or "location != LivingRoom"
+            - Time: "timestamp > HH:MM:SS", "timestamp < HH:MM:SS", or "timestamp == HH:MM:SS"
             If the user specifies the location where the event occurs, you MUST include a location filter like: "location = <LocationName>", <LocationName> must be selected from event_location.
             If the user specifies a time condition, you MUST include a time filter like: "timestamp > HH:MM:SS"
             If neither is mentioned, set this field to an empty array [].
@@ -92,7 +92,7 @@ public class Sys_Prompt {
                 %s
             
             Supported operators:
-            = , != , > , < , >= , <=
+            == , != , > , < , >= , <=
 
             Actions (for "action")
             Each action must be a JSON object with the following:
@@ -122,10 +122,10 @@ public class Sys_Prompt {
             {
                 "Scenario_Trigger": {
                     "event_type": ["COChange"],
-                    "filter": ["location = Kitchen", "timestamp > 18:00:00"]
+                    "filter": ["location == Kitchen", "timestamp > 18:00:00"]
                 },
                 "Scenario_Action": {
-                    "current_condition": ["Kitchen.COLevelStatus = ExcessivelyHigh"],
+                    "current_condition": ["Kitchen.COLevelStatus == ExcessivelyHigh"],
                     "actions": [
                         {
                             "action_type": "GasStoveTurnOff",
@@ -694,7 +694,7 @@ public class Sys_Prompt {
                                                             "plate_number": "plate_number"
                                                         }
                                                     },
-                                                    "operator": "=",
+                                                    "operator": "==",
                                                     "right": "0"
                                                 }
                                             ],
@@ -730,7 +730,7 @@ public class Sys_Prompt {
                             "current_condition": [
                                 {
                                     "left": "location.NetworkAudioNum",
-                                    "operator": "=",
+                                    "operator": "==",
                                     "right": "0"
                                 }
                             ],
@@ -933,7 +933,7 @@ public class Sys_Prompt {
                                                             "plate_number": "plate_number"
                                                         }
                                                     },
-                                                    "operator": "=",
+                                                    "operator": "==",
                                                     "right": "0"
                                                 }
                                             ],
@@ -969,7 +969,7 @@ public class Sys_Prompt {
                             "current_condition": [
                                 {
                                     "left": "location.NetworkAudioNum",
-                                    "operator": "=",
+                                    "operator": "==",
                                     "right": "0"
                                 }
                             ],
