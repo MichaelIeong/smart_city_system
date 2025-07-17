@@ -26,9 +26,9 @@ public class RedisTest {
         String eventOptions    = String.join("\n", eventList);
         String propertyOptions = String.join("\n", propertyList);
         String actionOptions   = String.join("\n", actionList);
-        String prompt = String.format(Sys_Prompt.SYSTEM_PROMPT1, eventOptions, propertyOptions, actionOptions);
+        String prompt = String.format(Sys_Prompt.SIMPLE_NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
         // 存入redis
-        redisUtil.setSingle(Redis_Constant.SYSTEM_PROMPT1, prompt);
+        redisUtil.setSingle(Redis_Constant.NATURAL_PROMPT, prompt);
     }
 
 
