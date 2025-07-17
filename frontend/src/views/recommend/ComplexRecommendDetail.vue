@@ -1,62 +1,59 @@
 <template>
   <page-header-wrapper>
     <div class="main-container">
+      <!-- 主内容区域，包含聊天和JSON展示 -->
       <div class="content-wrapper">
-        <!-- 左侧聊天区域 -->
+        <!-- 聊天区域 -->
         <div class="chat-wrapper">
-          <div class="chat-container" ref="chatContainer">
+          <div class="chat-container">
             <div
               v-for="(msg, index) in chatHistory"
               :key="index"
-              :class="['chat-message', msg.role]"
-              v-if="msg.content.trim() !== ''"
+              :class="['chat-message', msg.role === 'user' ? 'user' : 'assistant']"
             >
               <div class="message-content">
-                <div class="message-bubble">{{ msg.content }}</div>
-                <div v-if="msg.role === 'assistant' && !msg.isGenerated && msg.isSuccess" class="action-buttons">
-                  <!-- 在聊天区域添加“大模型生成”按钮 -->
-                  <button @click="generateComplexRule" class="generate-btn">大模型生成</button>
+                <div class="message-bubble" v-html="msg.content"></div>
+                <div v-if="msg.role === 'assistant' && msg.isSuccess" class="action-buttons">
+                  <button @click="llmGenerateComplexRule(index)" class="generate-btn">大模型生成</button>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- 输入区域 -->
+          <!-- 输入框区域 -->
           <div class="input-area">
             <input
-              v-model="inputContent"
               type="text"
-              placeholder="请输入复杂应用描述..."
+              v-model="inputContent"
+              placeholder="请输入应用描述..."
               @keyup.enter="sendMessage"
               class="input-box"
             />
-            <button @click="sendMessage">发送</button>
+            <button @click="sendMessage" class="send-btn">发送</button>
           </div>
-
         </div>
 
-        <!-- 右侧JSON规则展示区域 -->
+        <!-- JSON规则展示区域 -->
         <div class="json-viewer">
           <div class="json-header">
             <h3>应用详情</h3>
-            <div class="json-actions" v-if="latestJson">
+            <div class="json-actions" v-if="selectedRule">
               <button @click="submitRule" class="action-btn submit-btn">提交应用</button>
-              <button class="action-btn regenerate-btn" @click="viewInNodeRed(latestJson)">
+              <button class="action-btn regenerate-btn" @click="viewInNodeRed()">
                 在 Node-RED 中查看
               </button>
             </div>
           </div>
           <div class="json-content">
-            <div v-if="latestJson" class="rule-section">
+            <div v-if="selectedRule" class="rule-section">
               <h4>JSON规则</h4>
               <div class="json-rule-container">
                 <json-viewer
-                  :value="latestJson"
-                  :expand-depth="5"
+                  :value="selectedRule.jsonRule"
+                  :expand-depth="10"
                   copyable
                   boxed
                   theme="dark"
-                />
+                ></json-viewer>
               </div>
             </div>
             <div v-else class="empty-state">
@@ -71,147 +68,101 @@
 
 <script setup>
 /* eslint-disable */
-import { ref, nextTick, computed } from 'vue'
-import {
-  generateComplexJsonRule,
-  convertComplexJsonRule,
-  generateComplexNaturalRule,
-} from '@/api/manage'
+import { ref } from 'vue'
+import { createTapRule, generateComplexNaturalRule, generateComplexJsonRule, convertComplexJsonRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
-
 const uuid = uuidv4()
+const chatHistory = ref([
+  { role: 'assistant', content: '您好，我是一个复杂应用自然语言描述的智能助手！', isSuccess: false }
+])
 const inputContent = ref('')
 const isLoading = ref(false)
-const chatContainer = ref(null)
 const selectedRule = ref(null)
-
-const chatHistory = ref([
-  {
-    role: 'assistant',
-    content: '您好，我是一个生成复杂应用JSON规则的智能助手！',
-    jsonResult: null
-  }
-])
-
-const latestJson = computed(() => {
-  const reversed = [...chatHistory.value].reverse()
-  return reversed.find(msg => msg.jsonResult)?.jsonResult || null
-})
 
 async function sendMessage() {
   const content = inputContent.value.trim()
-  console.log("发送内容:", content); // 调试输出：显示发送的消息内容
   if (!content) return
-
   // 添加用户消息
   chatHistory.value.push({ role: 'user', content })
-
-  const loadingIndex = chatHistory.value.length
-  console.log("加载消息索引:", loadingIndex); // 调试输出：显示消息的索引
-  chatHistory.value.push({
-    role: 'assistant',
-    content: '生成中...',
-    jsonResult: null,
-    isSuccess: false  // 初始时设置为false
-  })
-
   inputContent.value = ''
+  // 添加助手响应
   isLoading.value = true
-  console.log("请求状态: 正在加载", isLoading.value); // 调试输出：检查 isLoading 的状态
-
+  const loadingIndex = chatHistory.value.length
+  chatHistory.value.push({ role: 'assistant', content: '生成中...', isSuccess: false })
   try {
-    // 只发送消息，不生成 JSON 规则
-    const res = await generateComplexNaturalRule(uuid, content)
-    console.log("生成的响应:", res); // 调试输出：显示生成的响应内容
-
+    const res = await generateComplexNaturalRule(uuid, content )
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
       content: res,
-      jsonResult: null,
       isSuccess: true
     })
   } catch (error) {
-    console.error("发送失败错误:", error); // 调试输出：显示错误信息
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
-      content: '发送失败，请重试',
-      jsonResult: { error: error.message },
+      content: '生成失败，请重新输入',
       isSuccess: false
     })
   } finally {
     isLoading.value = false
-    console.log("加载状态已解除:", isLoading.value); // 调试输出：检查 isLoading 的状态
-    inputContent.value = ''
-    await nextTick()
-    if (chatContainer.value) {
-      console.log("滚动到最新消息"); // 调试输出：显示滚动操作
-      chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+  }
+}
+
+async function llmGenerateComplexRule(index) {
+  const message = chatHistory.value[index]
+  selectedRule.value = {
+    content: message.content,
+    jsonRule: '正在生成应用JSON规则...',
+    index: index
+  }
+  try {
+    const jsonRes = await generateComplexJsonRule(uuid, message.content)
+    selectedRule.value.jsonRule = jsonRes
+  } catch (error) {
+    selectedRule.value.jsonRule = 'JSON规则生成失败: ' + error.message
+  }
+}
+
+async function viewInNodeRed() {
+  if (selectedRule.value && selectedRule.value.jsonRule) {
+    const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
+    try {
+      const flowJson = await convertComplexJsonRule(JSON.stringify(selectedRule.value.jsonRule))
+
+      await fetch('http://127.0.0.1:1880/flows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(flowJson)
+      })
+
+      hide()
+      message.success('已成功推送至 Node-RED！')
+      window.open('http://127.0.0.1:1880/', '_blank')
+    } catch (error) {
+      hide()
+      message.error('推送失败，请稍后重试')
     }
   }
 }
 
-async function generateComplexRule() {
-  // 获取最后一条消息的内容
-  const lastMessage = chatHistory.value[chatHistory.value.length - 1]
-  console.log("获取的最后一条消息内容:", lastMessage.content); // 调试输出：显示最后一条消息内容
-  const messageContent = lastMessage.content
-  const hide = message.loading('大模型生成中...', 0)
-
-  try {
-    // 调用 API 生成复杂规则
-    const jsonRes = await generateComplexJsonRule(uuid, messageContent)
-    console.log("生成的 JSON 规则:", jsonRes); // 调试输出：显示生成的 JSON 规则
-    latestJson.value = jsonRes  // 更新生成的 JSON 规则
-    hide()
-    message.success('大模型生成完成！')
-
-    chatHistory.value.push({
-      role: 'assistant',
-      content: '对应json规则已生成',
-      jsonResult: jsonRes,
-      isSuccess: true,
-      isGenerated: true
-    })
-    inputContent.value = '' // 清空输入框
-    isLoading.value = false  // 解除加载状态
-    console.log("加载状态已解除:", isLoading.value); // 调试输出：检查 isLoading 的状态
-  } catch (error) {
-    console.error("生成复杂规则失败错误:", error); // 调试输出：显示生成失败的错误信息
-    latestJson.value = '生成复杂应用JSON规则失败: ' + error.message
-    message.error('生成失败：' + error.message)
-    isLoading.value = false  // 即使失败，也确保解除加载状态
+async function submitRule() {
+  if (selectedRule.value && selectedRule.value.jsonRule) {
+    try {
+        const projectId = localStorage.getItem('project_id')
+        await createTapRule(projectId, selectedRule.value.content, JSON.stringify(selectedRule.value.jsonRule, null, 2))
+        message.success('应用创建成功')
+    } catch (error) {
+        message.error('应用创建失败: ' + error.message)
+    }
   }
 }
-
-async function viewInNodeRed(json) {
-  const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
-
-  try {
-    const flowJson = await convertComplexJsonRule(JSON.stringify(json))
-
-    await fetch('http://127.0.0.1:1880/flows', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(flowJson)
-    })
-
-    hide()
-    message.success('已成功推送至 Node-RED！')
-    window.open('http://127.0.0.1:1880/', '_blank')
-  } catch (error) {
-    hide()
-    message.error('推送失败，请稍后重试')
-  }
-}
-
 </script>
 
 <style lang="less" scoped>
 .main-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 250px); /* 根据你的布局调整 */
+  height: calc(100vh - 250px); // 根据你的布局调整
 }
 
 .content-wrapper {
@@ -222,9 +173,10 @@ async function viewInNodeRed(json) {
 }
 
 .chat-wrapper {
-  flex: 6;
+  flex: 5;
   display: flex;
   flex-direction: column;
+  height: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   background: #fff;
@@ -249,7 +201,7 @@ async function viewInNodeRed(json) {
 
 .chat-message.user {
   align-self: flex-end;
-  text-align: right;
+  text-align: left;
 }
 
 .chat-message.assistant {
@@ -276,6 +228,27 @@ async function viewInNodeRed(json) {
   border-bottom-left-radius: 0;
 }
 
+.action-buttons {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.generate-btn {
+  padding: 0.3rem 0.8rem;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.generate-btn:hover {
+  background-color: #059669;
+}
+
 .input-area {
   display: flex;
   padding: 0.5rem 1rem;
@@ -285,15 +258,22 @@ async function viewInNodeRed(json) {
   gap: 0.5rem;
 }
 
-.input-area input {
+.input-box {
   flex: 1;
   padding: 0.5rem 1rem;
   border-radius: 9999px;
   border: 1px solid #cbd5e1;
   font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease-in-out;
 }
 
-.input-area button {
+.input-box:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.send-btn {
   padding: 0.5rem 1.2rem;
   background-color: #3b82f6;
   color: white;
@@ -301,11 +281,12 @@ async function viewInNodeRed(json) {
   border: none;
   font-weight: 600;
   cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease-in-out;
 }
 
-.input-area button[disabled] {
-  background-color: #93c5fd;
-  cursor: not-allowed;
+.send-btn:hover {
+  background-color: #2563eb;
 }
 
 /* JSON展示区域样式 */
@@ -382,6 +363,28 @@ async function viewInNodeRed(json) {
   color: #4b5563;
 }
 
+.rule-text {
+  padding: 0.8rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.rule-json {
+  padding: 0.8rem;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 0.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
 .empty-state {
   height: 100%;
   display: flex;
@@ -397,17 +400,10 @@ async function viewInNodeRed(json) {
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
-  font-family: 'Courier New', monospace;
-}
 
-.generate-btn {
-  padding: 0.3rem 0.8rem;
-  background-color: #3b82f6;
-  color: white;
-  border-radius: 0.5rem;
-  border: none;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  /* 可选：添加一些内边距或间距 */
+  .vjs-value {
+    word-break: break-all;
+  }
 }
 </style>

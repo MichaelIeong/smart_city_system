@@ -201,7 +201,7 @@ async function submitRule() {
 
 .chat-message.user {
   align-self: flex-end;
-  text-align: right;
+  text-align: left;
 }
 
 .chat-message.assistant {
