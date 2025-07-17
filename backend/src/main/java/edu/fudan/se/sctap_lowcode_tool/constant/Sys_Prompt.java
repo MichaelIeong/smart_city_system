@@ -778,7 +778,7 @@ public class Sys_Prompt {
             - **必须使用 wires 字段连接所有节点，保持逻辑顺序与分支一致。**
             - 仅以下节点必须包含中文 `description` 字段：
               **Switch 节点**（判断逻辑）
-              **Wait 节点**（等待条件） 
+              **Wait 节点**（等待条件）
               Event 和 Action 节点不设置 `description`
             
             ## 匹配逻辑

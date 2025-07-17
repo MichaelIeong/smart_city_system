@@ -2,6 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.DTO.app;
 
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class WaitStep implements ChainStep {
 
@@ -17,6 +19,10 @@ public class WaitStep implements ChainStep {
         @Data
         public static class TimeCondition {
 
+            private String event_type;
+
+            private Map<String, String> params;
+
             private String duration;
 
             private String unit;
@@ -27,7 +33,7 @@ public class WaitStep implements ChainStep {
 
             private String event_type;
 
-            private String location;
+            private Map<String, String> params;
         }
 
         public boolean isTimeCondition() {

@@ -56,7 +56,7 @@ public class Json_Example {
                                                         "action_condition": {
                                                             "event_type": "ill_parking",
                                                             "params": {
-                                                                "location": "location",
+                                                                "location": "location"
                                                             }
                                                         }
                                                     }
@@ -93,7 +93,7 @@ public class Json_Example {
                                                             "duration": "3",
                                                             "unit": "minute",
                                                             "params": {
-                                                                "location": "location",
+                                                                "location": "location"
                                                             }
                                                         }
                                                     }
@@ -128,7 +128,7 @@ public class Json_Example {
                                         "action_condition": {
                                             "event_type": "ill_parking",
                                             "params": {
-                                                "location": "location",
+                                                "location": "location"
                                             }
                                         }
                                     }

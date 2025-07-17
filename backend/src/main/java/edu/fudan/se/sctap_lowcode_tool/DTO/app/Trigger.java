@@ -8,6 +8,4 @@ import java.util.Map;
 @Data
 public class Trigger {
     private List<Event> event;
-
-    private List<Map<String, Object>> filter;
 }

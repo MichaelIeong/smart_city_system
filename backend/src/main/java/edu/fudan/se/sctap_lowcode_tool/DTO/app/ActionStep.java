@@ -13,8 +13,6 @@ public class ActionStep implements ChainStep {
     public static class Action {
         private String action_name;
 
-        private List<String> action_location;
-
-        private Map<String, Object> action_param;
+        private Map<String, Object> params;
     }
 }

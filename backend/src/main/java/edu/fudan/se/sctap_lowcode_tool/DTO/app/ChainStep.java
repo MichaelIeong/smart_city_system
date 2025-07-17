@@ -7,8 +7,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ActionStep.class),
         @JsonSubTypes.Type(value = WaitStep.class),
-        @JsonSubTypes.Type(value = IgnoreStep.class),
-        @JsonSubTypes.Type(value = ResumeStep.class),
         @JsonSubTypes.Type(value = BranchStep.class)
 })
 public interface ChainStep {
