@@ -68,7 +68,8 @@ export default {
   methods: {
     async fetchData (id) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/socialResources/project/${id}`)
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
+        const response = await axios.get(`${baseUrl}/api/socialResources/project/${id}`)
         console.log('API response data:', response.data)
         this.socialData = response.data
         this.filteredData = response.data

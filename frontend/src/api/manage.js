@@ -15,6 +15,7 @@ const api = {
   properties: '/api/properties',
   services: '/api/services',
   deviceConfig: '/api/LHA',
+  device: '/api/devices',
   fusionExecute: '/api/fusion/executeRule',
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
