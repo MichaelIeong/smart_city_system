@@ -55,7 +55,7 @@ public class SpaceService {
         SpaceInfo saved = spaceRepository.save(spaceInfo);
 
         SpaceNode node = new SpaceNode();
-        node.setSpaceId(saved.getId());  // 直接使用 SpaceInfo 的 ID 作为 Neo4j 的 @Id
+        node.setSpaceId(saved.getSpaceId());  // 直接使用 SpaceInfo 的 ID 作为 Neo4j 的 @Id
         node.setSpaceName(saved.getSpaceName());
         node.setFixedProperties(saved.getFixedProperties());
         node.setDescription(saved.getDescription());
@@ -76,14 +76,14 @@ public class SpaceService {
 
             SpaceInfo saved = spaceRepository.save(existing);
 
-            spaceNodeRepository.findBySpaceId(saved.getId()).ifPresentOrElse(node -> {
+            spaceNodeRepository.findBySpaceId(saved.getSpaceId()).ifPresentOrElse(node -> {
                 node.setSpaceName(saved.getSpaceName());
                 node.setFixedProperties(saved.getFixedProperties());
                 node.setDescription(saved.getDescription());
                 spaceNodeRepository.save(node);
             }, () -> {
                 SpaceNode newNode = new SpaceNode();
-                newNode.setSpaceId(saved.getId());
+                newNode.setSpaceId(saved.getSpaceId());
                 newNode.setSpaceName(saved.getSpaceName());
                 newNode.setFixedProperties(saved.getFixedProperties());
                 newNode.setDescription(saved.getDescription());
@@ -99,7 +99,7 @@ public class SpaceService {
      */
     public void deleteSpace(int id) {
         spaceRepository.findById(id).ifPresent(space -> {
-            spaceNodeRepository.findBySpaceId(space.getId())
+            spaceNodeRepository.findBySpaceId(space.getSpaceId())
                                .ifPresent(spaceNode -> spaceNodeRepository.delete(spaceNode));
         });
         spaceRepository.deleteById(id);

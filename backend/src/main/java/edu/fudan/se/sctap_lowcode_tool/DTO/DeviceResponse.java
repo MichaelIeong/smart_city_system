@@ -22,8 +22,9 @@ public final class DeviceResponse {
     public final LocalDateTime lastUpdateTime;
     public final List<DeviceState> states;
     public final List<DeviceFunction> functions;
+
     @Getter
-    public final String spaceId; // 新增字段
+    public final Integer spaceId; // 修改为 Integer 类型
 
     public DeviceResponse(DeviceInfo deviceInfo) {
         this.id = deviceInfo.getId();
@@ -59,15 +60,12 @@ public final class DeviceResponse {
                 actuatingFunction.getUrl()
         )).toList();
 
-        this.spaceId = deviceInfo.getSpace().getSpaceId(); // 设置 spaceId
+        this.spaceId = deviceInfo.getSpace() != null ? deviceInfo.getSpace().getSpaceId() : null;
     }
 
-    public record Coordinate(Float x, Float y, Float z) {
-    }
+    public record Coordinate(Float x, Float y, Float z) {}
 
-    public record DeviceState(Integer stateId, String stateKey, String stateValue) {
-    }
+    public record DeviceState(Integer stateId, String stateKey, String stateValue) {}
 
-    public record DeviceFunction(Integer functionId, String functionName, String functionParams, String functionUrl) {
-    }
+    public record DeviceFunction(Integer functionId, String functionName, String functionParams, String functionUrl) {}
 }

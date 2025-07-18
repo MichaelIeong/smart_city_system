@@ -7,62 +7,52 @@ import edu.fudan.se.sctap_lowcode_tool.model.PersonInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.PersonNode;
 import edu.fudan.se.sctap_lowcode_tool.service.PersonService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/person")
-@Tag(name = "PersonController", description = "人員状态控制器")
+@Tag(name = "PersonController", description = "人员状态控制器")
 public class PersonController {
 
-    @Autowired
-    private PersonService personService;
+    private final PersonService personService;
 
+    public PersonController(PersonService personService) {
+        this.personService = personService;
+    }
 
     /**
-     * 根據 ID 獲取單個人員
+     * 根据 personId 获取人员（优先 Neo4j）
      */
-//    @GetMapping("/{id}")
-//    public ResponseEntity<PersonInfo> getPerson(@PathVariable Integer id) {
-//        return personService.getPersonById(id)
-//                .map(ResponseEntity::ok)
-//                .orElse(ResponseEntity.notFound().build());
-//    }
-//    @GetMapping("/{id}")
-    public ResponseEntity<PersonNode> getPerson(@PathVariable Integer id) {
-        return personService.getPersonNodeById(id)
-                .map(ResponseEntity::ok)
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getPerson(@PathVariable Integer id) {
+        // 优先查 Neo4j
+        Optional<PersonNode> neo4jPerson = personService.getPersonNodeById(id);
+        if (neo4jPerson.isPresent()) {
+            return ResponseEntity.ok(neo4jPerson.get());
+        }
+
+        // fallback 到 MySQL
+        Optional<PersonInfo> mysqlPerson = personService.getPersonById(id);
+        return mysqlPerson.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     /**
-     * 查詢所有人員
+     * 获取所有人员（优先返回 Neo4j 格式）
      */
-//    @GetMapping
-//    public ResponseEntity<List<PersonDTO>> getAllPersons() {
-//        List<PersonDTO> dtoList = personService.getAllPersons()
-//                .stream()
-//                .map(person -> new PersonDTO(
-//                        person.getId(),
-//                        person.getPersonName(),
-//                        person.getCurrentSpace() != null ? person.getCurrentSpace().getId() : null
-//                ))
-//                .collect(Collectors.toList());
-//
-//        return ResponseEntity.ok(dtoList);
-//    }
     @GetMapping
     public ResponseEntity<List<PersonDTO>> getAllPersons() {
         List<PersonDTO> dtoList = personService.getAllPersonNodes()
                 .stream()
                 .map(person -> new PersonDTO(
-                        person.getPersonId(), // 改为 person.getPersonId()
+                        person.getPersonId(),
                         person.getPersonName(),
-                        person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null // 假设 Space 也用自定义 Long 类型主键
+                        person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null
                 ))
                 .collect(Collectors.toList());
 
@@ -70,7 +60,7 @@ public class PersonController {
     }
 
     /**
-     * 根據空間 ID 查詢人員
+     * 根据空间 ID 获取人员（Neo4j）
      */
     @GetMapping("/by-space/{spaceId}")
     public ResponseEntity<List<PersonNode>> getPersonsBySpace(@PathVariable Integer spaceId) {
@@ -78,7 +68,7 @@ public class PersonController {
     }
 
     /**
-     * 新增人員（使用 DTO）
+     * 创建新人员（MySQL + Neo4j 双写）
      */
     @PostMapping
     public ResponseEntity<PersonDTO> createPerson(@RequestBody PersonCreateRequest request) {
@@ -87,30 +77,18 @@ public class PersonController {
     }
 
     /**
-     * 更新人員（使用 DTO）
+     * 更新人员信息（MySQL + Neo4j 双写）
      */
-//    @PatchMapping("/{id}")
-//    public ResponseEntity<PersonInfo> updatePerson(@PathVariable Integer id,
-//                                                   @RequestBody PersonUpdateRequest request) {
-//        return personService.updatePerson(id, request)
-//                .map(ResponseEntity::ok)
-//                .orElse(ResponseEntity.notFound().build());
-//    }
-
     @PatchMapping("/{id}")
     public ResponseEntity<PersonDTO> updatePerson(@PathVariable Integer id,
                                                   @RequestBody PersonUpdateRequest request) {
-        return personService.updatePersonNode(id, request)
-                .map(person -> new PersonDTO(
-                        person.getPersonId(),
-                        person.getPersonName(),
-                        person.getCurrentSpace() != null ? person.getCurrentSpace().getSpaceId() : null
-                ))
+        return personService.updatePerson(id, request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
     /**
-     * 設定人員的空間（可傳 null 表示離開空間）
+     * 设置人员的空间
      */
     @PostMapping("/{id}/set-space")
     public ResponseEntity<PersonInfo> setPersonSpace(
@@ -123,7 +101,7 @@ public class PersonController {
     }
 
     /**
-     * 刪除人員
+     * 删除人员（MySQL + Neo4j）
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePerson(@PathVariable Integer id) {
