@@ -1,20 +1,18 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleRequest;
-import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
+import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/taps")
 public class AppRuleController {
-
-    @Autowired
+    @Resource
     private AppRuleService appRuleService;
 
     @GetMapping
@@ -51,6 +49,70 @@ public class AppRuleController {
     @DeleteMapping
     public void deleteAll(@RequestParam("id") List<Integer> ids) {
         appRuleService.deleteRulesByIds(ids);
+    }
+
+    /**
+     * 生成自然语言规则
+     * */
+    @PostMapping("/recommend/generateNaturalRule")
+    public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
+        return appRuleService.generateNaturalRule(recommendRequest);
+    }
+
+    /**
+     * 生成json规则
+     * */
+    @PostMapping("/recommend/generateJsonRule")
+    public ResponseEntity<String> generateJsonRule(@RequestBody RecommendRequest recommendRequest) {
+        return appRuleService.generateJsonRule(recommendRequest);
+    }
+
+    /**
+     * 生成自然语言规则
+     * */
+    @PostMapping("/recommend/generateComplexNaturalRule")
+    public ResponseEntity<String> generateComplexNaturalRule(@RequestBody RecommendRequest recommendRequest){
+        return appRuleService.generateComplexNaturalRule(recommendRequest);
+    }
+
+    /**
+     * 复杂应用json规则生成
+     * */
+    @PostMapping("/recommend/generateComplexJsonRule")
+    public ResponseEntity<String> generateComplexJsonRule(@RequestBody RecommendRequest recommendRequest) {
+        return appRuleService.generateComplexJsonRule(recommendRequest);
+    }
+
+    /**
+     * 复杂应用json规则node red转换
+     * */
+    @PostMapping("/recommend/convertComplexJsonRule")
+    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
+        return appRuleService.convertComplexJsonRule(appRuleRequest);
+    }
+
+    /**
+     * 从向量数据库中匹配
+     * */
+    @PostMapping("/recommend/findSimilarRule")
+    public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) {
+        return appRuleService.findSimilarRules(recommendRequest);
+    }
+
+    /**
+     * 触发应用规则
+     * */
+    @PostMapping("/trigger")
+    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
+        appRuleService.triggerAppRule(eventTriggerDTO);
+    }
+
+    /**
+     * 动作完成上报
+     * */
+    @PostMapping("/action/complete")
+    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
+        appRuleService.actionComplete(actionCompleteDTO);
     }
 
 }

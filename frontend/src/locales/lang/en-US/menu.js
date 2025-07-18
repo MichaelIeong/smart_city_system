@@ -46,5 +46,7 @@ export default {
     'menu.resource.social-resource': 'Social Resource',
     'menu.space-scene': 'Scene Display',
     'menu.event-fusion': 'Event Fusion',
-    'menu.service-group': 'Service Group'
+    'menu.service-group': 'Service Group',
+    'menu.recommend': 'App Recommendation',
+    'menu.recommend.complex': 'Complex App Recommendation'
 }

@@ -102,13 +102,20 @@ export const asyncRouterMap = [{
         }
       ]
     },
-    // // 应用推荐
-    // {
-    //   path: '/recommend',
-    //   name: 'RecommendDetail',
-    //   component: () => import('@/views/recommend/RecommendDetail'),
-    //   meta: { title: 'menu.recommend', keepAlive: true, icon: 'fork' }
-    // },
+    // 应用推荐
+    {
+      path: '/recommend',
+      name: 'RecommendDetail',
+      component: () => import('@/views/recommend/RecommendDetail'),
+      meta: { title: 'menu.recommend', keepAlive: true, icon: 'star' }
+    },
+    // 复杂应用推荐
+    {
+      path: '/recommend/complex',
+      name: 'ComplexRecommendDetail',
+      component: () => import('@/views/recommend/ComplexRecommendDetail'),
+      meta: { title: 'menu.recommend.complex', keepAlive: true, icon: 'star' }
+    },
     // result
     {
       path: '/result',

@@ -108,8 +108,9 @@ export function saveSub (sub) {
 }
 
 export function getTapList (parameter) {
+  const projectId = localStorage.getItem('project_id')
   return request({
-    url: api.tap + `?project=1`,
+    url: api.tap + `?project=${projectId}`,
     method: 'get',
     params: parameter
   })
@@ -308,6 +309,122 @@ export function getSensors (projectId) {
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+// 生成自然语言描述 tap 规则
+export function generateNaturalRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateNaturalRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 15000
+  })
+}
+
+// 匹配已有的tap规则
+export function findSimilarRules (message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/findSimilarRule`,
+    method: 'post',
+    data: {
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 生成 json 形式的 tap 规则
+export function generateJsonRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateJsonRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 15000
+  })
+}
+
+// 生成复杂应用自然语言描述规则
+export function generateComplexNaturalRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateComplexNaturalRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 30000
+  })
+}
+
+// 生成复杂应用 json 形式规则
+export function generateComplexJsonRule (uuid, message) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/generateComplexJsonRule`,
+    method: 'post',
+    data: {
+      uuid,
+      message
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
+  })
+}
+
+// 复杂应用 json 转换
+export function convertComplexJsonRule (ruleJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/recommend/convertComplexJsonRule`,
+    method: 'post',
+    data: {
+      ruleJson
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
+  })
+}
+
+// 保存tap规则
+export function createTapRule (projectId, description, ruleJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}`,
+    method: 'post',
+    data: {
+      description,
+      ruleJson,
+      projectId
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
     }
   })
 }

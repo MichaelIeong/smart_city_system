@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
 import lombok.Data;
 import lombok.ToString;
+import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.data.neo4j.core.schema.*;
 
 import java.time.LocalDateTime;
@@ -14,8 +15,7 @@ public class DeviceNode {
 
     @Id
     @Property("deviceId")
-    //private Integer id;   // 设备的唯一标识符
-    private Integer deviceId;     // 自定义设备ID（空间内唯一）
+    private String deviceId;     // 自定义设备ID
     @ToString.Exclude
     @Relationship(type = "INSTALLED_IN", direction = Relationship.Direction.OUTGOING)
     private SpaceNode space;   // 所属空间

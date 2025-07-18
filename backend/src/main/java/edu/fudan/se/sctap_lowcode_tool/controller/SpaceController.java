@@ -11,10 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -32,15 +29,13 @@ public class SpaceController {
         if (spaceInfoOptional.isPresent()) {
             SpaceInfo spaceInfo = spaceInfoOptional.get();
 
-            // 构建返回的 Map
             Map<String, Object> result = new HashMap<>();
-            result.put("id", spaceInfo.getId());
+            result.put("id", spaceInfo.getSpaceId());
             result.put("projectId", spaceInfo.getProjectInfo().getProjectId());
             result.put("spaceId", spaceInfo.getSpaceId());
             result.put("spaceName", spaceInfo.getSpaceName());
             result.put("description", spaceInfo.getDescription());
 
-            // properties
             List<Map<String, Object>> propertiesList = spaceInfo.getProperties().stream()
                     .map(property -> {
                         Map<String, Object> propertyMap = new HashMap<>();
@@ -54,7 +49,6 @@ public class SpaceController {
                     .collect(Collectors.toList());
             result.put("properties", propertiesList);
 
-            // 处理 fixedProperties: string -> JSON
             String fixedProperties = spaceInfo.getFixedProperties();
             if (fixedProperties != null && !fixedProperties.trim().isEmpty()) {
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -62,33 +56,28 @@ public class SpaceController {
                     JsonNode fixedPropertiesJson = objectMapper.readTree(fixedProperties);
                     result.put("fixedProperties", fixedPropertiesJson);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     result.put("fixedProperties", "Invalid JSON format");
                 }
             } else {
                 result.put("fixedProperties", null);
             }
 
-            // event
             List<Map<String, Object>> eventList = spaceInfo.getEvents().stream()
                     .map(event -> {
                         Map<String, Object> eventMap = new HashMap<>();
                         eventMap.put("eventId", event.getEventId());
                         eventMap.put("eventType", event.getEventType());
                         return eventMap;
-                    })
-                    .toList();
+                    }).toList();
             result.put("events", eventList);
 
-            // service
             List<Map<String, Object>> serviceList = spaceInfo.getServices().stream()
                     .map(service -> {
                         Map<String, Object> serviceMap = new HashMap<>();
                         serviceMap.put("serviceId", service.getServiceId());
                         serviceMap.put("serviceName", service.getServiceName());
                         return serviceMap;
-                    })
-                    .toList();
+                    }).toList();
             result.put("services", serviceList);
 
             return new ResponseEntity<>(result, HttpStatus.OK);
@@ -99,18 +88,16 @@ public class SpaceController {
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getSpaceInfoByProjectId(
-            @RequestParam("project") int projectId
-    ) {
+            @RequestParam("project") int projectId) {
         List<SpaceInfo> spaces = spaceService.findSpacesByProjectId(projectId);
         if (spaces.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        // 将 SpaceInfo 转换为 Map<String, Object>
         List<Map<String, Object>> result = spaces.stream()
                 .map(space -> {
                     Map<String, Object> spaceMap = new HashMap<>();
-                    spaceMap.put("id", space.getId());
+                    spaceMap.put("id", space.getSpaceId());
                     spaceMap.put("spaceId", space.getSpaceId());
                     spaceMap.put("spaceName", space.getSpaceName());
                     return spaceMap;
@@ -118,5 +105,24 @@ public class SpaceController {
                 .collect(Collectors.toList());
 
         return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping
+    public ResponseEntity<SpaceInfo> createSpace(@RequestBody SpaceInfo spaceInfo) {
+        SpaceInfo created = spaceService.saveSpace(spaceInfo);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SpaceInfo> updateSpace(@PathVariable int id, @RequestBody SpaceInfo spaceInfo) {
+        return spaceService.updateSpace(id, spaceInfo)
+                .map(updated -> new ResponseEntity<>(updated, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSpace(@PathVariable int id) {
+        spaceService.deleteSpace(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
