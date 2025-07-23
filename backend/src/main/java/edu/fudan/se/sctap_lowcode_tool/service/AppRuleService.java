@@ -280,6 +280,14 @@ public class AppRuleService {
             messages.add(response.aiMessage());
             messageMap.put(uuid, messages);
             jsonContent = response.aiMessage().text();
+            System.out.println("--------------");
+            System.out.println(jsonContent);
+            Pattern pattern = Pattern.compile("```json\\s*(\\{[\\s\\S]*?\\})\\s*```");
+            Matcher matcher = pattern.matcher(jsonContent);
+            // 如果匹配到，提取 JSON 内容
+            if (matcher.find()) {
+                jsonContent = matcher.group(1).trim();
+            }
             AppRuleData appRuleData;
             try{
                 appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
