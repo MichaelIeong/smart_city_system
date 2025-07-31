@@ -9,6 +9,20 @@ services:
     networks:
       - app-network
     restart: always
+    environment:
+      - DB_HOST=smart_city_mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - DB_NAME=smart_city
+      - KAFKA_BOOTSTRAP_SERVERS=smart_city_kafka:9092
+      - REDIS_HOST=smart_city_redis
+      - REDIS_PORT=6379
+      - MILVUS_HOST=smart_city_milvus
+      - MILVUS_PORT=19530
+      - NEO4J_URI=bolt://smart_city_neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=smartcity
 
   smart_city_frontend:
     container_name: smart-city-frontend
@@ -33,6 +47,102 @@ services:
       - app-network
     restart: always
 
+  smart_city_mysql:
+    container_name: smart-city-mysql
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: smart_city
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - smart_city_mysql_data:/var/lib/mysql
+      - ./backend/smart_city.sql:/docker-entrypoint-initdb.d/smart_city.sql
+    networks:
+      - app-network
+    restart: always
+
+  smart_city_redis:
+    container_name: smart-city-redis
+    image: redis:6.0
+    environment:
+      REDIS_PASSWORD: 123456
+    ports:
+      - "6379:6379"
+    volumes:
+      - smart_city_redis_data:/data
+    networks:
+      - app-network
+    restart: always
+    command: ["redis-server", "--requirepass", "123456"]
+
+  smart_city_kafka:
+    container_name: smart-city-kafka
+    image: wurstmeister/kafka:latest
+    environment:
+      KAFKA_ADVERTISED_LISTENER: INSIDE_KAFKA:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAME_INTERNAL: INSIDE_KAFKA
+      KAFKA_LISTENER_INTERNAL: INSIDE_KAFKA://0.0.0.0:9093
+      KAFKA_LISTENER_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: smart_city_zookeeper:2181
+    ports:
+      - "9092:9092"
+    volumes:
+      - smart_city_kafka_data:/var/lib/kafka/data
+    depends_on:
+      - smart_city_zookeeper
+    networks:
+      - app-network
+    restart: always
+
+  smart_city_zookeeper:
+    container_name: smart-city-zookeeper
+    image: wurstmeister/zookeeper:latest
+    ports:
+      - "2181:2181"
+    volumes:
+      - smart_city_zookeeper_data:/data
+    networks:
+      - app-network
+    restart: always
+
+  smart_city_milvus:
+    container_name: smart-city-milvus
+    image: milvusdb/milvus:latest
+    environment:
+      MILVUS_MEMORY: 4096MB
+    ports:
+      - "19530:19530"
+    volumes:
+      - smart_city_milvus_data:/var/lib/milvus
+    networks:
+      - app-network
+    restart: always
+
+  smart_city_neo4j:
+    container_name: smart-city-neo4j
+    image: neo4j:4.3
+    environment:
+      NEO4J_AUTH: neo4j/smartcity
+    ports:
+      - "7687:7687"
+    volumes:
+      - smart_city_neo4j_data:/data
+    networks:
+      - app-network
+    restart: always
+
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  smart_city_mysql_data: {}  
+  smart_city_redis_data: {}  
+  smart_city_kafka_data: {}  
+  smart_city_zookeeper_data: {}  
+  smart_city_milvus_data: {}  
+  smart_city_neo4j_data: {}  
