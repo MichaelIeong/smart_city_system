@@ -12,7 +12,7 @@ import java.util.Objects;
 public class EventTypeNode {
 
     @Id
-    private String eventTypeId;  // 事件类型唯一标识（如 manhole-flooding）
+    private Integer eventTypeId;  // 事件类型唯一标识（如 manhole-flooding）
 
     private String eventType;    // 事件类型名称（如 井盖水浸）
 

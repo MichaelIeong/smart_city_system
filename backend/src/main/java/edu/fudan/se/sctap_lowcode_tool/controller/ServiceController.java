@@ -6,6 +6,9 @@ import edu.fudan.se.sctap_lowcode_tool.execution.ServiceTaskExecutor;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.ServiceService;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +35,8 @@ public class ServiceController {
 
 
     private final WorkflowParser parser;
+    @Autowired
+    private SpaceNodeRepository spaceNodeRepository;
 
     @Autowired
     public ServiceController(WorkflowParser parser, TaskScheduler scheduler) {
@@ -55,7 +60,11 @@ public class ServiceController {
     @Operation(summary = "获取规则列表", description = "将规则列表传给前端")
     @GetMapping("/getServiceList")
     public ResponseEntity<?> getServiceList(HttpServletRequest request) {
-        List<ServiceInfo> serviceRuleList = serviceService.getServiceList();
+        // 这个是从mysql
+        // List<ServiceInfo> serviceRuleList = serviceService.getServiceList();
+        // 这个是从neo4j
+        List<ServiceNode> serviceRuleList = serviceService.getServiceNodeList();
+
         return ResponseEntity.ok(serviceRuleList);
     }
 
@@ -65,6 +74,7 @@ public class ServiceController {
         String compositionName = "";
         String projectId = "";
         Integer serviceId = 2;
+        Integer spaceId = null;
         // 遍历 JSON 数组
         System.out.println(serviceMsg);
         for (JsonNode node : serviceMsg) {
@@ -88,6 +98,9 @@ public class ServiceController {
                 projectId = Optional.ofNullable(node.get("projectId"))
                         .map(JsonNode::asText)
                         .orElse(null);
+                spaceId = Optional.ofNullable(node.get("spaceId"))
+                        .map(JsonNode::asInt)
+                        .orElse(null);
             }
         }
 
@@ -105,6 +118,15 @@ public class ServiceController {
         serviceService.addOrUpdateService(serviceInfo);
 
         // System.out.println(serviceMsg.get("compositionName"));
+        // 这里是neo4j
+        ServiceNode serviceNode = new ServiceNode();
+        serviceNode.setServiceJson(serviceMsg.toString());
+        serviceNode.setServiceId(serviceId);
+        serviceNode.setDescription("这是一个服务");
+        serviceNode.setServiceName(compositionName);
+        SpaceNode currentSpace = spaceNodeRepository.findBySpaceId(spaceId).get();
+
+        serviceNode.setParentingSpace(currentSpace);
 
         return ResponseEntity.ok().build();
     }
@@ -126,19 +148,19 @@ public class ServiceController {
 //        return ResponseEntity.ok().build();
 //    }
 
-    @Operation(summary = "LLM生成CSP", description = "用LLM生成CSP，放到数据库")
-    @GetMapping("/generateCSPbyLLM")
-    public ResponseEntity<?> CSPbyLLM(@RequestParam Integer serviceId){
-        try {
-            // 调用服务层生成CSP
-            String csp = serviceService.generateCSP(serviceId);
-            // 返回生成的CSP
-            return ResponseEntity.ok(csp);
-        } catch (Exception e) {
-            // 错误处理
-            return ResponseEntity.status(500).body("Error generating CSP: " + e.getMessage());
-        }
-    }
+//    @Operation(summary = "LLM生成CSP", description = "用LLM生成CSP，放到数据库")
+//    @GetMapping("/generateCSPbyLLM")
+//    public ResponseEntity<?> CSPbyLLM(@RequestParam Integer serviceId){
+//        try {
+//            // 调用服务层生成CSP
+//            String csp = serviceService.generateCSP(serviceId);
+//            // 返回生成的CSP
+//            return ResponseEntity.ok(csp);
+//        } catch (Exception e) {
+//            // 错误处理
+//            return ResponseEntity.status(500).body("Error generating CSP: " + e.getMessage());
+//        }
+//    }
 
     @Operation(summary = "服务执行引擎入口", description = "调用执行引擎，执行响应服务")
     @GetMapping("/executorService")

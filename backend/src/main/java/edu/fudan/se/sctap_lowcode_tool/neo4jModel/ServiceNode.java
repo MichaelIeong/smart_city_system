@@ -10,7 +10,7 @@ public class ServiceNode {
     @Id
     private Integer serviceId; // 全局唯一标识，需手动维护或通过逻辑生成
 
-    @Relationship(type = "PROVIDED_IN", direction = Relationship.Direction.OUTGOING)
+    @Relationship(type = "INSTALLED_IN", direction = Relationship.Direction.OUTGOING)
     private SpaceNode parentingSpace; // 所属空间，关系名自定义为 PROVIDED_IN
 
     private String serviceName; // 服务名称，例如“会议模式”
