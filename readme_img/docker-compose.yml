@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0.33
+    container_name: smart_city_mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: smart_city
+    command: [
+      "--default-authentication-plugin=mysql_native_password",
+      "--skip-host-cache",
+      "--skip-name-resolve"
+    ]
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
