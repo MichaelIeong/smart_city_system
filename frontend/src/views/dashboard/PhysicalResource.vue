@@ -205,9 +205,9 @@ export default {
       try {
         // 从 localStorage 获取保存的 projectId
         const projectId = localStorage.getItem('project_id')
-
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
         // 发起带有 projectId 的 API 请求
-        const response = await axios.get(`http://localhost:8080/api/devices`, {
+        const response = await axios.get(`${baseUrl}/api/devices`, {
           params: {
             project: projectId // 作为查询参数发送 projectId
           }
@@ -317,9 +317,9 @@ export default {
       try {
         // 从 localStorage 获取保存的 projectId
         const projectId = localStorage.getItem('project_id')
-
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
         // 发起带有 projectId 的 API 请求
-        const response = await axios.get('http://localhost:8080/api/deviceTypes', {
+        const response = await axios.get(`${baseUrl}/api/deviceTypes`, {
           params: {
             project: projectId // 作为查询参数发送 projectId
           }

@@ -107,7 +107,6 @@
             <version>3.6.0</version>
         </dependency>
         <!-- spring-ai -->
-
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
@@ -119,7 +118,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.milvus</groupId>
             <artifactId>milvus-sdk-java</artifactId>
@@ -149,7 +147,12 @@
             <artifactId>spring-data-neo4j</artifactId>
             <version>7.2.5</version>
         </dependency>
-
+        <!-- langchain4j-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+            <version>1.0.0-beta3</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

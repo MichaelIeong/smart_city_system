@@ -197,7 +197,8 @@ export default {
     },
     async fetchData (spaceID) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/spaces/${spaceID}`)
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
+        const response = await axios.get(`${baseUrl}/api/spaces/${spaceID}`)
         console.log('response data:', response.data)
         const data = response.data
 
@@ -232,8 +233,8 @@ export default {
       try {
         // 从 localStorage 获取保存的 projectId
         const projectID = localStorage.getItem('project_id')
-
-        const response = await axios.get(`http://localhost:8080/api/spaces?project=${projectID}`)
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
+        const response = await axios.get(`${baseUrl}/api/spaces?project=${projectID}`)
         this.spaces = response.data
       } catch (error) {
         console.error('Error fetching spaces:', error)

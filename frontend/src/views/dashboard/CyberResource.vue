@@ -80,7 +80,8 @@ export default {
   methods: {
     async fetchData (id) {
       try {
-        const response = await axios.get(`http://localhost:8080/api/cyberResources/project/${id}`)
+        const baseUrl = process.env.VUE_APP_API_BASE_URL
+        const response = await axios.get(`${baseUrl}/api/cyberResources/project/${id}`)
         this.cyberData = response.data
         this.filteredData = response.data.slice(0, this.pagination.pageSize) // 初始化第一页数据
         this.pagination.total = response.data.length // 更新总数

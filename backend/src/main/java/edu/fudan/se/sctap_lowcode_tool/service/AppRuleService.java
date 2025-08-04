@@ -5,6 +5,11 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
 import edu.fudan.se.sctap_lowcode_tool.constant.Json_Example;
@@ -18,12 +23,6 @@ import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +47,7 @@ public class AppRuleService {
     @Resource
     private MilvusUtil milvusUtil;
 
-    private final ChatClient chatClient;
+    private final ChatLanguageModel chatLanguageModel;
 
     @Resource
     private RedisUtil redisUtil;
@@ -57,11 +56,11 @@ public class AppRuleService {
     private Executor ruleExecutor;
 
     // 保存生成自然语言规则消息
-    private final Map<String, List<Message>> messageMap = new HashMap<>();
+    private final Map<String, List<ChatMessage>> messageMap = new HashMap<>();
     // 保存自然语言规则和对应的事件、属性、动作
     private final Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
     // 保存复杂规则生成对话消息
-    private final Map<String, List<Message>> complexMessageMap = new HashMap<>();
+    private final Map<String, List<ChatMessage>> complexMessageMap = new HashMap<>();
     // 记录每个uuid最后的访问时间
     private final Map<String, Long> uuidTimeMap = new HashMap<>();
     // 记录处于等待中的应用规则
@@ -69,8 +68,8 @@ public class AppRuleService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AppRuleService(ChatClient.Builder builder) {
-        this.chatClient = builder.build();
+    public AppRuleService(ChatLanguageModel chatLanguageModel) {
+        this.chatLanguageModel = chatLanguageModel;
     }
 
     public PageDTO<AppRuleInfo> getAllRulesByProjectId(Integer projectId, int pageNo, int pageSize) {
@@ -146,7 +145,7 @@ public class AppRuleService {
     public ResponseEntity<String> generateJsonRule(RecommendRequest recommendRequest) {
         String uuid = recommendRequest.getUuid();
         String message = recommendRequest.getMessage();
-        List<Message> messages = new ArrayList<>();
+        List<ChatMessage> messages = new ArrayList<>();
         // 构造系统提示词
         List<AppRuleData> appRuleDataList = ruleDataMap.get(uuid);
         if(appRuleDataList==null){
@@ -173,13 +172,10 @@ public class AppRuleService {
         messages.add(new SystemMessage(systemPrompt));
         // 加入用户输入的消息
         messages.add(new UserMessage(message));
-        Prompt prompt = new Prompt(messages);
         // 规定输出的格式为 JSON
-        ChatResponse response = chatClient.prompt(prompt)
-                .call()
-                .chatResponse();
+        ChatResponse response = chatLanguageModel.chat(messages);
         if (response != null) {
-            String text = response.getResult().getOutput().getText();
+            String text = response.aiMessage().text();
             Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
             if (matcher.find()) {
                 return ResponseEntity.ok(matcher.group(1).trim());
@@ -194,23 +190,20 @@ public class AppRuleService {
         // 更新uuid的时间戳
         uuidTimeMap.put(uuid, System.currentTimeMillis());
         // 获取内存中的消息
-        List<Message> messages = complexMessageMap.getOrDefault(uuid, new ArrayList<>());
+        List<ChatMessage> messages = complexMessageMap.getOrDefault(uuid, new ArrayList<>());
         // 如果内存中不存在就构建消息
         if(messages.isEmpty()){
             messages.add(new SystemMessage(Sys_Prompt.COMPLEX_NATURAL_RULE_PROMPT));
         }
         // 将用户输入的消息加入
         messages.add(new UserMessage(message));
-        Prompt prompt = new Prompt(messages);
-        ChatResponse response = chatClient.prompt(prompt)
-                .call()
-                .chatResponse();
+        ChatResponse response = chatLanguageModel.chat(messages);
         // 解析输出的内容
         if (response != null) {
             // 加入消息
-            messages.add(response.getResult().getOutput());
+            messages.add(response.aiMessage());
             complexMessageMap.put(uuid, messages);
-            String text = response.getResult().getOutput().getText();
+            String text = response.aiMessage().text();
             return ResponseEntity.ok(text);
         }
         return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
@@ -219,16 +212,13 @@ public class AppRuleService {
     public ResponseEntity<String> generateComplexJsonRule(RecommendRequest recommendRequest) {
         String message = recommendRequest.getMessage();
         // 构造消息
-        List<Message> messages = new ArrayList<>();
+        List<ChatMessage> messages = new ArrayList<>();
         messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_PROMPT));
         messages.add(new UserMessage(message));
-        Prompt prompt = new Prompt(messages);
         // 规定输出的格式为 JSON
-        ChatResponse response = chatClient.prompt(prompt)
-                .call()
-                .chatResponse();
+        ChatResponse response = chatLanguageModel.chat(messages);
         if (response != null) {
-            String text = response.getResult().getOutput().getText();
+            String text = response.aiMessage().text();
             Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
             if (matcher.find()) {
                 return ResponseEntity.ok(matcher.group(1).trim());
@@ -240,16 +230,13 @@ public class AppRuleService {
     public  ResponseEntity<String> convertComplexJsonRule(AppRuleRequest appRuleRequest) {
         String ruleJson = appRuleRequest.ruleJson();
         // 构建系统消息和用户消息
-        List<Message> messages = new ArrayList<>();
+        List<ChatMessage> messages = new ArrayList<>();
         messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_CONVERT_PROMPT));
         messages.add(new UserMessage(ruleJson));
-        Prompt prompt = new Prompt(messages);
         // 规定输出的格式为 JSON
-        ChatResponse response = chatClient.prompt(prompt)
-                .call()
-                .chatResponse();
+        ChatResponse response = chatLanguageModel.chat(messages);
         if (response != null) {
-            String text = response.getResult().getOutput().getText();
+            String text = response.aiMessage().text();
             Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
             if (matcher.find()) {
                 return ResponseEntity.ok(matcher.group(1).trim());
@@ -264,7 +251,7 @@ public class AppRuleService {
         // 更新uuid的时间戳
         uuidTimeMap.put(uuid, System.currentTimeMillis());
         // 获取内存中的消息
-        List<Message> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
+        List<ChatMessage> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
         // 如果内存中不存在就构建消息
         if(messages.isEmpty()){
             // 从redis中获取系统提示词
@@ -285,25 +272,20 @@ public class AppRuleService {
         }
         // 将用户输入的消息加入
         messages.add(new UserMessage(message));
-        Prompt prompt = new Prompt(messages);
-        // 规定输出的格式为 JSON
-        DashScopeResponseFormat responseFormat = new DashScopeResponseFormat();
-        responseFormat.setType(DashScopeResponseFormat.Type.JSON_OBJECT);
-        ChatResponse response = chatClient.prompt(prompt)
-                .options(
-                        DashScopeChatOptions.builder()
-                                .withResponseFormat(responseFormat)
-                                .build()
-                )
-                .call()
-                .chatResponse();
+        ChatResponse response = chatLanguageModel.chat(messages);
         // 解析输出的内容
         String jsonContent;
         if (response != null) {
             // 加入消息
-            messages.add(response.getResult().getOutput());
+            messages.add(response.aiMessage());
             messageMap.put(uuid, messages);
-            jsonContent = response.getResult().getOutput().getText();
+            jsonContent = response.aiMessage().text();
+            Pattern pattern = Pattern.compile("```json\\s*(\\{[\\s\\S]*?\\})\\s*```");
+            Matcher matcher = pattern.matcher(jsonContent);
+            // 如果匹配到，提取 JSON 内容
+            if (matcher.find()) {
+                jsonContent = matcher.group(1).trim();
+            }
             AppRuleData appRuleData;
             try{
                 appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
