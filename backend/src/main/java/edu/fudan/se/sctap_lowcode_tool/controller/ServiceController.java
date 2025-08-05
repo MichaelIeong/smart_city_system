@@ -131,37 +131,6 @@ public class ServiceController {
         return ResponseEntity.ok().build();
     }
 
-//    @Operation(summary = "查看CSP", description = "返回服务的CSP模型")
-//    @GetMapping ("/getCSP")
-//    public ResponseEntity<?> getCSP(@RequestParam Integer serviceId) {
-//        ServiceInfo serviceInfo = serviceService.getService(serviceId);
-//        //System.out.println(serviceInfo.getServiceCsp());
-//        return ResponseEntity.ok(serviceInfo.getServiceCsp());
-//    }
-
-//    @Operation(summary = "手动生成CSP", description = "手敲的CSP，放到数据库")
-//    @PostMapping("/generateCSPbyHand")
-//    public ResponseEntity<Void> CSPbyHand(@RequestParam Integer serviceId, @RequestBody String Csp){
-//        ServiceInfo serviceInfo = serviceService.getService(serviceId);
-//        serviceInfo.setServiceCsp(Csp);
-//        serviceService.addOrUpdateService(serviceInfo);
-//        return ResponseEntity.ok().build();
-//    }
-
-//    @Operation(summary = "LLM生成CSP", description = "用LLM生成CSP，放到数据库")
-//    @GetMapping("/generateCSPbyLLM")
-//    public ResponseEntity<?> CSPbyLLM(@RequestParam Integer serviceId){
-//        try {
-//            // 调用服务层生成CSP
-//            String csp = serviceService.generateCSP(serviceId);
-//            // 返回生成的CSP
-//            return ResponseEntity.ok(csp);
-//        } catch (Exception e) {
-//            // 错误处理
-//            return ResponseEntity.status(500).body("Error generating CSP: " + e.getMessage());
-//        }
-//    }
-
     @Operation(summary = "服务执行引擎入口", description = "调用执行引擎，执行响应服务")
     @GetMapping("/executorService")
     public ResponseEntity<?> executorService(@RequestParam Integer serviceId) throws Exception {
@@ -189,6 +158,3 @@ public class ServiceController {
         return ResponseEntity.ok().build();
     }
 }
-
-
-//通过serviceId获取node-red的json，通过json，获取里面的deviceId，通过deviceId获取LHA
