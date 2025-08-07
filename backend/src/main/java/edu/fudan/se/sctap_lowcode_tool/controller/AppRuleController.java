@@ -55,64 +55,50 @@ public class AppRuleController {
      * 生成自然语言规则
      * */
     @PostMapping("/recommend/generateNaturalRule")
-    public ResponseEntity<String> generateNaturalRule(@RequestBody RecommendRequest recommendRequest){
-        return appRuleService.generateNaturalRule(recommendRequest);
+    public ResponseEntity<String> generateNaturalRule(@RequestBody RuleGenerateRequest ruleGenerateRequest){
+        return appRuleService.generateNaturalRule(ruleGenerateRequest);
     }
 
     /**
-     * 生成json规则
+     * 生成JSON规则
      * */
     @PostMapping("/recommend/generateJsonRule")
-    public ResponseEntity<String> generateJsonRule(@RequestBody RecommendRequest recommendRequest) {
-        return appRuleService.generateJsonRule(recommendRequest);
-    }
-
-    /**
-     * 生成自然语言规则
-     * */
-    @PostMapping("/recommend/generateComplexNaturalRule")
-    public ResponseEntity<String> generateComplexNaturalRule(@RequestBody RecommendRequest recommendRequest){
-        return appRuleService.generateComplexNaturalRule(recommendRequest);
-    }
-
-    /**
-     * 复杂应用json规则生成
-     * */
-    @PostMapping("/recommend/generateComplexJsonRule")
-    public ResponseEntity<String> generateComplexJsonRule(@RequestBody RecommendRequest recommendRequest) {
-        return appRuleService.generateComplexJsonRule(recommendRequest);
-    }
-
-    /**
-     * 复杂应用json规则node red转换
-     * */
-    @PostMapping("/recommend/convertComplexJsonRule")
-    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
-        return appRuleService.convertComplexJsonRule(appRuleRequest);
+    public ResponseEntity<String> generateJsonRule(@RequestBody RuleGenerateRequest ruleGenerateRequest) {
+        return appRuleService.generateJsonRule(ruleGenerateRequest);
     }
 
     /**
      * 从向量数据库中匹配
      * */
     @PostMapping("/recommend/findSimilarRule")
-    public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RecommendRequest recommendRequest) {
-        return appRuleService.findSimilarRules(recommendRequest);
+    public ResponseEntity<AppRuleInfo> findSimilarRules(@RequestBody RuleGenerateRequest ruleGenerateRequest) {
+        return appRuleService.findSimilarRules(ruleGenerateRequest);
     }
 
-    /**
-     * 触发应用规则
-     * */
-    @PostMapping("/trigger")
-    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
-        appRuleService.triggerAppRule(eventTriggerDTO);
-    }
+//
+//    /**
+//     * 复杂应用json规则node red转换
+//     * */
+//    @PostMapping("/recommend/convertComplexJsonRule")
+//    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
+//        return appRuleService.convertComplexJsonRule(appRuleRequest);
+//    }
 
-    /**
-     * 动作完成上报
-     * */
-    @PostMapping("/action/complete")
-    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
-        appRuleService.actionComplete(actionCompleteDTO);
-    }
+
+//    /**
+//     * 触发应用规则
+//     * */
+//    @PostMapping("/trigger")
+//    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
+//        appRuleService.triggerAppRule(eventTriggerDTO);
+//    }
+//
+//    /**
+//     * 动作完成上报
+//     * */
+//    @PostMapping("/action/complete")
+//    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
+//        appRuleService.actionComplete(actionCompleteDTO);
+//    }
 
 }
