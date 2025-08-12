@@ -62,4 +62,20 @@ public class FusionRuleController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
         }
     }
+
+    @Operation(summary = "获取规则可执行的空间列表", description = "检查该规则在哪些空间（location）可以执行")
+    @GetMapping("/executableLocations/{ruleId}")
+    public ResponseEntity<List<Integer>> getExecutableLocations(@PathVariable int ruleId) {
+        try {
+            List<Integer> locations = fusionRuleService.getExecutableLocationsForRuleId(ruleId);
+            return ResponseEntity.ok(locations);
+        } catch (IllegalArgumentException e) {
+            System.err.println("规则不存在，ruleId=" + ruleId + "，错误信息：" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            System.err.println("查询规则可执行空间时出错，ruleId=" + ruleId);
+            e.printStackTrace(); // 打印完整堆栈
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 }
