@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
+import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Service
 public class FusionRuleService {
@@ -38,6 +40,9 @@ public class FusionRuleService {
 
     @Autowired
     private NodeRedService nodeRedService;
+
+    @Autowired
+    private SpaceService spaceService;
 
     // 事务管理器，用于在后台线程里显式开启事务
     @Autowired
@@ -198,6 +203,84 @@ public class FusionRuleService {
                 }
             });
         }
+    }
+
+    public List<Integer> getExecutableLocationsForRuleId(int ruleId) {
+        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
+        if (ruleOpt.isEmpty()) {
+            throw new IllegalArgumentException("规则 ID 不存在: " + ruleId);
+        }
+
+        FusionRule rule = ruleOpt.get();
+
+        String ruleJsonStr = rule.getRuleJson();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode ruleJson;
+        try {
+            ruleJson = mapper.readTree(ruleJsonStr);
+        } catch (Exception e) {
+            throw new RuntimeException("解析规则 JSON 失败", e);
+        }
+
+        // ✅ 這裡不再過濾 projectId，直接取所有空間
+        List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
+        List<Integer> executableLocations = new ArrayList<>();
+
+        System.out.println("开始检查规则 ruleId=" + ruleId + " 可执行空间（不限制 projectId）...");
+        System.out.println("ruleJson 内容如下：");
+        System.out.println(ruleJson.toPrettyString());
+
+        for (SpaceInfo space : allSpaces) {
+            Integer spaceId = space.getSpaceId();
+            boolean canRun = canRuleRunInLocation(ruleJson, spaceId);
+            System.out.println("空间 spaceId=" + spaceId + " 是否可执行规则？" + (canRun ? "是 ✅" : "否 ❌"));
+            if (canRun) {
+                executableLocations.add(spaceId);
+            }
+        }
+
+        System.out.println("检查完成。可执行空间ID列表: " + executableLocations);
+        return executableLocations;
+    }
+
+    private boolean canRuleRunInLocation(JsonNode ruleJson, Integer spaceId) {
+        Set<String> requiredActuatingFunctions = new HashSet<>();
+        Set<String> requiredSensingFunctions = new HashSet<>();
+
+        // 收集规则中 Sensor / Actuator 节点使用的 function 名称
+        ruleJson.fields().forEachRemaining(entry -> {
+            JsonNode node = entry.getValue();
+            if (!node.has("type")) return;
+            String type = node.get("type").asText();
+
+            if ("Actuator".equalsIgnoreCase(type)) {
+                String func = node.path("function").asText();
+                if (func != null && !func.isBlank()) {
+                    requiredActuatingFunctions.add(func);
+                }
+            } else if ("Sensor".equalsIgnoreCase(type)) {
+                String func = node.path("sensingFunction").asText();
+                if (func != null && !func.isBlank()) {
+                    requiredSensingFunctions.add(func);
+                }
+            }
+        });
+
+        System.out.println("空间 spaceId=" + spaceId + "：规则需要 Actuator 功能 = " + requiredActuatingFunctions);
+        System.out.println("空间 spaceId=" + spaceId + "：规则需要 Sensor 功能 = " + requiredSensingFunctions);
+
+        // 获取空间中具备的功能
+        Set<String> availableFunctions = deviceService.getActuatingFunctionNamesBySpace(spaceId);
+
+        System.out.println("空间 spaceId=" + spaceId + " 拥有功能 = " + availableFunctions);
+
+        boolean hasAllActuating = availableFunctions.containsAll(requiredActuatingFunctions);
+        boolean hasAllSensing = availableFunctions.containsAll(requiredSensingFunctions);
+
+        boolean result = hasAllActuating && hasAllSensing;
+
+        System.out.println("空间 spaceId=" + spaceId + " 满足规则功能要求？" + (result ? "是 ✅" : "否 ❌"));
+        return result;
     }
 
     private List<Map.Entry<String, JsonNode>> findNodesByStep(JsonNode ruleJson, int step) {

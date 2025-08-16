@@ -35,6 +35,13 @@ public class SpaceService {
     }
 
     /**
+     * 查询所有空间
+     */
+    public List<SpaceInfo> findAllSpaces() {
+        return spaceRepository.findAll();
+    }
+
+    /**
      * 根据ProjectInfo查询所有空间
      */
     public List<SpaceInfo> findByProjectInfo(ProjectInfo projectInfo) {
@@ -100,7 +107,7 @@ public class SpaceService {
     public void deleteSpace(int id) {
         spaceRepository.findById(id).ifPresent(space -> {
             spaceNodeRepository.findBySpaceId(space.getSpaceId())
-                               .ifPresent(spaceNode -> spaceNodeRepository.delete(spaceNode));
+                    .ifPresent(spaceNode -> spaceNodeRepository.delete(spaceNode));
         });
         spaceRepository.deleteById(id);
     }
