@@ -1,20 +1,13 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import com.alibaba.cloud.ai.dashscope.api.DashScopeResponseFormat;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
-import edu.fudan.se.sctap_lowcode_tool.DTO.app.*;
-import edu.fudan.se.sctap_lowcode_tool.constant.Json_Example;
-import edu.fudan.se.sctap_lowcode_tool.constant.Redis_Constant;
-import edu.fudan.se.sctap_lowcode_tool.constant.Sys_Prompt;
+import edu.fudan.se.sctap_lowcode_tool.constant.SystemPrompt;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.ProjectRepository;
@@ -55,18 +48,14 @@ public class AppRuleService {
     @Resource(name = "ruleExecutor")
     private Executor ruleExecutor;
 
-    // 保存生成自然语言规则消息
-    private final Map<String, List<ChatMessage>> messageMap = new HashMap<>();
-    // 保存自然语言规则和对应的事件、属性、动作
-    private final Map<String, List<AppRuleData>> ruleDataMap = new HashMap<>();
-    // 保存复杂规则生成对话消息
-    private final Map<String, List<ChatMessage>> complexMessageMap = new HashMap<>();
-    // 记录每个uuid最后的访问时间
-    private final Map<String, Long> uuidTimeMap = new HashMap<>();
-    // 记录处于等待中的应用规则
-    Map<String, Set<String>> eventWaitMap = new HashMap<>();
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // 记录每个uuid的对话历史
+    private final Map<String, List<ChatMessage>> uuidMessageHistoryMap = new HashMap<>();
+    // 记录每个uuid最新对话时间
+    private final Map<String, Long> uuidUpdateTimeMap = new HashMap<>();
+//    // 记录处于等待中的应用规则
+//    Map<String, Set<String>> eventWaitMap = new HashMap<>();
+//
+//    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AppRuleService(ChatLanguageModel chatLanguageModel) {
         this.chatLanguageModel = chatLanguageModel;
@@ -142,167 +131,54 @@ public class AppRuleService {
         return appRuleInfo;
     }
 
-    public ResponseEntity<String> generateJsonRule(RecommendRequest recommendRequest) {
-        String uuid = recommendRequest.getUuid();
-        String message = recommendRequest.getMessage();
-        List<ChatMessage> messages = new ArrayList<>();
-        // 构造系统提示词
-        List<AppRuleData> appRuleDataList = ruleDataMap.get(uuid);
-        if(appRuleDataList==null){
-            return ResponseEntity.badRequest().body("找不到uuid");
+    public ResponseEntity<String> generateNaturalRule(RuleGenerateRequest ruleGenerateRequest) {
+        String uuid = ruleGenerateRequest.getUuid();
+        String message = ruleGenerateRequest.getMessage();
+        // 更新 uuid 的对话时间
+        uuidUpdateTimeMap.put(uuid, System.currentTimeMillis());
+        // 获取对话历史
+        List<ChatMessage> messages = uuidMessageHistoryMap.getOrDefault(uuid, new ArrayList<>());
+        // 如果是第一次对话，构造系统消息
+        if(messages.isEmpty()) {
+            messages.add(new SystemMessage(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT));
         }
-        AppRuleData appRuleData = null;
-        for(AppRuleData data:appRuleDataList){
-            if(data.getRule().equals(message)){
-                appRuleData = data;
-                break;
-            }
-        }
-        if(appRuleData==null){
-            return ResponseEntity.badRequest().body("找不到message");
-        }
-        List<String> eventList = redisUtil.getMulti(appRuleData.getComponents().getEventType(), Redis_Constant.Event_Prefix);
-        List<String> propertyList = redisUtil.getMulti(appRuleData.getComponents().getPropertyType(),  Redis_Constant.Property_Prefix);
-        List<String> actionList = redisUtil.getMulti(appRuleData.getComponents().getActionType(), Redis_Constant.Action_Prefix);
-        String eventOptions = String.join("\n", eventList);
-        String propertyOptions = String.join("\n", propertyList);
-        String actionOptions = String.join("\n", actionList);
-        String systemPrompt = String.format(Sys_Prompt.SIMPLE_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
-        // 加入系统消息
-        messages.add(new SystemMessage(systemPrompt));
-        // 加入用户输入的消息
+        // 加入用户消息
         messages.add(new UserMessage(message));
-        // 规定输出的格式为 JSON
+        // 调用大模型
         ChatResponse response = chatLanguageModel.chat(messages);
-        if (response != null) {
-            String text = response.aiMessage().text();
-            Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
-            if (matcher.find()) {
-                return ResponseEntity.ok(matcher.group(1).trim());
-            }
-        }
-        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-    }
-
-    public ResponseEntity<String> generateComplexNaturalRule(RecommendRequest recommendRequest) {
-        String message = recommendRequest.getMessage();
-        String uuid = recommendRequest.getUuid();
-        // 更新uuid的时间戳
-        uuidTimeMap.put(uuid, System.currentTimeMillis());
-        // 获取内存中的消息
-        List<ChatMessage> messages = complexMessageMap.getOrDefault(uuid, new ArrayList<>());
-        // 如果内存中不存在就构建消息
-        if(messages.isEmpty()){
-            messages.add(new SystemMessage(Sys_Prompt.COMPLEX_NATURAL_RULE_PROMPT));
-        }
-        // 将用户输入的消息加入
-        messages.add(new UserMessage(message));
-        ChatResponse response = chatLanguageModel.chat(messages);
-        // 解析输出的内容
-        if (response != null) {
-            // 加入消息
+        if(response!=null) {
+            // 加入 AI 消息，并更新对话历史
             messages.add(response.aiMessage());
-            complexMessageMap.put(uuid, messages);
+            uuidMessageHistoryMap.put(uuid, messages);
+            // 返回结果
             String text = response.aiMessage().text();
             return ResponseEntity.ok(text);
         }
-        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+        return ResponseEntity.badRequest().body("发生错误，请稍后重试！");
     }
 
-    public ResponseEntity<String> generateComplexJsonRule(RecommendRequest recommendRequest) {
-        String message = recommendRequest.getMessage();
-        // 构造消息
+    public ResponseEntity<String> generateJsonRule(RuleGenerateRequest ruleGenerateRequest) {
+        String message = ruleGenerateRequest.getMessage();
+        // 构造系统消息和用户消息
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_PROMPT));
+        messages.add(new SystemMessage(SystemPrompt.JSON_RULE_GENERATE_PROMPT));
         messages.add(new UserMessage(message));
-        // 规定输出的格式为 JSON
+        // 调用大模型
         ChatResponse response = chatLanguageModel.chat(messages);
-        if (response != null) {
+        if(response!=null) {
             String text = response.aiMessage().text();
             Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
-            if (matcher.find()) {
+            // 如果是用 ```json ``` 包围，就提取其中的 JSON 内容
+            if(matcher.find()) {
                 return ResponseEntity.ok(matcher.group(1).trim());
             }
+            return ResponseEntity.ok(text);
         }
-        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+        return ResponseEntity.badRequest().body("发生错误，请稍后重试！");
     }
 
-    public  ResponseEntity<String> convertComplexJsonRule(AppRuleRequest appRuleRequest) {
-        String ruleJson = appRuleRequest.ruleJson();
-        // 构建系统消息和用户消息
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new SystemMessage(Sys_Prompt.COMPLEX_RULE_CONVERT_PROMPT));
-        messages.add(new UserMessage(ruleJson));
-        // 规定输出的格式为 JSON
-        ChatResponse response = chatLanguageModel.chat(messages);
-        if (response != null) {
-            String text = response.aiMessage().text();
-            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
-            if (matcher.find()) {
-                return ResponseEntity.ok(matcher.group(1).trim());
-            }
-        }
-        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-    }
-
-    public ResponseEntity<String> generateNaturalRule(RecommendRequest recommendRequest){
-        String uuid = recommendRequest.getUuid();
-        String message = recommendRequest.getMessage();
-        // 更新uuid的时间戳
-        uuidTimeMap.put(uuid, System.currentTimeMillis());
-        // 获取内存中的消息
-        List<ChatMessage> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
-        // 如果内存中不存在就构建消息
-        if(messages.isEmpty()){
-            // 从redis中获取系统提示词
-            String systemPrompt = redisUtil.getSingle(Redis_Constant.NATURAL_PROMPT);
-            if(systemPrompt==null){
-                // 构建提示词
-                List<String> eventList = redisUtil.getAll(Redis_Constant.Event_Prefix);
-                List<String> propertyList = redisUtil.getAll(Redis_Constant.Property_Prefix);
-                List<String> actionList = redisUtil.getAll(Redis_Constant.Action_Prefix);
-                String eventOptions    = String.join("\n", eventList);
-                String propertyOptions = String.join("\n", propertyList);
-                String actionOptions   = String.join("\n", actionList);
-                systemPrompt = String.format(Sys_Prompt.SIMPLE_NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
-                // 存入redis
-                redisUtil.setSingle(Redis_Constant.NATURAL_PROMPT, systemPrompt);
-            }
-            messages.add(new SystemMessage(systemPrompt));
-        }
-        // 将用户输入的消息加入
-        messages.add(new UserMessage(message));
-        ChatResponse response = chatLanguageModel.chat(messages);
-        // 解析输出的内容
-        String jsonContent;
-        if (response != null) {
-            // 加入消息
-            messages.add(response.aiMessage());
-            messageMap.put(uuid, messages);
-            jsonContent = response.aiMessage().text();
-            Pattern pattern = Pattern.compile("```json\\s*(\\{[\\s\\S]*?\\})\\s*```");
-            Matcher matcher = pattern.matcher(jsonContent);
-            // 如果匹配到，提取 JSON 内容
-            if (matcher.find()) {
-                jsonContent = matcher.group(1).trim();
-            }
-            AppRuleData appRuleData;
-            try{
-                appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
-            } catch (Exception e){
-                return ResponseEntity.badRequest().body("输出格式错误，请稍后重试");
-            }
-            // 加入规则和对应的事件、动作、属性
-            List<AppRuleData> appRuleDataList = ruleDataMap.getOrDefault(uuid, new ArrayList<>());
-            appRuleDataList.add(appRuleData);
-            ruleDataMap.put(uuid, appRuleDataList);
-            return ResponseEntity.ok(appRuleData.getRule());
-        }
-        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-    }
-
-    public ResponseEntity<AppRuleInfo> findSimilarRules(RecommendRequest recommendRequest) {
-        String message = recommendRequest.getMessage();
+    public ResponseEntity<AppRuleInfo> findSimilarRules(RuleGenerateRequest ruleGenerateRequest) {
+        String message = ruleGenerateRequest.getMessage();
         List<AppRuleRecord> records;
         try{
             records = milvusUtil.queryVector(message, 1);
@@ -317,291 +193,408 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
-    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
-        // TODO，暂时使用示例JSON模拟
-        String json = Json_Example.json;
-        // 解析JSON规则
-        AppRule appRule;
-        try {
-            appRule = objectMapper.readValue(json, AppRule.class);
-        } catch (JsonProcessingException e) {
-            log.error("解析JSON规则失败: {}", e.getMessage());
-            return;
-        }
-        // 提取参数event_type
-        String eventType = eventTriggerDTO.getEvent_type();
-        Event event = null;
-        for (Event e : appRule.getTrigger().getEvent()) {
-            if(e.getEvent_type().equals(eventType)) {
-                event = e;
-                break;
-            }
-        }
-        if(event==null){
-            log.error("未找到对应的事件类型");
-            return;
-        }
-        // 判断应用是否处于等待中
-        Set<String> waitSet = eventWaitMap.get(eventType);
-        if(waitSet!=null) {
-            for(String value : eventTriggerDTO.getParams().values()) {
-                if(waitSet.contains(value)) {
-                    log.info("应用处于等待中");
-                    return;
-                }
-            }
-        }
-        // 提取参数params
-        Map<String, Object> params = new HashMap<>();
-        for(Map.Entry<String, String> entry: event.getParams().entrySet()){
-            String paramName = entry.getKey();
-            String paramType = entry.getValue();
-            switch (paramType) {
-                case "string":
-                    params.put(paramName, eventTriggerDTO.getParams().get(paramName));
-                    break;
-                case "number":
-                    params.put(paramName, Integer.parseInt(eventTriggerDTO.getParams().get(paramName)));
-                    break;
-                case "bool":
-                    params.put(paramName, Boolean.parseBoolean(eventTriggerDTO.getParams().get(paramName)));
-                    break;
-                default:
-                    params.put(paramName, eventTriggerDTO.getParams().get(paramName));
-                    log.error("不支持的类型: {}", paramType);
-            }
-        }
-        // TODO, 将事件存入数据库中
-        // 处理response
-        Response response = appRule.getResponse();
-        // response从chain开始
-        if(response.isChainType()) {
-            List<ChainStep> chain = response.getChain();
-            // 提交线程池处理
-            ruleExecutor.execute(() -> {
-                try {
-                    handleChain(chain, eventType, params);
-                } catch (Exception e) {
-                    log.error("处理 chain 失败: {}", e.getMessage());
-                }
-            });
-        }
-        // response从branch开始
-        if(response.isBranchType()) {
-            List<BranchNode> branchNodes = response.getBranch();
-            BranchStep branchStep = new BranchStep();
-            branchStep.setBranch(branchNodes);
-            try {
-                handleBranchStep(branchStep, eventType, params);
-            } catch (Exception e) {
-                log.error("处理 branch 失败: {}", e.getMessage());
-            }
-        }
-    }
+//    public ResponseEntity<String> generateJsonRule(RecommendRequest recommendRequest) {
+//        String uuid = recommendRequest.getUuid();
+//        String message = recommendRequest.getMessage();
+//        List<ChatMessage> messages = new ArrayList<>();
+//        // 构造系统提示词
+//        List<AppRuleData> appRuleDataList = ruleDataMap.get(uuid);
+//        if(appRuleDataList==null){
+//            return ResponseEntity.badRequest().body("找不到uuid");
+//        }
+//        AppRuleData appRuleData = null;
+//        for(AppRuleData data:appRuleDataList){
+//            if(data.getRule().equals(message)){
+//                appRuleData = data;
+//                break;
+//            }
+//        }
+//        if(appRuleData==null){
+//            return ResponseEntity.badRequest().body("找不到message");
+//        }
+//        List<String> eventList = redisUtil.getMulti(appRuleData.getComponents().getEventType(), RedisConstant.Event_Prefix);
+//        List<String> propertyList = redisUtil.getMulti(appRuleData.getComponents().getPropertyType(),  RedisConstant.Property_Prefix);
+//        List<String> actionList = redisUtil.getMulti(appRuleData.getComponents().getActionType(), RedisConstant.Action_Prefix);
+//        String eventOptions = String.join("\n", eventList);
+//        String propertyOptions = String.join("\n", propertyList);
+//        String actionOptions = String.join("\n", actionList);
+//        String systemPrompt = String.format(SystemPrompt.SIMPLE_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
+//        // 加入系统消息
+//        messages.add(new SystemMessage(systemPrompt));
+//        // 加入用户输入的消息
+//        messages.add(new UserMessage(message));
+//        // 规定输出的格式为 JSON
+//        ChatResponse response = chatLanguageModel.chat(messages);
+//        if (response != null) {
+//            String text = response.aiMessage().text();
+//            Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
+//            if (matcher.find()) {
+//                return ResponseEntity.ok(matcher.group(1).trim());
+//            }
+//        }
+//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+//    }
 
-    private void handleChain(List<ChainStep> chain, String eventType, Map<String, Object> params) {
-        for(int i=0;i<chain.size();i++) {
-            ChainStep step = chain.get(i);
-            switch (step) {
-                case ActionStep actionStep -> handleActionStep(actionStep, eventType, params);
-                case WaitStep waitStep -> {
-                    // 处理到 wait 后停止
-                    handleWaitStep(waitStep, eventType, params, chain, i);
-                    return;
-                }
-                case BranchStep branchStep -> handleBranchStep(branchStep, eventType, params);
-                default -> log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
-            }
-        }
-    }
 
-    private void handleActionStep(ActionStep actionStep, String eventType, Map<String, Object> params){
-        // TODO，这里暂时模拟执行动作
-        ActionStep.Action action = actionStep.getAction();
-        log.info("执行动作：{}, 地点：{}, 事件类型：{}", action.getAction_name(), params.get("location"), eventType);
-    }
+//    public  ResponseEntity<String> convertComplexJsonRule(AppRuleRequest appRuleRequest) {
+//        String ruleJson = appRuleRequest.ruleJson();
+//        // 构建系统消息和用户消息
+//        List<ChatMessage> messages = new ArrayList<>();
+//        messages.add(new SystemMessage(SystemPrompt.COMPLEX_RULE_CONVERT_PROMPT));
+//        messages.add(new UserMessage(ruleJson));
+//        // 规定输出的格式为 JSON
+//        ChatResponse response = chatLanguageModel.chat(messages);
+//        if (response != null) {
+//            String text = response.aiMessage().text();
+//            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
+//            if (matcher.find()) {
+//                return ResponseEntity.ok(matcher.group(1).trim());
+//            }
+//        }
+//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+//    }
+//
+//    public ResponseEntity<String> generateNaturalRule(RecommendRequest recommendRequest){
+//        String uuid = recommendRequest.getUuid();
+//        String message = recommendRequest.getMessage();
+//        // 更新uuid的时间戳
+//        uuidTimeMap.put(uuid, System.currentTimeMillis());
+//        // 获取内存中的消息
+//        List<ChatMessage> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
+//        // 如果内存中不存在就构建消息
+//        if(messages.isEmpty()){
+//            // 从redis中获取系统提示词
+//            String systemPrompt = redisUtil.getSingle(RedisConstant.NATURAL_PROMPT);
+//            if(systemPrompt==null){
+//                // 构建提示词
+//                List<String> eventList = redisUtil.getAll(RedisConstant.Event_Prefix);
+//                List<String> propertyList = redisUtil.getAll(RedisConstant.Property_Prefix);
+//                List<String> actionList = redisUtil.getAll(RedisConstant.Action_Prefix);
+//                String eventOptions    = String.join("\n", eventList);
+//                String propertyOptions = String.join("\n", propertyList);
+//                String actionOptions   = String.join("\n", actionList);
+//                systemPrompt = String.format(SystemPrompt.SIMPLE_NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
+//                // 存入redis
+//                redisUtil.setSingle(RedisConstant.NATURAL_PROMPT, systemPrompt);
+//            }
+//            messages.add(new SystemMessage(systemPrompt));
+//        }
+//        // 将用户输入的消息加入
+//        messages.add(new UserMessage(message));
+//        ChatResponse response = chatLanguageModel.chat(messages);
+//        // 解析输出的内容
+//        String jsonContent;
+//        if (response != null) {
+//            // 加入消息
+//            messages.add(response.aiMessage());
+//            messageMap.put(uuid, messages);
+//            jsonContent = response.aiMessage().text();
+//            Pattern pattern = Pattern.compile("```json\\s*(\\{[\\s\\S]*?\\})\\s*```");
+//            Matcher matcher = pattern.matcher(jsonContent);
+//            // 如果匹配到，提取 JSON 内容
+//            if (matcher.find()) {
+//                jsonContent = matcher.group(1).trim();
+//            }
+//            AppRuleData appRuleData;
+//            try{
+//                appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
+//            } catch (Exception e){
+//                return ResponseEntity.badRequest().body("输出格式错误，请稍后重试");
+//            }
+//            // 加入规则和对应的事件、动作、属性
+//            List<AppRuleData> appRuleDataList = ruleDataMap.getOrDefault(uuid, new ArrayList<>());
+//            appRuleDataList.add(appRuleData);
+//            ruleDataMap.put(uuid, appRuleDataList);
+//            return ResponseEntity.ok(appRuleData.getRule());
+//        }
+//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
+//    }
 
-    private void handleBranchStep(BranchStep branchStep, String eventType, Map<String, Object> params) {
-        List<BranchNode> branchNodes = branchStep.getBranch();
-        for(BranchNode branchNode : branchNodes) {
-            if(branchNode.isCurrentCondition()) {
-                // 处理current_condition
-                if(checkCurrentCondition(branchNode.getEffectiveCondition(), eventType, params)) {
-                    // 提交线程池处理
-                    ruleExecutor.execute(() -> {
-                        try {
-                            handleChain(branchNode.getChain(), eventType, params);
-                        } catch (Exception e) {
-                            log.error("处理 chain 失败: {}", e.getMessage());
-                        }
-                    });
-                }
-            }
-            if(branchNode.isHistoryCondition()) {
-                // 处理history_condition
-                if(checkHistoryCondition(branchNode.getEffectiveCondition(), eventType, params)) {
-                    // 提交线程池处理
-                    ruleExecutor.execute(() -> {
-                        try {
-                            handleChain(branchNode.getChain(), eventType, params);
-                        } catch (Exception e) {
-                            log.error("处理 chain 失败: {}", e.getMessage());
-                        }
-                    });
-                }
-            }
-        }
-    }
-
-    private boolean checkCurrentCondition(List<Condition> currentConditions, String eventType, Map<String, Object> params){
-        for(Condition condition : currentConditions) {
-            String left = condition.getLeft().getValue();
-            String[] parts = left.split("\\.");
-            String leftProperty = parts.length > 1 ? parts[1] : parts[0];
-            String location = params.get("location").toString();
-            //TODO，需要查数据库获取当前位置的属性值,这是暂时随机
-            Random random = new Random();
-            int leftValue = random.nextInt(3);
-            String operator = condition.getOperator();
-            String right = condition.getRight();
-            int rightValue = Integer.parseInt(right);
-            if(compareLeftAndRight(leftValue, rightValue, operator)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean checkHistoryCondition(List<Condition> historyConditions, String eventType, Map<String, Object> params){
-        for(Condition condition : historyConditions) {
-            Condition.Func left = condition.getLeft().getFunc();
-            String func = left.getFunc();
-            Map<String, String> funcParams = left.getParams();
-            String regex = "(\\w+)\\(([^)]+)\\)";
-            Pattern pattern = Pattern.compile(regex);
-            Matcher matcher = pattern.matcher(func);
-            if(matcher.find()) {
-                String functionName = matcher.group(1);
-                String parameters = matcher.group(2);
-                String[] paramArray = parameters.split(",\\s*");
-                if(paramArray.length != 3) {
-                    log.error("无效的参数形式：{}", func);
-                    return false;
-                }
-                String duration = paramArray[1];
-                String unit = paramArray[2];
-                //TODO，需要查数据库查询历史事件，暂时用随机数代替
-                Random random = new Random();
-                int leftValue = random.nextInt(3);
-                String operator = condition.getOperator();
-                String right = condition.getRight();
-                int rightValue = Integer.parseInt(right);
-                if(compareLeftAndRight(leftValue, rightValue, operator)) {
-                    return false;
-                }
-            }
-            else {
-                log.error("无效的函数形式：{}", func);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean compareLeftAndRight(int leftValue, int rightValue, String operator) {
-        switch (operator) {
-            case "=", "==" -> {
-                return leftValue != rightValue;
-            }
-            case "!=" -> {
-                return leftValue == rightValue;
-            }
-            case "<" -> {
-                return leftValue >= rightValue;
-            }
-            case ">" -> {
-                return leftValue <= rightValue;
-            }
-            case "<=" -> {
-                return leftValue > rightValue;
-            }
-            case ">=" -> {
-                return leftValue < rightValue;
-            }
-            default -> {
-                log.error("未知运算符: {}", operator);
-                return true;
-            }
-        }
-    }
-
-    private void handleWaitStep(WaitStep waitStep, String eventType, Map<String, Object> params, List<ChainStep> chain, int index) {
-        // 将应用加入等待
-        WaitStep.Wait wait = waitStep.getWait();
-        Set<String> waitSet = eventWaitMap.getOrDefault(eventType, new HashSet<>());
-        Map<String, String> waitParams;
-        if(wait.isActionCondition()) {
-            waitParams = wait.getAction_condition().getParams();
-        }
-        else {
-            waitParams = wait.getTime_condition().getParams();
-        }
-        String waitKey = waitParams.entrySet().iterator().next().getValue();
-        String waitValue = params.get(waitKey).toString();
-        waitSet.add(waitValue);
-        eventWaitMap.put(eventType, waitSet);
-        // 如无特殊情况，wait 是 chain 的最后一个步骤
-        if(chain.size() == index + 1) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("eventType", eventType);
-            data.put("waitValue", waitValue);
-            long currentTimeMillis = System.currentTimeMillis();
-            String redisKey = "";
-            // 处理action_condition
-            if(wait.isActionCondition()) {
-                log.info("事件 {} 加入动作等待中, Value: {}", eventType, waitValue);
-                redisKey = Redis_Constant.Action_Wait + eventType + ":" + waitValue;
-                // 这里设定 action_condition 的超时时间为 1 小时
-                long expireTimeMillis = currentTimeMillis + 60 * 60 * 1000L;
-                data.put("expireTime", expireTimeMillis);
-            }
-            // 处理time_condition
-            if(wait.isTimeCondition()) {
-                log.info("事件 {} 加入时间等待, Value: {}", eventType, waitValue);
-                redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
-                // 存储到期时间
-                int waitDuration = Integer.parseInt(wait.getTime_condition().getDuration());
-                String waitUnit = wait.getTime_condition().getUnit();
-                long expireTimeMillis = switch (waitUnit.toLowerCase()) {
-                       case "second", "seconds" -> currentTimeMillis + waitDuration * 1000L;
-                       case "minute", "minutes" -> currentTimeMillis + waitDuration * 60 * 1000L;
-                       case "hour", "hours" -> currentTimeMillis + waitDuration * 60 * 60 * 1000L;
-                       // 默认使用分钟
-                       default -> currentTimeMillis + waitDuration * 60 * 1000L;
-                };
-                data.put("expireTime", expireTimeMillis);
-            }
-            // 存储到 redis 中
-            try {
-                redisUtil.setWait(redisKey, data);
-            } catch (JsonProcessingException e) {
-                log.error("wait 数据序列化失败");
-            }
-        }
-    }
-
-    public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
-        String eventType = actionCompleteDTO.getEvent_type();
-        String waitValue = actionCompleteDTO.getValue();
-        String redisKey = Redis_Constant.Action_Wait + eventType + ":" + waitValue;
-        // 从 redis 中删除
-        redisUtil.deleteSingle(redisKey);
-        // 从等待中移除
-        Set<String> waitSet = eventWaitMap.get(eventType);
-        waitSet.remove(waitValue);
-        eventWaitMap.put(eventType, waitSet);
-        log.info("事件 {} 结束动作等待, Value: {}", eventType, waitValue);
-    }
+//    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
+//        // TODO，暂时使用示例JSON模拟
+//        String json = JsonExample.json;
+//        // 解析JSON规则
+//        AppRule appRule;
+//        try {
+//            appRule = objectMapper.readValue(json, AppRule.class);
+//        } catch (JsonProcessingException e) {
+//            log.error("解析JSON规则失败: {}", e.getMessage());
+//            return;
+//        }
+//        // 提取参数event_type
+//        String eventType = eventTriggerDTO.getEvent_type();
+//        Event event = null;
+//        for (Event e : appRule.getTrigger().getEvent()) {
+//            if(e.getEvent_type().equals(eventType)) {
+//                event = e;
+//                break;
+//            }
+//        }
+//        if(event==null){
+//            log.error("未找到对应的事件类型");
+//            return;
+//        }
+//        // 判断应用是否处于等待中
+//        Set<String> waitSet = eventWaitMap.get(eventType);
+//        if(waitSet!=null) {
+//            for(String value : eventTriggerDTO.getParams().values()) {
+//                if(waitSet.contains(value)) {
+//                    log.info("应用处于等待中");
+//                    return;
+//                }
+//            }
+//        }
+//        // 提取参数params
+//        Map<String, Object> params = new HashMap<>();
+//        for(Map.Entry<String, String> entry: event.getParams().entrySet()){
+//            String paramName = entry.getKey();
+//            String paramType = entry.getValue();
+//            switch (paramType) {
+//                case "string":
+//                    params.put(paramName, eventTriggerDTO.getParams().get(paramName));
+//                    break;
+//                case "number":
+//                    params.put(paramName, Integer.parseInt(eventTriggerDTO.getParams().get(paramName)));
+//                    break;
+//                case "bool":
+//                    params.put(paramName, Boolean.parseBoolean(eventTriggerDTO.getParams().get(paramName)));
+//                    break;
+//                default:
+//                    params.put(paramName, eventTriggerDTO.getParams().get(paramName));
+//                    log.error("不支持的类型: {}", paramType);
+//            }
+//        }
+//        // TODO, 将事件存入数据库中
+//        // 处理response
+//        Response response = appRule.getResponse();
+//        // response从chain开始
+//        if(response.isChainType()) {
+//            List<ChainStep> chain = response.getChain();
+//            // 提交线程池处理
+//            ruleExecutor.execute(() -> {
+//                try {
+//                    handleChain(chain, eventType, params);
+//                } catch (Exception e) {
+//                    log.error("处理 chain 失败: {}", e.getMessage());
+//                }
+//            });
+//        }
+//        // response从branch开始
+//        if(response.isBranchType()) {
+//            List<BranchNode> branchNodes = response.getBranch();
+//            BranchStep branchStep = new BranchStep();
+//            branchStep.setBranch(branchNodes);
+//            try {
+//                handleBranchStep(branchStep, eventType, params);
+//            } catch (Exception e) {
+//                log.error("处理 branch 失败: {}", e.getMessage());
+//            }
+//        }
+//    }
+//
+//    private void handleChain(List<ChainStep> chain, String eventType, Map<String, Object> params) {
+//        for(int i=0;i<chain.size();i++) {
+//            ChainStep step = chain.get(i);
+//            switch (step) {
+//                case ActionStep actionStep -> handleActionStep(actionStep, eventType, params);
+//                case WaitStep waitStep -> {
+//                    // 处理到 wait 后停止
+//                    handleWaitStep(waitStep, eventType, params, chain, i);
+//                    return;
+//                }
+//                case BranchStep branchStep -> handleBranchStep(branchStep, eventType, params);
+//                default -> log.warn("未知的 ChainStep 类型: {}", step.getClass().getName());
+//            }
+//        }
+//    }
+//
+//    private void handleActionStep(ActionStep actionStep, String eventType, Map<String, Object> params){
+//        // TODO，这里暂时模拟执行动作
+//        ActionStep.Action action = actionStep.getAction();
+//        log.info("执行动作：{}, 地点：{}, 事件类型：{}", action.getAction_name(), params.get("location"), eventType);
+//    }
+//
+//    private void handleBranchStep(BranchStep branchStep, String eventType, Map<String, Object> params) {
+//        List<BranchNode> branchNodes = branchStep.getBranch();
+//        for(BranchNode branchNode : branchNodes) {
+//            if(branchNode.isCurrentCondition()) {
+//                // 处理current_condition
+//                if(checkCurrentCondition(branchNode.getEffectiveCondition(), eventType, params)) {
+//                    // 提交线程池处理
+//                    ruleExecutor.execute(() -> {
+//                        try {
+//                            handleChain(branchNode.getChain(), eventType, params);
+//                        } catch (Exception e) {
+//                            log.error("处理 chain 失败: {}", e.getMessage());
+//                        }
+//                    });
+//                }
+//            }
+//            if(branchNode.isHistoryCondition()) {
+//                // 处理history_condition
+//                if(checkHistoryCondition(branchNode.getEffectiveCondition(), eventType, params)) {
+//                    // 提交线程池处理
+//                    ruleExecutor.execute(() -> {
+//                        try {
+//                            handleChain(branchNode.getChain(), eventType, params);
+//                        } catch (Exception e) {
+//                            log.error("处理 chain 失败: {}", e.getMessage());
+//                        }
+//                    });
+//                }
+//            }
+//        }
+//    }
+//
+//    private boolean checkCurrentCondition(List<Condition> currentConditions, String eventType, Map<String, Object> params){
+//        for(Condition condition : currentConditions) {
+//            String left = condition.getLeft().getValue();
+//            String[] parts = left.split("\\.");
+//            String leftProperty = parts.length > 1 ? parts[1] : parts[0];
+//            String location = params.get("location").toString();
+//            //TODO，需要查数据库获取当前位置的属性值,这是暂时随机
+//            Random random = new Random();
+//            int leftValue = random.nextInt(3);
+//            String operator = condition.getOperator();
+//            String right = condition.getRight();
+//            int rightValue = Integer.parseInt(right);
+//            if(compareLeftAndRight(leftValue, rightValue, operator)) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
+//
+//    private boolean checkHistoryCondition(List<Condition> historyConditions, String eventType, Map<String, Object> params){
+//        for(Condition condition : historyConditions) {
+//            Condition.Func left = condition.getLeft().getFunc();
+//            String func = left.getFunc();
+//            Map<String, String> funcParams = left.getParams();
+//            String regex = "(\\w+)\\(([^)]+)\\)";
+//            Pattern pattern = Pattern.compile(regex);
+//            Matcher matcher = pattern.matcher(func);
+//            if(matcher.find()) {
+//                String functionName = matcher.group(1);
+//                String parameters = matcher.group(2);
+//                String[] paramArray = parameters.split(",\\s*");
+//                if(paramArray.length != 3) {
+//                    log.error("无效的参数形式：{}", func);
+//                    return false;
+//                }
+//                String duration = paramArray[1];
+//                String unit = paramArray[2];
+//                //TODO，需要查数据库查询历史事件，暂时用随机数代替
+//                Random random = new Random();
+//                int leftValue = random.nextInt(3);
+//                String operator = condition.getOperator();
+//                String right = condition.getRight();
+//                int rightValue = Integer.parseInt(right);
+//                if(compareLeftAndRight(leftValue, rightValue, operator)) {
+//                    return false;
+//                }
+//            }
+//            else {
+//                log.error("无效的函数形式：{}", func);
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
+//
+//    private boolean compareLeftAndRight(int leftValue, int rightValue, String operator) {
+//        switch (operator) {
+//            case "=", "==" -> {
+//                return leftValue != rightValue;
+//            }
+//            case "!=" -> {
+//                return leftValue == rightValue;
+//            }
+//            case "<" -> {
+//                return leftValue >= rightValue;
+//            }
+//            case ">" -> {
+//                return leftValue <= rightValue;
+//            }
+//            case "<=" -> {
+//                return leftValue > rightValue;
+//            }
+//            case ">=" -> {
+//                return leftValue < rightValue;
+//            }
+//            default -> {
+//                log.error("未知运算符: {}", operator);
+//                return true;
+//            }
+//        }
+//    }
+//
+//    private void handleWaitStep(WaitStep waitStep, String eventType, Map<String, Object> params, List<ChainStep> chain, int index) {
+//        // 将应用加入等待
+//        WaitStep.Wait wait = waitStep.getWait();
+//        Set<String> waitSet = eventWaitMap.getOrDefault(eventType, new HashSet<>());
+//        Map<String, String> waitParams;
+//        if(wait.isActionCondition()) {
+//            waitParams = wait.getAction_condition().getParams();
+//        }
+//        else {
+//            waitParams = wait.getTime_condition().getParams();
+//        }
+//        String waitKey = waitParams.entrySet().iterator().next().getValue();
+//        String waitValue = params.get(waitKey).toString();
+//        waitSet.add(waitValue);
+//        eventWaitMap.put(eventType, waitSet);
+//        // 如无特殊情况，wait 是 chain 的最后一个步骤
+//        if(chain.size() == index + 1) {
+//            Map<String, Object> data = new HashMap<>();
+//            data.put("eventType", eventType);
+//            data.put("waitValue", waitValue);
+//            long currentTimeMillis = System.currentTimeMillis();
+//            String redisKey = "";
+//            // 处理action_condition
+//            if(wait.isActionCondition()) {
+//                log.info("事件 {} 加入动作等待中, Value: {}", eventType, waitValue);
+//                redisKey = RedisConstant.Action_Wait + eventType + ":" + waitValue;
+//                // 这里设定 action_condition 的超时时间为 1 小时
+//                long expireTimeMillis = currentTimeMillis + 60 * 60 * 1000L;
+//                data.put("expireTime", expireTimeMillis);
+//            }
+//            // 处理time_condition
+//            if(wait.isTimeCondition()) {
+//                log.info("事件 {} 加入时间等待, Value: {}", eventType, waitValue);
+//                redisKey = RedisConstant.Time_Wait + eventType + ":" + waitValue;
+//                // 存储到期时间
+//                int waitDuration = Integer.parseInt(wait.getTime_condition().getDuration());
+//                String waitUnit = wait.getTime_condition().getUnit();
+//                long expireTimeMillis = switch (waitUnit.toLowerCase()) {
+//                       case "second", "seconds" -> currentTimeMillis + waitDuration * 1000L;
+//                       case "minute", "minutes" -> currentTimeMillis + waitDuration * 60 * 1000L;
+//                       case "hour", "hours" -> currentTimeMillis + waitDuration * 60 * 60 * 1000L;
+//                       // 默认使用分钟
+//                       default -> currentTimeMillis + waitDuration * 60 * 1000L;
+//                };
+//                data.put("expireTime", expireTimeMillis);
+//            }
+//            // 存储到 redis 中
+//            try {
+//                redisUtil.setWait(redisKey, data);
+//            } catch (JsonProcessingException e) {
+//                log.error("wait 数据序列化失败");
+//            }
+//        }
+//    }
+//
+//    public void actionComplete(ActionCompleteDTO actionCompleteDTO) {
+//        String eventType = actionCompleteDTO.getEvent_type();
+//        String waitValue = actionCompleteDTO.getValue();
+//        String redisKey = RedisConstant.Action_Wait + eventType + ":" + waitValue;
+//        // 从 redis 中删除
+//        redisUtil.deleteSingle(redisKey);
+//        // 从等待中移除
+//        Set<String> waitSet = eventWaitMap.get(eventType);
+//        waitSet.remove(waitValue);
+//        eventWaitMap.put(eventType, waitSet);
+//        log.info("事件 {} 结束动作等待, Value: {}", eventType, waitValue);
+//    }
 
     /**
      * 定时任务：每小时执行一次，清理过期的uuid数据
@@ -610,57 +603,55 @@ public class AppRuleService {
         log.info("开始执行定时清理任务...");
         long now = System.currentTimeMillis();
         long oneHourAgo = now - 3600000; // 1小时之前的时刻
-        Iterator<Map.Entry<String, Long>> iterator = uuidTimeMap.entrySet().iterator();
+        Iterator<Map.Entry<String, Long>> iterator = uuidUpdateTimeMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Long> entry = iterator.next();
             String uuid = entry.getKey();
             Long timestamp = entry.getValue();
             if (timestamp != null && timestamp < oneHourAgo) {
-                // 清理三个map中的旧数据
-                messageMap.remove(uuid);
-                ruleDataMap.remove(uuid);
-                complexMessageMap.remove(uuid);
+                // 清理map中的旧数据
+                uuidMessageHistoryMap.remove(uuid);
                 iterator.remove(); // 同时移除时间戳记录
                 log.info("清理 uuid 对应的数据: {}", uuid);
             }
         }
     }
-
-    /**
-     * 定时任务：每隔30s执行一次，检查到期的chain并执行
-     * */
-    public void checkExpiredChain() {
-        log.info("开始检查到期的 wait 应用...");
-        // 获取所有以 timeCondition 前缀开头的 key 对应的值
-        List<String> waits = redisUtil.getAll(Redis_Constant.Time_Wait);
-        if(waits == null || waits.isEmpty()) {
-            log.info("没有待检查的 wait 应用...");
-            return;
-        }
-        long now = System.currentTimeMillis();
-        for(String wait : waits) {
-            try {
-                if(wait.trim().isEmpty()) {
-                    continue;
-                }
-                // 反序列化
-                Map waitData = objectMapper.readValue(wait, Map.class);
-                long expireTime = Long.parseLong(waitData.get("expireTime").toString());
-                if(now >= expireTime) {
-                    String eventType = waitData.get("eventType").toString();
-                    String waitValue = waitData.get("waitValue").toString();
-                    String redisKey = Redis_Constant.Time_Wait + eventType + ":" + waitValue;
-                    // 从 redis 中删除
-                    redisUtil.deleteSingle(redisKey);
-                    // 从等待中移除
-                    Set<String> waitSet = eventWaitMap.get(eventType);
-                    waitSet.remove(waitValue);
-                    eventWaitMap.put(eventType, waitSet);
-                    log.info("事件 {} 结束时间等待, Value: {}", eventType, waitValue);
-                }
-            } catch (Exception e) {
-                log.error("反序列化 wait 数据失败：{}", e.getMessage());
-            }
-        }
-    }
+//
+//    /**
+//     * 定时任务：每隔30s执行一次，检查到期的chain并执行
+//     * */
+//    public void checkExpiredChain() {
+//        log.info("开始检查到期的 wait 应用...");
+//        // 获取所有以 timeCondition 前缀开头的 key 对应的值
+//        List<String> waits = redisUtil.getAll(RedisConstant.Time_Wait);
+//        if(waits == null || waits.isEmpty()) {
+//            log.info("没有待检查的 wait 应用...");
+//            return;
+//        }
+//        long now = System.currentTimeMillis();
+//        for(String wait : waits) {
+//            try {
+//                if(wait.trim().isEmpty()) {
+//                    continue;
+//                }
+//                // 反序列化
+//                Map waitData = objectMapper.readValue(wait, Map.class);
+//                long expireTime = Long.parseLong(waitData.get("expireTime").toString());
+//                if(now >= expireTime) {
+//                    String eventType = waitData.get("eventType").toString();
+//                    String waitValue = waitData.get("waitValue").toString();
+//                    String redisKey = RedisConstant.Time_Wait + eventType + ":" + waitValue;
+//                    // 从 redis 中删除
+//                    redisUtil.deleteSingle(redisKey);
+//                    // 从等待中移除
+//                    Set<String> waitSet = eventWaitMap.get(eventType);
+//                    waitSet.remove(waitValue);
+//                    eventWaitMap.put(eventType, waitSet);
+//                    log.info("事件 {} 结束时间等待, Value: {}", eventType, waitValue);
+//                }
+//            } catch (Exception e) {
+//                log.error("反序列化 wait 数据失败：{}", e.getMessage());
+//            }
+//        }
+//    }
 }

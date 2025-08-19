@@ -14,7 +14,7 @@
               <div class="message-content">
                 <div class="message-bubble" v-html="msg.content"></div>
                 <div v-if="msg.role === 'assistant' && msg.isSuccess" class="action-buttons">
-                  <button @click="findSimilarRule(index)" class="generate-btn">匹配已有应用</button>
+                  <button @click="findSimilarRule(index)" class="match-btn">匹配已有应用</button>
                 </div>
               </div>
             </div>
@@ -24,7 +24,7 @@
             <input
               type="text"
               v-model="inputContent"
-              placeholder="请输入应用描述..."
+              placeholder="请输入应用需求描述..."
               @keyup.enter="sendMessage"
               class="input-box"
             />
@@ -37,25 +37,26 @@
           <div class="json-header">
             <h3>应用详情</h3>
             <div class="json-actions" v-if="selectedRule">
-              <button @click="submitRule" class="action-btn submit-btn">提交应用</button>
-              <button @click="regenerateRule" class="action-btn regenerate-btn">大模型生成</button>
+              <button @click="submitRule" class="submit-btn">提交应用</button>
+              <button @click="regenerateRule" class="llm-btn">大模型生成</button>
+              <button @click="viewInNodeRed" class="nodered-btn">在 Node-RED 中查看</button>
             </div>
           </div>
           <div class="json-content">
             <div v-if="selectedRule" class="rule-section">
-              <h4>自然语言描述</h4>
-              <div class="rule-text">{{ selectedRule.content }}</div>
+              <h4>应用描述</h4>
+              <div class="rule-text">{{ selectedRule.naturalContent }}</div>
             </div>
             <div v-if="selectedRule && selectedRule.isSimilar" class="rule-section">
-              <h4>匹配到的应用自然语言描述</h4>
-              <div class="rule-text">{{ selectedRule.similarContent }}</div>
+              <h4>匹配到的应用描述</h4>
+              <div class="rule-text">{{ selectedRule.similarNaturalContent }}</div>
             </div>
             <div v-if="selectedRule" class="rule-section">
-              <h4>JSON规则</h4>
+              <h4>应用JSON</h4>
               <div class="json-rule-container">
                 <json-viewer
                   :value="selectedRule.jsonRule"
-                  :expand-depth="5"
+                  :expand-depth="10"
                   copyable
                   boxed
                   theme="dark"
@@ -63,7 +64,7 @@
               </div>
             </div>
             <div v-else class="empty-state">
-              <p>请点击"匹配已有应用"按钮查看应用详情</p>
+              <p>请点击"匹配已有应用"按钮查看详情</p>
             </div>
           </div>
         </div>
@@ -75,16 +76,19 @@
 <script setup>
 /* eslint-disable */
 import { ref } from 'vue'
-import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule } from '@/api/manage'
+import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertComplexJsonRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 const uuid = uuidv4()
 const chatHistory = ref([
-  { role: 'assistant', content: '您好，我是一个生成自然语言描述SCTAP应用的智能助手！', isSuccess: false }
+  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的需求！', isSuccess: false },
+  { role: 'user', content: '你好', isSuccess: false },
+  { role: 'assistant', content: '当发生违章停车事件，如果附近有音箱，则广播劝离；如果没有音箱，则下发工单至附近执法人员', isSuccess: true }
 ])
 const inputContent = ref('')
 const isLoading = ref(false)
 const selectedRule = ref(null)
+const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
 async function sendMessage() {
   const content = inputContent.value.trim()
@@ -117,27 +121,27 @@ async function sendMessage() {
 async function findSimilarRule(index) {
   const message = chatHistory.value[index]
   selectedRule.value = {
-    content: message.content,
-    jsonRule: '正在匹配应用JSON规则...',
+    naturalContent: message.content,
+    jsonRule: '正在匹配应用JSON...',
     index: index,
     isSimilar: true,
-    similarContent: '正在匹配应用...'
+    similarNaturalContent: '正在匹配应用...'
   }
   try {
     const jsonRes = await findSimilarRules(message.content)
-    selectedRule.value.similarContent = jsonRes.description
+    selectedRule.value.similarNaturalContent = jsonRes.description
     selectedRule.value.jsonRule = JSON.parse(jsonRes.ruleJson);
   } catch (error) {
-    selectedRule.value.jsonRule = 'JSON规则生成失败: ' + error.message
+    selectedRule.value.jsonRule = '匹配失败: ' + error.message
   }
 }
 
 async function regenerateRule() {
   if (selectedRule.value) {
     try {
-        selectedRule.value.jsonRule = '正在生成应用JSON规则...'
+        selectedRule.value.jsonRule = '正在生成应用JSON...'
         selectedRule.value.isSimilar = false
-        const jsonRule = await generateJsonRule(uuid, selectedRule.value.content )
+        const jsonRule = await generateJsonRule(uuid, selectedRule.value.naturalContent )
         selectedRule.value.jsonRule = jsonRule;
     } catch (error) {
         selectedRule.value.jsonRule = 'JSON规则生成失败: ' + error.message
@@ -153,6 +157,28 @@ async function submitRule() {
         message.success('应用创建成功')
     } catch (error) {
         message.error('应用创建失败: ' + error.message)
+    }
+  }
+}
+
+async function viewInNodeRed() {
+  if (selectedRule.value && selectedRule.value.jsonRule) {
+    const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
+    try {
+      const flowJson = await convertComplexJsonRule(JSON.stringify(selectedRule.value.jsonRule))
+
+      await fetch(`${NODE_RED_URL}/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(flowJson)
+      })
+
+      hide()
+      message.success('已成功推送至 Node-RED！')
+      window.open(NODE_RED_URL, '_blank')
+    } catch (error) {
+      hide()
+      message.error('推送失败，请稍后重试')
     }
   }
 }
@@ -173,7 +199,7 @@ async function submitRule() {
 }
 
 .chat-wrapper {
-  flex: 6;
+  flex: 5;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -189,7 +215,7 @@ async function submitRule() {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.2rem;
 }
 
 .chat-message {
@@ -229,24 +255,25 @@ async function submitRule() {
 }
 
 .action-buttons {
-  margin-top: 0.5rem;
+  margin-top: 0.2rem;    
   display: flex;
-  gap: 0.5rem;
+  gap: 0.2rem;         
 }
 
-.generate-btn {
-  padding: 0.3rem 0.8rem;
+.match-btn {
+  padding: 0.2rem 0.6rem;  /* 更小的内边距 */
   background-color: #3b82f6;
   color: white;
-  border-radius: 0.5rem;
-  border: none;
-  font-size: 0.8rem;
+  border-radius: 0.4rem;   /* 更小的圆角 */
+  font-size: 0.7rem;      /* 更小的字体 */
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  border: none;            /* 去掉外边框 */
 }
 
-.generate-btn:hover {
+.match-btn:hover {
   background-color: #059669;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
 }
 
 .input-area {
@@ -286,7 +313,8 @@ async function submitRule() {
 }
 
 .send-btn:hover {
-  background-color: #2563eb;
+  background-color: #059669;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* JSON展示区域样式 */
@@ -320,41 +348,14 @@ async function submitRule() {
   gap: 0.5rem;
 }
 
-.action-btn {
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem;
-  border: none;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.submit-btn {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.submit-btn:hover {
-  background-color: #2563eb;
-}
-
-.regenerate-btn {
-  background-color: #f59e0b;
-  color: white;
-}
-
-.regenerate-btn:hover {
-  background-color: #d97706;
-}
-
 .json-content {
   flex: 1;
-  padding: 1rem;
+  padding: 0.5rem;
   overflow-y: auto;
 }
 
 .rule-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .rule-section h4 {
@@ -368,7 +369,7 @@ async function submitRule() {
   background-color: #f9fafb;
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
-  font-size: 0.9rem;
+  font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -405,5 +406,53 @@ async function submitRule() {
   .vjs-value {
     word-break: break-all;
   }
+}
+
+.submit-btn {
+  padding: 0.2rem 0.6rem;  /* 更小的内边距 */
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.4rem;   /* 更小的圆角 */
+  font-size: 0.7rem;      /* 更小的字体 */
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  border: none;            /* 去掉外边框 */
+}
+
+.submit-btn:hover {
+  background-color: #059669;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
+}
+
+.llm-btn {
+  padding: 0.2rem 0.6rem;  /* 更小的内边距 */
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.4rem;   /* 更小的圆角 */
+  font-size: 0.7rem;      /* 更小的字体 */
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  border: none;            /* 去掉外边框 */
+}
+
+.llm-btn:hover {
+  background-color: #059669;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
+}
+
+.nodered-btn {
+  padding: 0.2rem 0.6rem;  /* 更小的内边距 */
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.4rem;   /* 更小的圆角 */
+  font-size: 0.7rem;      /* 更小的字体 */
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  border: none;            /* 去掉外边框 */
+}
+
+.nodered-btn:hover {
+  background-color: #059669;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
 }
 </style>
