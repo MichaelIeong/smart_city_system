@@ -6,17 +6,18 @@
       <a-row :gutter="24" style="height: calc(100vh - 180px);">
         <!-- 左侧：设备类型表格 -->
         <a-col :span="12">
-          <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '100%' }">
+          <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '600px' }">
             <div style="height: calc(100% - 60px); display: flex; flex-direction: column;">
               <a-table
                 :columns="deviceTypeColumns"
                 :dataSource="deviceTypes"
                 row-key="deviceTypeId"
                 :pagination="false"
-                :scroll="{ y: 'calc(100vh - 430px)' }"
+                :scroll="{ y: 400 }"
                 @click="handleDeviceTypeClick"
                 :customRow="customRowClick"
                 style="flex: 1;"
+                :row-class-name="rowClassName"
               />
 
               <div style="margin-top: 16px;">
@@ -60,32 +61,12 @@
 
         <!-- 右侧：设备实例表格 -->
         <a-col :span="12">
-          <a-card title="设备实例" bordered :style="{ borderRadius: '8px', height: '100%' }">
+          <a-card
+            :title="deviceInstanceTitle"
+            bordered
+            :style="{ borderRadius: '8px', height: '600px' }"
+          >
             <div style="height: calc(100% - 60px); display: flex; flex-direction: column;">
-              <!-- 查询条件 -->
-              <a-row gutter="{16}" style="margin-bottom: 16px;">
-                <a-col :md="16" :sm="24">
-                  <a-select
-                    v-model="queryType"
-                    placeholder="请选择设备类型"
-                    default-value="0"
-                    style="width: 100%;"
-                  >
-                    <a-select-option value="0">全部</a-select-option>
-                    <a-select-option
-                      v-for="device in deviceTypes"
-                      :key="device.deviceTypeId"
-                      :value="device.deviceTypeName">
-                      {{ device.deviceTypeName }}
-                    </a-select-option>
-                  </a-select>
-                </a-col>
-                <a-col :md="8" :sm="24">
-                  <a-button type="primary" @click="filterData" style="width: 100%;">
-                    查询
-                  </a-button>
-                </a-col>
-              </a-row>
 
               <!-- 设备实例表格 -->
               <a-table
@@ -93,18 +74,22 @@
                 :dataSource="filteredDeviceInstances"
                 row-key="deviceId"
                 :pagination="false"
-                :scroll="{ y: 'calc(100vh - 530px)' }"
+                :scroll="{ x: 700, y: 350 }"
                 :row-selection="{ selectedRowKeys: selectedInstanceKeys, onChange: onSelectChange}"
-                style="flex: 1;"
+                style="flex: 1; margin-bottom: 16px;"
+                :locale="{ emptyText: selectedDeviceType ? '该设备类型暂无设备实例' : '请先选择设备类型' }"
               />
 
               <!-- 操作按钮区域 -->
-              <div style="margin-top: 16px;">
-                <a-button type="primary" @click="showDeviceInstanceModal">
+              <div style="display: flex; justify-content: flex-start; gap: 8px;">
+                <a-button type="primary" @click="showDeviceInstanceModal" :disabled="!selectedDeviceType">
                   新增设备实例
                 </a-button>
-                <a-button type="default" style="margin-left: 8px;" @click="refreshDevice" :disabled="selectedInstanceKeys.length !== 1">
+                <a-button type="default" @click="refreshDevice" :disabled="selectedInstanceKeys.length !== 1">
                   刷新
+                </a-button>
+                <a-button type="danger" @click="deleteDeviceInstance" :disabled="selectedInstanceKeys.length === 0">
+                  删除
                 </a-button>
               </div>
             </div>
@@ -126,6 +111,21 @@
         <a-descriptions-item label="最新状态">{{ refreshedDeviceData.states }}</a-descriptions-item>
         <a-descriptions-item label="详细信息">{{ refreshedDeviceData.fixedProperties }}</a-descriptions-item>
       </a-descriptions>
+    </a-modal>
+
+    <!-- 删除确认弹窗 -->
+    <a-modal
+      v-model="isDeleteModalVisible"
+      title="确认删除"
+      @ok="confirmDeleteDevice"
+      @cancel="cancelDeleteDevice"
+      ok-text="确认"
+      cancel-text="取消"
+    >
+      <p>确定要删除选中的 {{ selectedInstanceKeys.length }} 个设备实例吗？此操作不可恢复。</p>
+      <ul v-if="selectedDeviceNames.length > 0">
+        <li v-for="name in selectedDeviceNames" :key="name">{{ name }}</li>
+      </ul>
     </a-modal>
 
     <!-- 新增设备实例弹窗 -->
@@ -194,33 +194,33 @@ export default {
       selectedRowKeys: [],
       selectedInstanceKeys: [], // 存储选中的设备实例key
       isRefreshModelVisible: false,
+      isDeleteModalVisible: false, // 控制删除确认弹窗
       refreshedDeviceData: {},
       queryType: '0',
       isDeviceTypeModalVisible: false, // 控制弹窗显示状态
       isDeviceInstanceModalVisible: false,
-      filteredDeviceInstances: [], // 过滤后的设备实例数据
 
       // 设备类型表格列定义（保持原有的列）
       deviceTypeColumns: [
-        { title: '设备类型序号', dataIndex: 'deviceTypeId', key: 'deviceTypeId' },
-        { title: '设备类型名称', dataIndex: 'deviceTypeName', key: 'deviceTypeName' },
-        { title: '设备类型属性', dataIndex: 'deviceTypeAttributes', key: 'deviceTypeAttributes' },
-        { title: '设备类型功能', dataIndex: 'deviceTypeFunction', key: 'deviceTypeFunction' }
+        { title: '设备类型序号', dataIndex: 'deviceTypeId', key: 'deviceTypeId', align: 'center' },
+        { title: '设备类型名称', dataIndex: 'deviceTypeName', key: 'deviceTypeName', align: 'center' },
+        { title: '设备类型属性', dataIndex: 'deviceTypeAttributes', key: 'deviceTypeAttributes', align: 'center' },
+        { title: '设备类型功能', dataIndex: 'deviceTypeFunction', key: 'deviceTypeFunction', align: 'center' }
       ],
 
       deviceTypes: [], // 后端获取的设备类型列表
 
       // 设备实例表格列定义（保持原有的列）
       deviceInstanceColumns: [
-        { title: '设备序号', dataIndex: 'deviceId', key: 'deviceId', width: 100 },
-        { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 150 },
-        { title: '设备所属区域', dataIndex: 'deviceRegion', key: 'deviceRegion', width: 150 },
-        { title: '设备状态', dataIndex: 'states', key: 'states', width: 100 },
-        { title: '设备可用时间', dataIndex: 'deviceTime', key: 'deviceTime', width: 200 },
-        { title: '操作', dataIndex: 'operation', key: 'operation', width: 200 }
+        { title: '设备序号', dataIndex: 'deviceId', key: 'deviceId', width: 100, align: 'center' },
+        { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 120, align: 'center' },
+        { title: '设备所属区域', dataIndex: 'deviceRegion', key: 'deviceRegion', width: 120, align: 'center' },
+        { title: '设备状态', dataIndex: 'states', key: 'states', width: 100, align: 'center' },
+        { title: '设备可用时间', dataIndex: 'deviceTime', key: 'deviceTime', width: 140, align: 'center' },
+        { title: '操作', dataIndex: 'operation', key: 'operation', width: 120, align: 'center' }
       ],
 
-      deviceInstances: [], // 后端获取的设备实例列表
+      deviceInstances: [], // 后端获取的设备实例列表（完整数据）
 
       newDeviceType: {
         deviceTypeId: '',
@@ -240,6 +240,38 @@ export default {
       loading: false // 用于显示加载状态
     }
   },
+  computed: {
+    // 根据选中的设备类型过滤设备实例
+    filteredDeviceInstances () {
+      if (!this.selectedDeviceType) {
+        return [] // 没有选中设备类型时，不显示任何设备实例
+      }
+      return this.deviceInstances.filter(
+        instance => instance.deviceTypeId === this.selectedDeviceType.deviceTypeId
+      )
+    },
+
+    // 动态设备实例表格标题
+    deviceInstanceTitle () {
+      if (this.selectedDeviceType) {
+        return `设备实例 (${this.selectedDeviceType.deviceTypeName})`
+      }
+      return '设备实例'
+    },
+
+    // 获取选中设备的名称列表，用于删除确认弹窗显示
+    selectedDeviceNames () {
+      return this.filteredDeviceInstances
+        .filter(device => this.selectedInstanceKeys.includes(device.deviceId))
+        .map(device => device.deviceName)
+    }
+  },
+  watch: {
+    // 当选中的设备类型改变时，清空设备实例的选中状态
+    selectedDeviceType () {
+      this.selectedInstanceKeys = []
+    }
+  },
   mounted () {
     this.fetchDeviceTypes() // 页面加载时调用API获取设备类型数据
     this.fetchDeviceData() // 获取设备实例数据
@@ -248,8 +280,16 @@ export default {
     async fetchDeviceData () {
       try {
         // 从 localStorage 获取保存的 projectId
-        const projectId = localStorage.getItem('project_id')
+        // const projectId = localStorage.getItem('project_id')
+        const projectId = '1'
+        if (!projectId) {
+          console.error('未找到 project_id')
+          this.$message.error('未找到项目ID，请先选择项目')
+          return
+        }
+
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        console.log('正在请求设备数据，URL:', `${baseUrl}/api/devices?project=${projectId}`)
 
         // 发起带有 projectId 的 API 请求
         const response = await axios.get(`${baseUrl}/api/devices`, {
@@ -260,6 +300,13 @@ export default {
 
         console.log('设备实例API 返回的数据:', response.data) // 打印返回的数据
         const rawData = response.data
+
+        // 检查返回的数据是否为数组
+        if (!Array.isArray(rawData)) {
+          console.error('API返回的数据不是数组格式:', rawData)
+          this.$message.error('数据格式错误')
+          return
+        }
 
         // 将API返回的数据映射到原始代码的列结构
         this.deviceInstances = rawData.map(device => ({
@@ -274,11 +321,11 @@ export default {
           deviceTypeId: device.deviceTypeId
         }))
 
-        // 初始化 filteredDeviceInstances
-        this.filteredDeviceInstances = [...this.deviceInstances]
+        console.log('处理后的设备实例数据:', this.deviceInstances)
       } catch (error) {
         console.error('获取设备数据时出错:', error)
-        this.$message.error('获取设备数据失败')
+        console.error('错误详情:', error.response?.data || error.message)
+        this.$message.error(`获取设备数据失败: ${error.response?.data?.message || error.message}`)
       }
     },
 
@@ -286,8 +333,16 @@ export default {
       this.loading = true
       try {
         // 从 localStorage 获取保存的 projectId
-        const projectId = localStorage.getItem('project_id')
+        // const projectId = localStorage.getItem('project_id')
+        const projectId = '1'
+        if (!projectId) {
+          console.error('未找到 project_id')
+          this.$message.error('未找到项目ID，请先选择项目')
+          return
+        }
+
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        console.log('正在请求设备类型数据，URL:', `${baseUrl}/api/deviceTypes?project=${projectId}`)
 
         // 发起带有 projectId 的 API 请求
         const response = await axios.get(`${baseUrl}/api/deviceTypes`, {
@@ -299,6 +354,13 @@ export default {
         console.log('设备类型API 返回的数据:', response.data)
         const deviceData = response.data
 
+        // 检查返回的数据是否为数组
+        if (!Array.isArray(deviceData)) {
+          console.error('API返回的数据不是数组格式:', deviceData)
+          this.$message.error('数据格式错误')
+          return
+        }
+
         // 将API返回的数据映射到原始代码的列结构
         this.deviceTypes = deviceData.map(device => ({
           deviceTypeId: device.deviceTypeId,
@@ -308,9 +370,12 @@ export default {
             ? device.actuatingFunctions.map(func => func.name || 'Unknown').join(', ')
             : '无特定功能'
         }))
+
+        console.log('处理后的设备类型数据:', this.deviceTypes)
       } catch (error) {
         console.error('获取设备类型数据时出错:', error)
-        this.$message.error('获取设备类型数据失败')
+        console.error('错误详情:', error.response?.data || error.message)
+        this.$message.error(`获取设备类型数据失败: ${error.response?.data?.message || error.message}`)
       } finally {
         this.loading = false
       }
@@ -336,15 +401,51 @@ export default {
       return '无可用操作'
     },
 
-    filterData () {
-      this.filteredDeviceInstances = this.deviceInstances.filter(item => {
-        const matchesType = this.queryType === '0' || (item.deviceTypeName && item.deviceTypeName === this.queryType)
-        return matchesType
-      })
-    },
-
     onSelectChange (selectedRowKeys) {
       this.selectedInstanceKeys = selectedRowKeys
+    },
+
+    // 删除设备实例
+    deleteDeviceInstance () {
+      if (this.selectedInstanceKeys.length === 0) {
+        this.$message.warning('请选择要删除的设备实例')
+        return
+      }
+      // 显示删除确认弹窗
+      this.isDeleteModalVisible = true
+    },
+
+    // 确认删除设备
+    async confirmDeleteDevice () {
+      try {
+        // 如果需要调用后端API删除，可以在这里添加
+        // const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        // for (const deviceId of this.selectedInstanceKeys) {
+        //   await axios.delete(`${baseUrl}/api/devices/${deviceId}`)
+        // }
+
+        // 从本地数据中删除选中的设备实例
+        this.deviceInstances = this.deviceInstances.filter(
+          device => !this.selectedInstanceKeys.includes(device.deviceId)
+        )
+
+        // 清空选中状态
+        this.selectedInstanceKeys = []
+
+        // 关闭删除确认弹窗
+        this.isDeleteModalVisible = false
+
+        // 显示成功消息
+        this.$message.success('设备实例删除成功')
+      } catch (error) {
+        console.error('删除设备实例时出错:', error)
+        this.$message.error('删除失败，请稍后重试')
+      }
+    },
+
+    // 取消删除
+    cancelDeleteDevice () {
+      this.isDeleteModalVisible = false
     },
 
     async refreshDevice () {
@@ -386,25 +487,33 @@ export default {
       this.refreshedDeviceData = {}
     },
 
+    // 设备类型行点击事件
     handleDeviceTypeClick (record) {
-      // 点击设备类型行，根据deviceTypeId过滤设备实例
-      this.filteredDeviceInstances = this.deviceInstances.filter(
-        (instance) => instance.deviceTypeId === record.deviceTypeId
-      )
-      // 更新选中行的key
+      // 设置当前选中的设备类型
+      this.selectedDeviceType = record
+
+      // 更新选中行的key（用于高亮显示）
       this.selectedRowKeys = [record.deviceTypeId]
+
+      console.log('选中设备类型:', record.deviceTypeName)
+      console.log('该类型的设备实例:', this.filteredDeviceInstances)
     },
 
+    // 设备类型行样式设置
     customRowClick (record) {
       return {
         on: {
           click: () => this.handleDeviceTypeClick(record)
         },
         style: {
-          cursor: 'pointer',
-          backgroundColor: this.selectedRowKeys.includes(record.deviceTypeId) ? '#e6f7ff' : ''
+          cursor: 'pointer'
         }
       }
+    },
+
+    // 设备类型行类名设置（用于高亮选中行）
+    rowClassName (record) {
+      return this.selectedRowKeys.includes(record.deviceTypeId) ? 'selected-row' : ''
     },
 
     showAddDeviceTypeModal () {
@@ -413,7 +522,10 @@ export default {
     },
 
     showDeviceInstanceModal () {
-      this.selectedDeviceType = null // 重置选中的设备类型
+      if (!this.selectedDeviceType) {
+        this.$message.warning('请先选择设备类型')
+        return
+      }
       this.isDeviceInstanceModalVisible = true
     },
 
@@ -444,6 +556,8 @@ export default {
 
         // 关闭弹窗
         this.isDeviceTypeModalVisible = false
+
+        this.$message.success('设备类型添加成功')
       } else {
         // 如果输入框有空值，显示提示
         this.$message.error('请完整填写设备类型信息')
@@ -453,6 +567,12 @@ export default {
     handleCancel () {
       // 关闭弹窗并清空表单
       this.isDeviceTypeModalVisible = false
+      this.newDeviceType = {
+        deviceTypeId: '',
+        deviceTypeName: '',
+        deviceTypeAttributes: '',
+        deviceTypeFunction: ''
+      }
     },
 
     handleNewDeviceInstanceSubmit () {
@@ -460,9 +580,9 @@ export default {
       if (this.newDeviceInstance.deviceId && this.newDeviceInstance.deviceName) {
         // 向设备实例列表中添加新设备
         this.deviceInstances.push({
-          id: this.deviceInstances.length + 1, // 假设设备实例的 ID 为列表长度 + 1
           ...this.newDeviceInstance,
-          deviceTypeId: this.selectedDeviceType // 确保这个属性存在并且有值
+          deviceTypeId: this.selectedDeviceType.deviceTypeId, // 关联到当前选中的设备类型
+          deviceTypeName: this.selectedDeviceType.deviceTypeName
         })
 
         // 清空表单数据
@@ -475,17 +595,25 @@ export default {
           operation: ''
         }
 
-        // 更新过滤后的设备实例
-        this.filterData() // 先过滤数据
         // 关闭弹窗
         this.isDeviceInstanceModalVisible = false
+
+        this.$message.success('设备实例添加成功')
       } else {
-        console.error('请输入设备编号和设备名称')
+        this.$message.error('请输入设备编号和设备名称')
       }
     },
 
     handleCancelDeviceInstance () {
       this.isDeviceInstanceModalVisible = false
+      this.newDeviceInstance = {
+        deviceId: '',
+        deviceName: '',
+        deviceRegion: '',
+        deviceTime: '',
+        states: '',
+        operation: ''
+      }
     },
 
     // 新增设备实例
@@ -522,6 +650,15 @@ export default {
   cursor: pointer;
 }
 
+/* 选中行的高亮样式 */
+.ant-table-tbody .selected-row {
+  background-color: #e6f7ff !important;
+}
+
+.ant-table-tbody .selected-row:hover {
+  background-color: #bae7ff !important;
+}
+
 /* 确保卡片内容区域高度合适 */
 .ant-card-body {
   height: calc(100% - 57px);
@@ -531,6 +668,19 @@ export default {
 /* 表格容器样式 */
 .ant-table-wrapper {
   height: 100%;
+}
+
+/* 表格标题样式 - 防止换行 */
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+  text-align: center;
+  padding: 8px 12px;
+}
+
+/* 表格内容居中对齐 */
+.ant-table-tbody > tr > td {
+  text-align: center;
+  padding: 8px 12px;
 }
 
 /* 面包屑导航样式 */
