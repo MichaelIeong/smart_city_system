@@ -81,9 +81,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 const uuid = uuidv4()
 const chatHistory = ref([
-  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的需求！', isSuccess: false },
-  { role: 'user', content: '你好', isSuccess: false },
-  { role: 'assistant', content: '当发生违章停车事件，如果附近有音箱，则广播劝离；如果没有音箱，则下发工单至附近执法人员', isSuccess: true }
+  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的应用需求！', isSuccess: false }
 ])
 const inputContent = ref('')
 const isLoading = ref(false)
@@ -153,7 +151,7 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        await createTapRule(projectId, selectedRule.value.content, JSON.stringify(selectedRule.value.jsonRule, null, 2))
+        await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2))
         message.success('应用创建成功')
     } catch (error) {
         message.error('应用创建失败: ' + error.message)
