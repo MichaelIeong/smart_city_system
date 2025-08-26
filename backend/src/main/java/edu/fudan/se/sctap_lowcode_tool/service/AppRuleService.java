@@ -193,6 +193,25 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
+    public ResponseEntity<String> convertJsonRule(String jsonRule) {
+        // 构造系统消息和用户消息
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new SystemMessage(SystemPrompt.JSON_RULE_CONVERT_NODE_RED_PROMPT));
+        messages.add(new UserMessage(jsonRule));
+        // 调用大模型
+        ChatResponse response = chatLanguageModel.chat(messages);
+        if(response!=null) {
+            String text = response.aiMessage().text();
+            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
+            // 如果是用 ```json ``` 包围，就提取其中的 JSON 内容
+            if(matcher.find()) {
+                return ResponseEntity.ok(matcher.group(1).trim());
+            }
+            return ResponseEntity.ok(text);
+        }
+        return ResponseEntity.badRequest().body("发生错误，请稍后重试！");
+    }
+
 //    public ResponseEntity<String> generateJsonRule(RecommendRequest recommendRequest) {
 //        String uuid = recommendRequest.getUuid();
 //        String message = recommendRequest.getMessage();

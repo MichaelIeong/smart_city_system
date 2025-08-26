@@ -75,14 +75,13 @@ public class AppRuleController {
         return appRuleService.findSimilarRules(ruleGenerateRequest);
     }
 
-//
-//    /**
-//     * 复杂应用json规则node red转换
-//     * */
-//    @PostMapping("/recommend/convertComplexJsonRule")
-//    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
-//        return appRuleService.convertComplexJsonRule(appRuleRequest);
-//    }
+    /**
+     * 复杂应用json规则node red转换
+     * */
+    @PostMapping("/recommend/convertJsonRule")
+    public ResponseEntity<String> convertJsonRule(@RequestBody String jsonRule) {
+        return appRuleService.convertJsonRule(jsonRule);
+    }
 
 
 //    /**
