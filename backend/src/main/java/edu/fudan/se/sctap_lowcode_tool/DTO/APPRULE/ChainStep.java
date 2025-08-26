@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.DTO.app;
+package edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

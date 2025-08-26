@@ -30,8 +30,8 @@ public class AppRuleController {
     }
 
     @PostMapping
-    public void create(@RequestBody AppRuleRequest rule) {
-        appRuleService.createRule(rule);
+    public boolean create(@RequestBody AppRuleRequest rule) {
+        return appRuleService.createRule(rule);
     }
 
     @PutMapping("/{id}")

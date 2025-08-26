@@ -1,12 +1,16 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.alibaba.dashscope.exception.NoApiKeyException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
+import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.AppRule;
+import edu.fudan.se.sctap_lowcode_tool.constant.JsonRuleExample;
 import edu.fudan.se.sctap_lowcode_tool.constant.SystemPrompt;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
@@ -54,8 +58,8 @@ public class AppRuleService {
     private final Map<String, Long> uuidUpdateTimeMap = new HashMap<>();
 //    // 记录处于等待中的应用规则
 //    Map<String, Set<String>> eventWaitMap = new HashMap<>();
-//
-//    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AppRuleService(ChatLanguageModel chatLanguageModel) {
         this.chatLanguageModel = chatLanguageModel;
@@ -83,16 +87,22 @@ public class AppRuleService {
         }
     }
 
-    public void createRule(AppRuleRequest rule) {
-        var appRuleInfo = getEntityFromRequest(rule);
-        appRuleInfo = appRuleRepository.save(appRuleInfo);
-        // 加入向量数据库
-        AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), rule.description());
-        try{
-            milvusUtil.insertRecord(record);
-        } catch (NoApiKeyException e) {
-            log.error("No api key");
+    public boolean createRule(AppRuleRequest rule) {
+        // 检查生成的JSON规则是否能被解析
+        AppRule appRule = parseJsonRule(rule.ruleJson());
+        if (appRule!= null) {
+            var appRuleInfo = getEntityFromRequest(rule);
+            appRuleInfo = appRuleRepository.save(appRuleInfo);
+            // 加入向量数据库
+            AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), rule.description());
+            try{
+                milvusUtil.insertRecord(record);
+            } catch (NoApiKeyException e) {
+                log.error("No api key");
+            }
+            return true;
         }
+        return false;
     }
 
     public void updateRule(Integer ruleId, AppRuleRequest rule) {
@@ -212,122 +222,17 @@ public class AppRuleService {
         return ResponseEntity.badRequest().body("发生错误，请稍后重试！");
     }
 
-//    public ResponseEntity<String> generateJsonRule(RecommendRequest recommendRequest) {
-//        String uuid = recommendRequest.getUuid();
-//        String message = recommendRequest.getMessage();
-//        List<ChatMessage> messages = new ArrayList<>();
-//        // 构造系统提示词
-//        List<AppRuleData> appRuleDataList = ruleDataMap.get(uuid);
-//        if(appRuleDataList==null){
-//            return ResponseEntity.badRequest().body("找不到uuid");
-//        }
-//        AppRuleData appRuleData = null;
-//        for(AppRuleData data:appRuleDataList){
-//            if(data.getRule().equals(message)){
-//                appRuleData = data;
-//                break;
-//            }
-//        }
-//        if(appRuleData==null){
-//            return ResponseEntity.badRequest().body("找不到message");
-//        }
-//        List<String> eventList = redisUtil.getMulti(appRuleData.getComponents().getEventType(), RedisConstant.Event_Prefix);
-//        List<String> propertyList = redisUtil.getMulti(appRuleData.getComponents().getPropertyType(),  RedisConstant.Property_Prefix);
-//        List<String> actionList = redisUtil.getMulti(appRuleData.getComponents().getActionType(), RedisConstant.Action_Prefix);
-//        String eventOptions = String.join("\n", eventList);
-//        String propertyOptions = String.join("\n", propertyList);
-//        String actionOptions = String.join("\n", actionList);
-//        String systemPrompt = String.format(SystemPrompt.SIMPLE_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
-//        // 加入系统消息
-//        messages.add(new SystemMessage(systemPrompt));
-//        // 加入用户输入的消息
-//        messages.add(new UserMessage(message));
-//        // 规定输出的格式为 JSON
-//        ChatResponse response = chatLanguageModel.chat(messages);
-//        if (response != null) {
-//            String text = response.aiMessage().text();
-//            Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(text);
-//            if (matcher.find()) {
-//                return ResponseEntity.ok(matcher.group(1).trim());
-//            }
-//        }
-//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-//    }
-
-
-//    public  ResponseEntity<String> convertComplexJsonRule(AppRuleRequest appRuleRequest) {
-//        String ruleJson = appRuleRequest.ruleJson();
-//        // 构建系统消息和用户消息
-//        List<ChatMessage> messages = new ArrayList<>();
-//        messages.add(new SystemMessage(SystemPrompt.COMPLEX_RULE_CONVERT_PROMPT));
-//        messages.add(new UserMessage(ruleJson));
-//        // 规定输出的格式为 JSON
-//        ChatResponse response = chatLanguageModel.chat(messages);
-//        if (response != null) {
-//            String text = response.aiMessage().text();
-//            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
-//            if (matcher.find()) {
-//                return ResponseEntity.ok(matcher.group(1).trim());
-//            }
-//        }
-//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-//    }
-//
-//    public ResponseEntity<String> generateNaturalRule(RecommendRequest recommendRequest){
-//        String uuid = recommendRequest.getUuid();
-//        String message = recommendRequest.getMessage();
-//        // 更新uuid的时间戳
-//        uuidTimeMap.put(uuid, System.currentTimeMillis());
-//        // 获取内存中的消息
-//        List<ChatMessage> messages = messageMap.getOrDefault(uuid, new ArrayList<>());
-//        // 如果内存中不存在就构建消息
-//        if(messages.isEmpty()){
-//            // 从redis中获取系统提示词
-//            String systemPrompt = redisUtil.getSingle(RedisConstant.NATURAL_PROMPT);
-//            if(systemPrompt==null){
-//                // 构建提示词
-//                List<String> eventList = redisUtil.getAll(RedisConstant.Event_Prefix);
-//                List<String> propertyList = redisUtil.getAll(RedisConstant.Property_Prefix);
-//                List<String> actionList = redisUtil.getAll(RedisConstant.Action_Prefix);
-//                String eventOptions    = String.join("\n", eventList);
-//                String propertyOptions = String.join("\n", propertyList);
-//                String actionOptions   = String.join("\n", actionList);
-//                systemPrompt = String.format(SystemPrompt.SIMPLE_NATURAL_RULE_PROMPT, eventOptions, propertyOptions, actionOptions);
-//                // 存入redis
-//                redisUtil.setSingle(RedisConstant.NATURAL_PROMPT, systemPrompt);
-//            }
-//            messages.add(new SystemMessage(systemPrompt));
-//        }
-//        // 将用户输入的消息加入
-//        messages.add(new UserMessage(message));
-//        ChatResponse response = chatLanguageModel.chat(messages);
-//        // 解析输出的内容
-//        String jsonContent;
-//        if (response != null) {
-//            // 加入消息
-//            messages.add(response.aiMessage());
-//            messageMap.put(uuid, messages);
-//            jsonContent = response.aiMessage().text();
-//            Pattern pattern = Pattern.compile("```json\\s*(\\{[\\s\\S]*?\\})\\s*```");
-//            Matcher matcher = pattern.matcher(jsonContent);
-//            // 如果匹配到，提取 JSON 内容
-//            if (matcher.find()) {
-//                jsonContent = matcher.group(1).trim();
-//            }
-//            AppRuleData appRuleData;
-//            try{
-//                appRuleData = objectMapper.readValue(jsonContent, AppRuleData.class);
-//            } catch (Exception e){
-//                return ResponseEntity.badRequest().body("输出格式错误，请稍后重试");
-//            }
-//            // 加入规则和对应的事件、动作、属性
-//            List<AppRuleData> appRuleDataList = ruleDataMap.getOrDefault(uuid, new ArrayList<>());
-//            appRuleDataList.add(appRuleData);
-//            ruleDataMap.put(uuid, appRuleDataList);
-//            return ResponseEntity.ok(appRuleData.getRule());
-//        }
-//        return ResponseEntity.badRequest().body("发生错误，请稍后再试！");
-//    }
+    // 解析JSON规则
+    private AppRule parseJsonRule(String jsonRule) {
+        AppRule appRule;
+        try {
+            appRule = objectMapper.readValue(jsonRule, AppRule.class);
+            return appRule;
+        } catch (JsonProcessingException e) {
+            log.error("解析JSON规则失败: {}", e.getMessage());
+            return null;
+        }
+    }
 
 //    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {
 //        // TODO，暂时使用示例JSON模拟
