@@ -111,7 +111,6 @@ public class NodeRedService {
         branch.setStatus((status == null || status.isBlank()) ? "inactive" : status);
         branch.setRuleJson(ruleJsonNode.toString());
         branch.setFlowJson(flowJsonNode.toString());
-        branch.setRemark(null);
 
         branchRepo.save(branch);
 

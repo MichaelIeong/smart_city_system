@@ -47,9 +47,6 @@ public class FusionRuleBranch {
     @Column(name = "flow_json", columnDefinition = "LONGTEXT")
     private String flowJson;
 
-    @Column(name = "remark")
-    private String remark;
-
     // ✅ 供前端使用的只读字段：返回 spaceId
     @Transient
     public Integer getSpaceId() {

@@ -28,19 +28,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class FusionRuleService {
 
-    @Autowired private FusionRuleRepository fusionRuleRepository;
-    @Autowired private FusionRuleBranchRepository branchRepo;
+    @Autowired
+    private FusionRuleRepository fusionRuleRepository;
+    @Autowired
+    private FusionRuleBranchRepository branchRepo;
 
-    @Autowired private OperatorService operatorService;
-    @Autowired private KafkaConsumerUtil kafkaConsumerUtil;
-    @Autowired private DeviceService deviceService;
-    @Autowired private NodeRedService nodeRedService;
-    @Autowired private SpaceService spaceService;
+    @Autowired
+    private OperatorService operatorService;
+    @Autowired
+    private KafkaConsumerUtil kafkaConsumerUtil;
+    @Autowired
+    private DeviceService deviceService;
+    @Autowired
+    private NodeRedService nodeRedService;
+    @Autowired
+    private SpaceService spaceService;
 
-    @Autowired private SpaceRepository spaceRepository;
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     // 事务管理器：用于在后台线程里显式开启事务
-    @Autowired private PlatformTransactionManager txManager;
+    @Autowired
+    private PlatformTransactionManager txManager;
     private TransactionTemplate txTemplate;
 
     // 每次执行过程中的全局节点状态（同一规则执行上下文内使用）
@@ -62,12 +71,16 @@ public class FusionRuleService {
      * 主干规则相关（列表/删除/执行/暂停）
      * ========================= */
 
-    /** 返回主干规则列表（主表仅保留 id/project/name） */
+    /**
+     * 返回主干规则列表（主表仅保留 id/project/name）
+     */
     public List<FusionRule> getRuleList() {
         return fusionRuleRepository.findAll();
     }
 
-    /** 删除主干规则（注意：请在 DB 级或应用层确保级联删除其分支或先删分支） */
+    /**
+     * 删除主干规则（注意：请在 DB 级或应用层确保级联删除其分支或先删分支）
+     */
     public boolean deleteRuleById(int ruleId) {
         if (!fusionRuleRepository.existsById(ruleId)) return false;
         fusionRuleRepository.deleteById(ruleId);
@@ -102,7 +115,9 @@ public class FusionRuleService {
         return true;
     }
 
-    /** 暂停主干规则（同一主干同时只跑一个分支，因此按 ruleId 停止即可） */
+    /**
+     * 暂停主干规则（同一主干同时只跑一个分支，因此按 ruleId 停止即可）
+     */
     public boolean pauseRuleById(int ruleId) {
         if (!fusionRuleRepository.existsById(ruleId)) return false;
         AtomicBoolean flag = runningFlags.get(ruleId);
@@ -115,12 +130,16 @@ public class FusionRuleService {
      * 分支 CRUD / 执行
      * ========================= */
 
-    /** 根据主干列出分支 */
+    /**
+     * 根据主干列出分支
+     */
     public List<FusionRuleBranch> listBranchesByRule(Integer ruleId) {
         return branchRepo.findByRule_RuleId(ruleId);
     }
 
-    /** 统计某主干下分支数量（供控制器展示用） */
+    /**
+     * 统计某主干下分支数量（供控制器展示用）
+     */
     public long countBranchesOfRule(Integer ruleId) {
         // 若 Repository 不含 countBy... 方法，可用 size()
         return branchRepo.findByRule_RuleId(ruleId).size();
@@ -161,12 +180,13 @@ public class FusionRuleService {
         b.setStatus(status == null ? "inactive" : status);
         b.setRuleJson(ruleJson);
         b.setFlowJson(flowJson);
-        b.setRemark(remark);
 
         return branchRepo.save(b).getBranchId();
     }
 
-    /** 显式执行某个分支（与 /executeBranch/{branchId} 对应） */
+    /**
+     * 显式执行某个分支（与 /executeBranch/{branchId} 对应）
+     */
     public boolean executeBranch(Long branchId) {
         FusionRuleBranch branch = branchRepo.findById(branchId)
                 .orElseThrow(() -> new IllegalArgumentException("Branch not found: " + branchId));
@@ -185,7 +205,9 @@ public class FusionRuleService {
         return true;
     }
 
-    /** 暂停某个分支（由于按 ruleId 控制执行，暂停等价于暂停该主干） */
+    /**
+     * 暂停某个分支（由于按 ruleId 控制执行，暂停等价于暂停该主干）
+     */
     public boolean pauseBranch(Long branchId) {
         FusionRuleBranch branch = branchRepo.findById(branchId).orElse(null);
         if (branch == null) return false;
@@ -196,7 +218,9 @@ public class FusionRuleService {
         return true;
     }
 
-    /** 删除分支 */
+    /**
+     * 删除分支
+     */
     @Transactional
     public boolean deleteBranch(Long branchId) {
         if (!branchRepo.existsById(branchId)) return false;
@@ -246,7 +270,9 @@ public class FusionRuleService {
      * 后台执行主循环 & 规则节点处理
      * ========================= */
 
-    /** 后台循环：每次在新事务里跑一遍流程；命中 operatorFlag 则更新 fusion table */
+    /**
+     * 后台循环：每次在新事务里跑一遍流程；命中 operatorFlag 则更新 fusion table
+     */
     private void startRuleLoop(int ruleId, String ruleJsonStr, AtomicBoolean runningFlag, String effectiveFusionTarget) {
         executorService.submit(() -> {
             ObjectMapper mapper = new ObjectMapper();
@@ -283,7 +309,9 @@ public class FusionRuleService {
         });
     }
 
-    /** 解析并执行 Node-RED 风格规则 */
+    /**
+     * 解析并执行 Node-RED 风格规则
+     */
     public void processNodeRedJson(JsonNode ruleJson, AtomicBoolean operatorFlag) {
         if (!ruleJson.has("steps")) {
             System.out.println("规则中未包含 steps，跳过。");
@@ -455,7 +483,61 @@ public class FusionRuleService {
 
     private Double toDouble(Object input) {
         if (input instanceof Number) return ((Number) input).doubleValue();
-        try { return Double.parseDouble(String.valueOf(input)); }
-        catch (Exception e) { return 0.0; }
+        try {
+            return Double.parseDouble(String.valueOf(input));
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    @Transactional
+    public Map<String, Object> applyRuleToExecutableSpaces(int ruleId, boolean activateNewBranches) {
+        // 1) 模板分支（优先 active，否则 index 最小）
+        FusionRule rule = fusionRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+        FusionRuleBranch template = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可作为模板的分支"));
+
+        // 2) 可达空间
+        List<Integer> execSpaces = getExecutableLocationsForRuleId(ruleId);
+
+        List<Integer> createdSpaces = new ArrayList<>();
+        List<Integer> skippedSpaces = new ArrayList<>();
+        List<Long> createdIds = new ArrayList<>();
+
+        // 3) 逐空间创建（存在则跳过）
+        for (Integer spaceId : execSpaces) {
+            if (spaceId == null) continue;
+            boolean exists = branchRepo.existsByRuleAndSpace(ruleId, spaceId);
+            if (exists) {
+                skippedSpaces.add(spaceId);
+                continue;
+            }
+            Long bid = createBranch(
+                    ruleId,
+                    spaceId,
+                    null, // 分支名留空 → 内部默认“主干名 + 序号”
+                    template.getFusionTarget(),
+                    activateNewBranches ? "active" :
+                            (template.getStatus() == null ? "inactive" : template.getStatus()),
+                    template.getRuleJson(),
+                    template.getFlowJson(),
+                    "[auto] cloned from ruleId=" + ruleId + " to space=" + spaceId
+            );
+            createdSpaces.add(spaceId);
+            createdIds.add(bid);
+        }
+
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("ruleId", ruleId);
+        r.put("activateNewBranches", activateNewBranches);
+        r.put("executableSpaces", execSpaces);
+        r.put("createdSpaces", createdSpaces);
+        r.put("skippedSpaces", skippedSpaces);
+        r.put("createdBranchIds", createdIds);
+        r.put("createdCount", createdSpaces.size());
+        r.put("skippedCount", skippedSpaces.size());
+        return r;
     }
 }

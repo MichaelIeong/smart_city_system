@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin
@@ -119,7 +120,6 @@ public class FusionRuleController {
             d.setStatus(b.getStatus());
             d.setRuleJson(b.getRuleJson());
             d.setFlowJson(b.getFlowJson());
-            d.setRemark(b.getRemark());
             // 实体里提供 getSpaceId()（@Transient）或手动取：b.getSpace() == null ? null : b.getSpace().getSpaceId()
             d.setSpaceId(b.getSpaceId());
             return d;
@@ -184,5 +184,18 @@ public class FusionRuleController {
         boolean ok = fusionRuleService.deleteBranch(branchId);
         return ok ? ResponseEntity.ok("删除分支成功")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
+    }
+
+    @Operation(
+            summary = "把可达规则套用到其它可执行空间",
+            description = "依据能力匹配结果，为每个可执行空间创建一个分支；已存在分支的空间将跳过"
+    )
+    @PostMapping("/rules/{ruleId}/applyToExecutableSpaces")
+    public ResponseEntity<Map<String, Object>> applyToExecutableSpaces(
+            @PathVariable int ruleId,
+            @RequestParam(name = "activate", defaultValue = "false") boolean activateNewBranches
+    ) {
+        Map<String, Object> result = fusionRuleService.applyRuleToExecutableSpaces(ruleId, activateNewBranches);
+        return ResponseEntity.ok(result);
     }
 }
