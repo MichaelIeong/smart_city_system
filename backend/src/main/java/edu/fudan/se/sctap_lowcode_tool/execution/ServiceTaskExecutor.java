@@ -1,100 +1,68 @@
 package edu.fudan.se.sctap_lowcode_tool.execution;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import edu.fudan.se.sctap_lowcode_tool.service.CyberResourceService;
-import edu.fudan.se.sctap_lowcode_tool.service.FunctionExeService;
-import edu.fudan.se.sctap_lowcode_tool.service.SocialResourceService;
+import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionDevice;
+import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.repository.ActuatingFunctionDeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class ServiceTaskExecutor {
 
     @Autowired
-    private FunctionExeService functionExeService;
+    private DeviceRepository deviceRepository;
 
     @Autowired
-    private SocialResourceService socialResourceService;
+    private ActuatingFunctionDeviceRepository actuatingFunctionDeviceRepository;
 
-    @Autowired
-    private CyberResourceService cyberResourceService;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    public void execute(JsonNode node) {
-        String nodeId = node.get("id").asText();
-        String nodeType = node.get("type").asText();  // 获取节点类型
+    /**
+     * 执行 DeviceType 节点
+     */
+    public void executeDeviceTypeTask(JsonNode node, Integer spaceId) {
+        Integer deviceTypeId = node.get("deviceType").asInt();
+        Integer functionId = node.get("deviceService").asInt();
 
-        // 处理起始节点（start），直接触发下游任务
-        if ("start".equals(nodeType)) {
-            System.out.println("跳过起始节点: " + nodeId);
-            return;
+        // 1. 找到该空间下符合 deviceTypeId 的具体设备
+        List<DeviceInfo> devices = deviceRepository.findBySpaceSpaceIdAndDeviceTypeId(spaceId, deviceTypeId);
+        if (devices.isEmpty()) {
+            throw new RuntimeException("空间 " + spaceId + " 下没有符合类型 " + deviceTypeId + " 的设备");
         }
 
-        System.out.println("执行节点: " + nodeId + "，类型: " + nodeType);
+        // 👉 策略：这里简单起见，先取第一个
+        DeviceInfo device = devices.get(0);
 
-        switch (nodeType) {
-            case "Device Service":
-                executeDeviceService(node);
-                break;
-            case "Information Service":
-                executeInformationService(node);
-                break;
-            case "Social Service":
-                executeSocialService(node);
-                break;
-            default:
-                System.out.println("跳过未知类型的节点: " + nodeId);
-        }
-    }
+        // 2. 找到该设备的所有 actuating functions
+        List<ActuatingFunctionDevice> funcs = actuatingFunctionDeviceRepository.findByDeviceId(device.getId());
 
-    private void executeDeviceService(JsonNode node) {
-        String serviceName = node.has("deviceService") ? node.get("deviceService").asText() : "";
+        // 3. 匹配方法类型 id
+        Optional<ActuatingFunctionDevice> funcMatch = funcs.stream()
+                .filter(f -> f.getActuatingFunction().getId().equals(functionId))
+                .findFirst();
 
-        if (serviceName == null || serviceName.isEmpty()) {
-            System.out.println("跳过无设备服务的节点: " + node.get("id").asText());
-            return;
+        if (funcMatch.isEmpty()) {
+            throw new RuntimeException("设备 " + device.getDeviceName() + " 下没有找到方法 " + functionId);
         }
 
-        System.out.println("执行设备服务: " + serviceName);
-        Integer serviceId = functionExeService.findIdByName(serviceName);
-        String apiUrl = functionExeService.getApiUrl(serviceId, serviceName);
-        callApi(apiUrl);
-    }
+        // 4. 拿到具体 url 去执行
+        String url = funcMatch.get().getUrl();
+        System.out.println("执行设备 " + device.getDeviceName() +
+                " 的方法 " + funcMatch.get().getActuatingFunction().getName() +
+                "，调用 URL = " + url);
 
-    private void executeInformationService(JsonNode node) {
-        String resourceName = node.has("informationResource") ? node.get("informationResource").asText() : "";
-        String resourceId = node.has("resourceId") ? node.get("resourceId").asText() : "";
-
-        if (resourceName == null || resourceName.isEmpty()) {
-            System.out.println("跳过无信息资源的节点: " + node.get("id").asText());
-            return;
-        }
-
-        System.out.println("执行信息服务: " + resourceName);
-        String apiUrl = cyberResourceService.findByResourceId(resourceId).getUrl();
-        callApi(apiUrl);
-    }
-
-    private void executeSocialService(JsonNode node) {
-        String socialResource = node.has("socialResource") ? node.get("socialResource").asText() : "";
-        String resourceId = node.has("resourceId") ? node.get("resourceId").asText() : "";
-        if (socialResource == null || socialResource.isEmpty()) {
-            System.out.println("跳过无社交资源的节点: " + node.get("id").asText());
-            return;
-        }
-
-        System.out.println("执行社交服务: " + socialResource);
-        String apiUrl = socialResourceService.findByResourceId(resourceId).getUrl();
-        callApi(apiUrl);
-    }
-
-    private void callApi(String apiUrl) {
-        System.out.println("调用 API: " + apiUrl);
+        // 5. 真正调用 REST API
         try {
-            TimeUnit.SECONDS.sleep(1);  // 模拟 API 调用时间
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            String result = restTemplate.getForObject(url, String.class);
+            System.out.println("调用结果: " + result);
+        } catch (Exception e) {
+            throw new RuntimeException("调用设备 API 失败: " + url, e);
         }
     }
 }

@@ -1,6 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
+import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
+import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
@@ -23,7 +25,11 @@ public class ServiceService {
     private ServiceRepository serviceRepository;
     @Autowired
     private ServiceNodeRepository serviceNodeRepository;
+    @Autowired
+    private WorkflowParser parser;
 
+    @Autowired
+    private TaskScheduler scheduler;
     public List<ServiceBriefResponse> findAllByProjectId(String projectId) {
         return serviceRepository.findAllByProjectId(projectId).stream().map(ServiceBriefResponse::new).toList();
     }
@@ -58,4 +64,16 @@ public class ServiceService {
         return serviceRepository.findByServiceId(serviceId);
     }
 
+
+    public void executeServiceById(Integer serviceId) throws Exception {
+        // 1. 获取服务 JSON
+        ServiceInfo serviceInfo = getService(serviceId);
+        String serviceJson = serviceInfo.getServiceJson();
+
+        // 2. 初始化工作流解析器
+        parser.initParser(serviceJson);
+
+        // 3. 执行工作流
+        scheduler.start(parser.getStartNodeId());
+    }
 }

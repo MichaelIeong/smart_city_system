@@ -134,27 +134,8 @@ public class ServiceController {
     @Operation(summary = "服务执行引擎入口", description = "调用执行引擎，执行响应服务")
     @GetMapping("/executorService")
     public ResponseEntity<?> executorService(@RequestParam Integer serviceId) throws Exception {
-        // 1. 获取服务的json
-        ServiceInfo serviceInfo = serviceService.getService(serviceId);
-        String serviceJson = serviceInfo.getServiceJson();
-        // 调用执行引擎
-        // 2. 初始化工作流解析器
-        //WorkflowParser parser = new WorkflowParser(serviceJson);
-        parser.initParser(serviceJson);
-        System.out.println(parser.getNodeMap());
-        System.out.println(parser.getDependencies());
-        System.out.println(parser.getStartNodeId());
-
-        // 3. 初始化执行引擎
-//        ServiceTaskExecutor serviceTaskExecutor = new ServiceTaskExecutor();
-//        TaskScheduler scheduler = new TaskScheduler(parser, serviceTaskExecutor);
-
-        // 4. 执行工作流
-        scheduler.start(parser.getStartNodeId());
-
-        // 5. 关闭线程池
-        //Thread.sleep(30000);
-        // scheduler.shutdown();
+        serviceService.executeServiceById(serviceId);
         return ResponseEntity.ok().build();
     }
+
 }
