@@ -2,6 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
+import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionDevice;
+import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.*;
@@ -18,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class DeviceService {
@@ -57,15 +61,21 @@ public class DeviceService {
 
     // === 创建设备：MySQL + Neo4j ===
     public DeviceInfo saveDevice(DeviceInfo device) {
+        // 檢查 deviceId 是否已存在（MySQL 唯一約束字段）
+        Optional<DeviceInfo> existingDevice = deviceRepository.findByDeviceId(device.getDeviceId());
+        if (existingDevice.isPresent()) {
+            throw new IllegalArgumentException("設備 ID 已存在：" + device.getDeviceId());
+        }
+
+        // 設定最後更新時間（若為 null）
         if (device.getLastUpdateTime() == null) {
             device.setLastUpdateTime(LocalDateTime.now());
         }
 
-        // MySQL 保存
+        // 先確認 space 存在，設置進去（MySQL 關聯）
         if (device.getSpace() != null && device.getSpace().getSpaceId() != null) {
             spaceRepository.findById(device.getSpace().getSpaceId()).ifPresent(device::setSpace);
         }
-        DeviceInfo saved = deviceRepository.save(device); // mysql
 
 //        // Neo4j 同步保存
 //        DeviceNode node = new DeviceNode();
@@ -152,7 +162,7 @@ public class DeviceService {
     // === 删除设备：MySQL + Neo4j ===
     public void deleteDevice(Integer id) {
         deviceRepository.findById(id).ifPresent(device -> {
-            //deviceNodeRepository.deleteByDeviceId(device.getDeviceId()); // neo4j
+            deviceNodeRepository.deleteByDeviceId(device.getDeviceId()); // neo4j
             deviceRepository.deleteById(id);                             // mysql
         });
     }
@@ -203,5 +213,25 @@ public class DeviceService {
         }
 
         return deviceNodeRepository.save(d);
+    }
+
+    public Set<String> getActuatingFunctionNamesBySpace(Integer spaceId) {
+        // 取得該空間內所有 device
+        List<DeviceInfo> devicesInSpace = deviceRepository.findAll().stream()
+                .filter(device -> device.getSpace() != null && device.getSpace().getSpaceId().equals(spaceId))
+                .collect(Collectors.toList());
+
+        Set<String> functionNames = new HashSet<>();
+        for (DeviceInfo device : devicesInSpace) {
+            if (device.getActuatingFunctions() != null) {
+                for (ActuatingFunctionDevice afd : device.getActuatingFunctions()) {
+                    ActuatingFunctionInfo function = afd.getActuatingFunction();
+                    if (function != null && function.getName() != null) {
+                        functionNames.add(function.getName());
+                    }
+                }
+            }
+        }
+        return functionNames;
     }
 }
