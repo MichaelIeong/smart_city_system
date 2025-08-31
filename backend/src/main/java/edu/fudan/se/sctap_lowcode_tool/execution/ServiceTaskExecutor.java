@@ -40,7 +40,7 @@ public class ServiceTaskExecutor {
         DeviceInfo device = devices.get(0);
 
         // 2. 找到该设备的所有 actuating functions
-        List<ActuatingFunctionDevice> funcs = actuatingFunctionDeviceRepository.findByDeviceId(device.getId());
+        List<ActuatingFunctionDevice> funcs = actuatingFunctionDeviceRepository.findByDevice_Id(device.getId());
 
         // 3. 匹配方法类型 id
         Optional<ActuatingFunctionDevice> funcMatch = funcs.stream()
