@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeResponse;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeWithFunctionsDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceTypeNode;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceTypeService;
@@ -64,5 +65,25 @@ public class DeviceTypeController {
             @PathVariable Integer deviceTypeId) {
         deviceTypeService.addDeviceTypeToSpace(deviceTypeId, spaceId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/byspace")
+    public ResponseEntity<List<DeviceTypeWithFunctionsDTO>> getDeviceTypesBySpace(
+            @RequestParam("spaceId") Integer spaceId) {
+        List<DeviceTypeWithFunctionsDTO> deviceTypes = deviceTypeService.listDeviceTypesAndFunctionsBySpace(spaceId);
+        if (deviceTypes.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(deviceTypes);
+    }
+
+    @GetMapping("/alldevicetype")
+    public ResponseEntity<List<DeviceTypeResponse>> getAllDeviceTypesByProjectId(
+            @RequestParam("projectId") int projectId) {
+        List<DeviceTypeResponse> list = deviceTypeService.getDevicesByProjectId(projectId);
+        if (list.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(list);
     }
 }

@@ -19,6 +19,7 @@ public class SpaceNode {
     @EqualsAndHashCode.Include
     private Integer spaceId;
 
+    private Integer projectId;   // 项目的唯一标识符
     private String spaceName;    // 空间名称
     private String fixedProperties; // 固定属性（JSON字符串）
     private String description;  // 描述（如“卧室1”）

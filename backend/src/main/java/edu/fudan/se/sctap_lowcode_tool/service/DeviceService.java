@@ -77,6 +77,9 @@ public class DeviceService {
             spaceRepository.findById(device.getSpace().getSpaceId()).ifPresent(device::setSpace);
         }
 
+        // === MySQL 儲存 ===
+        DeviceInfo saved = deviceRepository.save(device);
+
 //        // Neo4j 同步保存
 //        DeviceNode node = new DeviceNode();
 //        node.setDeviceId(saved.getDeviceId()); // string 类型
@@ -94,6 +97,8 @@ public class DeviceService {
 //
 //        node.setDeviceType(null); // 可按需处理
 //        deviceNodeRepository.save(node); // neo4j
+        DeviceCreateRequest req = convertToRequest(saved);
+        create(req);
         return saved;
     }
 
@@ -162,11 +167,29 @@ public class DeviceService {
     // === 删除设备：MySQL + Neo4j ===
     public void deleteDevice(Integer id) {
         deviceRepository.findById(id).ifPresent(device -> {
-            deviceNodeRepository.deleteByDeviceId(device.getDeviceId()); // neo4j
+            deviceNodeRepository.deleteByDeviceId(Integer.valueOf(device.getDeviceId())); // neo4j
             deviceRepository.deleteById(id);                             // mysql
         });
     }
 
+
+    private DeviceCreateRequest convertToRequest(DeviceInfo info) {
+        DeviceCreateRequest req = new DeviceCreateRequest();
+        req.setDeviceId(info.getId()); // 注意：这里是 MySQL 自增的 PK？还是 deviceId？
+        req.setDeviceName(info.getDeviceName());
+        req.setDescription(info.getFixedProperties()); // 或者另建字段映射
+
+        if (info.getSpace() != null) {
+            req.setSpaceId(info.getSpace().getSpaceId());
+        }
+        if (info.getDeviceType() != null) {
+            req.setDeviceTypeId(info.getDeviceType().getId());
+        }
+
+        // 如果 DeviceInfo.states / actuatingFunctions 有对应关系，可以转成 FunctionBinding
+        // 这里暂时跳过，后面再细化
+        return req;
+    }
     /**
      * 创建设备（推荐：只用主键构建 stub，另做存在性校验）
      */

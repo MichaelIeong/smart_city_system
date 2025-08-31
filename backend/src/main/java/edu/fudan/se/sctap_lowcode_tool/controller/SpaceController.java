@@ -125,4 +125,28 @@ public class SpaceController {
         spaceService.deleteSpace(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    /**
+     * 获取所有空间的基本信息（spaceId, spaceName）
+     */
+    @GetMapping("/allspace")
+    public ResponseEntity<List<Map<String, Object>>> getAllSpaces() {
+        List<SpaceInfo> spaces = spaceService.findAllSpaces();
+
+        if (spaces.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<Map<String, Object>> result = spaces.stream()
+                .map(space -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", space.getSpaceId());
+                    map.put("spaceId", space.getSpaceId());
+                    map.put("spaceName", space.getSpaceName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }

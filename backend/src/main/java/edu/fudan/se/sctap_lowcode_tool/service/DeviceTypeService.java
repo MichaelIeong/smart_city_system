@@ -42,6 +42,10 @@ public class DeviceTypeService {
                 .toList();
     }
 
+    public List<DeviceTypeInfo> getDeviceTypeByProjectId(int projectId) {
+        return deviceTypeRepository.findByProjectInfoProjectId(projectId);
+    }
+
     public DeviceTypeInfo saveDeviceType(DeviceTypeInfo deviceType) {
         DeviceTypeInfo saved = deviceTypeRepository.save(deviceType);
 

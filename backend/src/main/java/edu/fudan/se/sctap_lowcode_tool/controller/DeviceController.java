@@ -63,9 +63,4 @@ public class DeviceController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping
-    public ResponseEntity<DeviceNode> create(@RequestBody DeviceCreateRequest req) {
-        DeviceNode saved = deviceService.create(req); // 或 createWithLookup(req)
-        return ResponseEntity.ok(saved);
-    }
 }
