@@ -2,9 +2,9 @@
   <page-header-wrapper>
     <div style="padding: 0 24px 24px 24px;">
       <a-row :gutter="24" style="height: calc(100vh - 180px);">
-        <!-- 左侧：主干规则（沿用你原本的列与筛选） -->
+        <!-- 左侧：主干规则 -->
         <a-col :span="12">
-          <a-card title="主干规则（FusionRule）" bordered :style="{ borderRadius: '8px', height: '100%' }">
+          <a-card title="主干规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
             <div class="table-page-search-wrapper" style="margin-bottom: 12px;">
               <a-form layout="inline">
                 <a-row :gutter="48">
@@ -26,7 +26,9 @@
             </div>
 
             <div style="margin-bottom: 12px;">
-              <a-button type="primary" icon="plus" @click="handleAdd">使用Node-Red创建规则</a-button>
+              <a-button type="primary" icon="plus" @click="handleAdd">
+                使用Node-Red创建规则
+              </a-button>
               <a-button type="primary" icon="plus" @click="openLLMCreation" style="margin-left:8px;">
                 使用大模型创建规则
               </a-button>
@@ -47,17 +49,15 @@
                 <span slot="status" slot-scope="text">
                   <a-badge
                     :status="text === 'active' ? 'processing' : 'default'"
-                    :text="text === 'active' ? '运行中' : '已关闭'"/>
+                    :text="text === 'active' ? '运行中' : '已关闭'" />
                 </span>
 
                 <span slot="action" slot-scope="text, record">
-                  <a @click="execute(record)">执行</a>
+                  <a @click.stop.prevent="handleEdit(record)">编辑</a>
                   <a-divider type="vertical" />
-                  <a @click="pause(record)">暂停</a>
+                  <a @click.stop.prevent="openApplyModal(record)">套用到可达空间</a>
                   <a-divider type="vertical" />
-                  <a @click="handleEdit(record)">编辑</a>
-                  <a-divider type="vertical" />
-                  <a @click="deleteRule(record)">删除</a>
+                  <a @click.stop.prevent="deleteRule(record)">删除</a>
                 </span>
               </a-table>
             </div>
@@ -88,69 +88,101 @@
                 :dataSource="filteredBranches"
                 row-key="branchId"
                 :pagination="false"
-                :rowSelection="{ selectedRowKeys: selectedBranchKeys, onChange: onBranchSelectChange }"
                 :scroll="{ y: 'calc(100vh - 540px)' }"
                 style="flex:1;"
               >
                 <span slot="status" slot-scope="text">
                   <a-badge
                     :status="text === 'active' ? 'processing' : 'default'"
-                    :text="text === 'active' ? '运行中' : '已关闭'"/>
+                    :text="text === 'active' ? '运行中' : '已关闭'" />
                 </span>
 
                 <span slot="action" slot-scope="text, record">
-                  <a @click="executeBranch(record)">执行</a>
+                  <a @click.stop.prevent="executeBranch(record)">执行</a>
                   <a-divider type="vertical" />
-                  <a @click="pauseBranch(record)">暂停</a>
+                  <a @click.stop.prevent="pauseBranch(record)">暂停</a>
                   <a-divider type="vertical" />
-                  <a @click="editBranch(record)">编辑</a>
+                  <a @click.stop.prevent="editBranch(record)">编辑</a>
                   <a-divider type="vertical" />
-                  <a @click="deleteBranch(record)">删除</a>
+                  <a @click.stop.prevent="deleteBranch(record)">删除</a>
                 </span>
               </a-table>
-
-              <div style="margin-top: 16px;">
-                <a-button type="primary" :disabled="!activeRule" @click="showCreateBranchModal">新建分支</a-button>
-                <a-button
-                  type="default"
-                  style="margin-left:8px"
-                  :disabled="selectedBranchKeys.length !== 1"
-                  @click="openBranchInNodeRed">
-                  Node-RED 打开
-                </a-button>
-              </div>
             </div>
           </a-card>
         </a-col>
       </a-row>
     </div>
 
-    <!-- 新建/编辑分支 -->
+    <!-- 编辑分支（仅名称 + 纯跳转到 Node-RED） -->
     <a-modal
       v-model="branchModal.visible"
-      :title="branchModal.isEdit ? '编辑分支' : '新建分支'"
+      title="编辑分支"
       @ok="submitBranchModal"
       @cancel="closeBranchModal"
       :confirmLoading="branchModal.loading"
     >
       <a-form :form="branchForm">
         <a-form-item label="分支名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
-          <a-input v-decorator="['branchName', { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入分支名称'}]}]" />
+          <a-input
+            v-decorator="[
+              'branchName',
+              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入分支名称'}]}
+            ]"
+            @pressEnter.prevent
+          />
         </a-form-item>
-        <a-form-item label="状态" :labelCol="{span:5}" :wrapperCol="{span:19}">
-          <a-select v-decorator="['status', { initialValue: branchModal.model.status || 'inactive' }]">
-            <a-select-option value="active">active</a-select-option>
-            <a-select-option value="inactive">inactive</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="目标表" :labelCol="{span:5}" :wrapperCol="{span:19}">
-          <a-input v-decorator="['fusionTarget', { initialValue: branchModal.model.fusionTarget }]" placeholder="如：person"/>
-        </a-form-item>
-        <a-form-item label="Rule JSON" :labelCol="{span:5}" :wrapperCol="{span:19}">
-          <a-textarea v-decorator="['ruleJson', { initialValue: branchModal.model.ruleJson }]" :rows="4" />
-        </a-form-item>
-        <a-form-item label="Flow JSON" :labelCol="{span:5}" :wrapperCol="{span:19}">
-          <a-textarea v-decorator="['flowJson', { initialValue: branchModal.model.flowJson }]" :rows="4" />
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 12px;">
+          <a-button type="primary" @click="goToNodeRed(branchModal.model)">
+            在 Node-RED 中编辑
+          </a-button>
+          <a-tooltip placement="right" style="margin-left: 8px;">
+            <template slot="title">
+              跳转到 Node-RED，提交与部署由 Node-RED 端处理。
+            </template>
+            <a-icon type="info-circle" />
+          </a-tooltip>
+        </div>
+      </a-form>
+    </a-modal>
+
+    <!-- 套用到可达空间 -->
+    <a-modal
+      v-model="applyModal.visible"
+      title="套用到可达空间"
+      @ok="confirmApply"
+      @cancel="closeApplyModal"
+      :confirmLoading="applyModal.loading"
+    >
+      <p>
+        将规则 <b>{{ applyModal.rule?.ruleName }}</b> 的可执行分支复制到系统检测到的“可达空间”。
+      </p>
+      <a-alert
+        v-if="applyModal.preview && applyModal.preview.executableSpaces"
+        type="info"
+        show-icon
+        style="margin-bottom: 12px;"
+        :message="`检测到 ${applyModal.preview.executableSpaces.length} 个可达空间：` +
+          applyModal.preview.executableSpaces.map(id => spaceMap[id] || id).join(', ')"
+      />
+    </a-modal>
+
+    <!-- 主干改名弹窗 -->
+    <a-modal
+      v-model="ruleModal.visible"
+      title="编辑主干名称"
+      @ok="submitRuleModal"
+      @cancel="closeRuleModal"
+      :confirmLoading="ruleModal.loading"
+    >
+      <a-form :form="ruleForm">
+        <a-form-item label="规则名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
+          <a-input
+            v-decorator="[
+              'ruleName',
+              { initialValue: ruleModal.model.ruleName, rules:[{ required:true, message:'请输入规则名称'}]}
+            ]"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -179,8 +211,8 @@ export default {
     return {
       // 主干
       columns: [
-        { title: '规则名称', dataIndex: 'ruleName' }
-
+        { title: '规则名称', dataIndex: 'ruleName' },
+        { title: '操作', dataIndex: 'action', width: '320px', scopedSlots: { customRender: 'action' } }
       ],
       data: [],
       queryParam: { status: 'all' },
@@ -193,8 +225,6 @@ export default {
 
       // 分支
       branchColumns: [
-        { title: '分支ID', dataIndex: 'branchId', width: 90 },
-        { title: '序号', dataIndex: 'branchIndex', width: 80 },
         { title: '分支名称', dataIndex: 'branchName' },
         { title: '目标表', dataIndex: 'fusionTarget', width: 120 },
         { title: '状态', dataIndex: 'status', width: 120, scopedSlots: { customRender: 'status' } },
@@ -203,16 +233,33 @@ export default {
       branches: [],
       filteredBranches: [],
       branchQuery: { status: 'all' },
-      selectedBranchKeys: [],
 
-      // 分支弹窗
+      // 分支弹窗（仅编辑名称）
       branchModal: {
         visible: false,
-        isEdit: false,
         loading: false,
-        model: { branchId: null, branchName: '', status: 'inactive', fusionTarget: '', ruleJson: '', flowJson: '' }
+        model: { branchId: null, branchName: '' }
       },
-      branchForm: null
+      branchForm: null,
+
+      // 套用到可达空间
+      applyModal: {
+        visible: false,
+        loading: false,
+        rule: null,
+        preview: null
+      },
+
+      // 主干改名弹窗
+      ruleModal: {
+        visible: false,
+        loading: false,
+        model: { ruleId: null, ruleName: '' }
+      },
+      ruleForm: null,
+
+      // Space ID -> 名称 映射
+      spaceMap: {} // { [id:number]: name:string }
     }
   },
   computed: {
@@ -225,14 +272,27 @@ export default {
     }
   },
   created () {
+    this.fetchSpaceMap()
     this.refreshTable()
   },
   methods: {
-    // ===== 主干（沿用你原来的逻辑） =====
+    // ===== Space 映射 =====
+    async fetchSpaceMap () {
+      try {
+        const res = await axios.get(`${BASE}/api/spaces/list`)
+        this.spaceMap = {}
+        ;(res.data || []).forEach(s => {
+          this.spaceMap[s.spaceId] = s.spaceName
+        })
+      } catch (e) {
+        console.error('获取空间列表失败', e)
+      }
+    },
+
+    // ===== 主干 =====
     refreshTable () {
       getRuleList().then(res => {
         const { status } = this.queryParam
-        // 主干现在只有名字；状态来自默认分支/或你后端回传。此处保持兼容你的原字段。
         this.data = (status === 'all') ? res : res.filter(r => r.status === status)
         this.pagination.total = this.data.length
         if (this.data.length > 0) this.onPickRule(this.data[0])
@@ -243,29 +303,101 @@ export default {
       this.refreshTable()
     },
     handleAdd () {
-      window.open(NODE_RED_URL, '_blank')
-    },
-    handleEdit (record) {
-      // 编辑“主干”仍按你原逻辑（向 Node-RED 推flowJson），如果主干没有 flowJson，可以提示从右侧选择分支编辑
-      if (!record.flowJson) {
-        return message.info('主干不含具体流程，请选择右侧某个分支进行编辑')
+      if (!NODE_RED_URL) {
+        message.error('未配置 NODE_RED_URL')
+        return
       }
+      const params = new URLSearchParams({ source: 'frontend', action: 'create' })
+      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
+    },
+    // 改为仅“主干改名”
+    handleEdit (record) {
+      this.ruleModal.model = { ruleId: record.ruleId, ruleName: record.ruleName }
+      this.openRuleModal()
+    },
+    openRuleModal () {
+      this.ruleModal.visible = true
+      this.$nextTick(() => {
+        this.ruleForm = this.$form.createForm(this, { name: 'ruleForm' })
+        const { ruleName } = this.ruleModal.model
+        this.ruleForm.setFieldsValue({ ruleName })
+      })
+    },
+    closeRuleModal () {
+      this.ruleModal.visible = false
+      this.ruleModal.loading = false
+    },
+    submitRuleModal () {
+      this.ruleForm.validateFields(async (err, values) => {
+        if (err) return
+        this.ruleModal.loading = true
+        try {
+          const { ruleId } = this.ruleModal.model
+          await axios.put(`${BASE}/api/fusion/rules/${ruleId}`, {
+            ruleName: values.ruleName
+          })
+          message.success('主干名称已更新')
+          this.closeRuleModal()
+          this.refreshTable()
+        } catch (e) {
+          console.error(e)
+          message.error('更新失败')
+          this.ruleModal.loading = false
+        }
+      })
+    },
+
+    openApplyModal (rule) {
+      this.applyModal.rule = rule
+      this.applyModal.preview = null
+      this.applyModal.visible = true
+      axios.get(`${BASE}/api/fusion/executableLocations/${rule.ruleId}`)
+        .then(res => {
+          this.applyModal.preview = { executableSpaces: res.data || [] }
+        })
+        .catch(() => {
+          this.applyModal.preview = { executableSpaces: [] }
+        })
+    },
+    closeApplyModal () {
+      this.applyModal.visible = false
+      this.applyModal.loading = false
+      this.applyModal.rule = null
+    },
+    async confirmApply () {
+      if (!this.applyModal.rule) return
+      this.applyModal.loading = true
       try {
-        const flowJson = JSON.parse(record.flowJson)
-        fetch(`${NODE_RED_URL}/flows`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: flowJson
-        }).finally(() => window.open(NODE_RED_URL, '_blank'))
+        const { ruleId } = this.applyModal.rule
+        const res = await axios.post(
+          `${BASE}/api/fusion/rules/${ruleId}/applyToExecutableSpaces`,
+          null,
+          { params: { activate: false } }
+        )
+        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个分支`)
+        this.closeApplyModal()
+        if (this.activeRule && this.activeRule.ruleId === ruleId) {
+          await this.fetchBranches(ruleId)
+          this.filterBranches()
+        }
       } catch (e) {
-        console.error('解析 flowJson 出错:', e)
+        console.error(e)
+        message.error('套用失败')
+        this.applyModal.loading = false
       }
     },
     execute (record) {
       const hide = message.loading('执行中...', 0)
       executeRuleById(record.ruleId)
-        .then(() => { hide(); message.success('执行成功'); this.refreshTable() })
-        .catch(() => { hide(); message.error('执行失败') })
+        .then(() => {
+          hide()
+          message.success('执行成功')
+          this.refreshTable()
+        })
+        .catch(() => {
+          hide()
+          message.error('执行失败')
+        })
     },
     pause (record) {
       Modal.confirm({
@@ -275,7 +407,10 @@ export default {
         cancelText: '取消',
         onOk: () => {
           return pauseRuleById(record.ruleId)
-            .then(() => { message.success('规则已暂停'); this.refreshTable() })
+            .then(() => {
+              message.success('规则已暂停')
+              this.refreshTable()
+            })
             .catch(() => message.error('暂停失败'))
         }
       })
@@ -288,7 +423,10 @@ export default {
         cancelText: '取消',
         onOk: () => {
           return deleteRuleById(record.ruleId)
-            .then(() => { message.success('删除成功'); this.refreshTable() })
+            .then(() => {
+              message.success('删除成功')
+              this.refreshTable()
+            })
             .catch(() => message.error('删除失败'))
         }
       })
@@ -312,14 +450,13 @@ export default {
       this.filterBranches()
     },
 
-    // ===== 分支接口（axios直调新后端） =====
+    // ===== 分支接口 =====
     async fetchBranches (ruleId) {
       if (!ruleId) return
       try {
         const res = await axios.get(`${BASE}/api/fusion/rules/${ruleId}/branches`)
         this.branches = (res.data || []).map(b => ({ ...b, status: b.status || 'inactive' }))
         this.filteredBranches = [...this.branches]
-        this.selectedBranchKeys = []
       } catch (e) {
         console.error(e)
         message.error('获取分支列表失败')
@@ -329,29 +466,36 @@ export default {
       const s = this.branchQuery.status
       this.filteredBranches = (s === 'all') ? [...this.branches] : this.branches.filter(b => (b.status || 'inactive') === s)
     },
-    onBranchSelectChange (keys) { this.selectedBranchKeys = keys },
 
     // 分支操作
     async executeBranch (record) {
       const hide = message.loading('执行中...', 0)
       try {
         await axios.post(`${BASE}/api/fusion/branches/${record.branchId}/execute`)
-        hide(); message.success('执行成功')
-        await this.fetchBranches(this.activeRule.ruleId); this.filterBranches()
-      } catch (e) { hide(); message.error('执行失败') }
+        hide()
+        message.success('执行成功')
+        await this.fetchBranches(this.activeRule.ruleId)
+        this.filterBranches()
+      } catch (e) {
+        hide()
+        message.error('执行失败')
+      }
     },
     async pauseBranch (record) {
       Modal.confirm({
         title: '确认暂停？',
         content: `暂停分支：${record.branchName}`,
         okText: '确定',
-cancelText: '取消',
+        cancelText: '取消',
         onOk: async () => {
           try {
             await axios.put(`${BASE}/api/fusion/branches/${record.branchId}/pause`)
             message.success('分支已暂停')
-            await this.fetchBranches(this.activeRule.ruleId); this.filterBranches()
-          } catch (e) { message.error('暂停失败') }
+            await this.fetchBranches(this.activeRule.ruleId)
+            this.filterBranches()
+          } catch (e) {
+            message.error('暂停失败')
+          }
         }
       })
     },
@@ -360,33 +504,25 @@ cancelText: '取消',
         title: '确认删除该分支？',
         content: `是否删除分支：${record.branchName}`,
         okText: '确定',
-cancelText: '取消',
+        cancelText: '取消',
         onOk: async () => {
           try {
             await axios.delete(`${BASE}/api/fusion/branches/${record.branchId}`)
             message.success('删除成功')
-            await this.fetchBranches(this.activeRule.ruleId); this.filterBranches()
-          } catch (e) { message.error('删除失败') }
+            await this.fetchBranches(this.activeRule.ruleId)
+            this.filterBranches()
+          } catch (e) {
+            message.error('删除失败')
+          }
         }
       })
     },
-    editBranch (record) {
-      this.branchModal.isEdit = true
-      this.branchModal.model = { ...record }
-      this.openBranchModal()
-    },
 
-    // 分支弹窗
-    showCreateBranchModal () {
-      if (!this.activeRule) return
-      this.branchModal.isEdit = false
+    // ====== 仅编辑“分支名称”，按钮进入 Node-RED（纯跳转） ======
+    editBranch (record) {
       this.branchModal.model = {
-        branchId: null,
-        branchName: `${this.activeRule.ruleName} ${this.branches.length + 1}`,
-        status: 'inactive',
-        fusionTarget: '',
-        ruleJson: '',
-        flowJson: ''
+        branchId: record.branchId,
+        branchName: record.branchName
       }
       this.openBranchModal()
     },
@@ -394,8 +530,8 @@ cancelText: '取消',
       this.branchModal.visible = true
       this.$nextTick(() => {
         this.branchForm = this.$form.createForm(this, { name: 'branchForm' })
-        const { branchName, status, fusionTarget, ruleJson, flowJson } = this.branchModal.model
-        this.branchForm.setFieldsValue({ branchName, status, fusionTarget, ruleJson, flowJson })
+        const { branchName } = this.branchModal.model
+        this.branchForm.setFieldsValue({ branchName })
       })
     },
     closeBranchModal () {
@@ -407,56 +543,65 @@ cancelText: '取消',
         if (err) return
         this.branchModal.loading = true
         try {
-          if (this.branchModal.isEdit) {
-            await axios.put(`${BASE}/api/fusion/branches/${this.branchModal.model.branchId}`, values)
-            message.success('更新成功')
-          } else {
-            await axios.post(`${BASE}/api/fusion/rules/${this.activeRule.ruleId}/branches`, values)
-            message.success('创建成功')
-          }
+          await axios.put(`${BASE}/api/fusion/branches/${this.branchModal.model.branchId}`, {
+            branchName: values.branchName
+          })
+          message.success('更新成功')
           this.closeBranchModal()
-          await this.fetchBranches(this.activeRule.ruleId); this.filterBranches()
+          await this.fetchBranches(this.activeRule.ruleId)
+          this.filterBranches()
         } catch (e) {
           console.error(e)
-          message.error(this.branchModal.isEdit ? '更新失败' : '创建失败')
+          message.error('更新失败')
           this.branchModal.loading = false
         }
       })
     },
 
-    // Node-RED 打开分支
-    async openBranchInNodeRed () {
-      if (this.selectedBranchKeys.length !== 1) return message.warning('请选择一个分支')
-      const branch = this.filteredBranches.find(b => b.branchId === this.selectedBranchKeys[0])
-      if (!branch) return
-      try {
-        const flowJson = branch.flowJson ? JSON.parse(branch.flowJson) : null
-        if (flowJson) {
-          await fetch(`${NODE_RED_URL}/flows`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(flowJson)
-          })
-        }
-      } catch (e) {
-        console.error('解析/推送 flowJson 出错：', e)
-      } finally {
-        window.open(NODE_RED_URL, '_blank')
+    // 只跳转到 Node-RED，不提交任何数据
+    goToNodeRed (model) {
+      if (!NODE_RED_URL) {
+        message.error('未配置 NODE_RED_URL')
+        return
       }
+      const params = new URLSearchParams({
+        source: 'frontend',
+        branchId: model?.branchId ?? '',
+        branchName: model?.branchName ?? ''
+      })
+      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
 
     // LLM
-    openLLMCreation () { this.modelModalVisible = true }
+    openLLMCreation () {
+      this.modelModalVisible = true
+    }
   }
 }
 </script>
 
 <style scoped>
-.ant-form-item { margin-bottom: 12px; }
-.ant-table-row { cursor: pointer; }
-.ant-card-body { height: calc(100% - 57px); padding: 24px; }
-.ant-table-wrapper { height: 100%; }
+.ant-form-item {
+  margin-bottom: 12px;
+}
+
+.ant-table-row {
+  cursor: pointer;
+}
+
+.ant-card-body {
+  height: calc(100% - 57px);
+  padding: 24px;
+}
+
+.ant-table-wrapper {
+  height: 100%;
+}
+
 @media (max-width: 768px) {
-  .ant-col-12 { width: 100% !important; margin-bottom: 16px; }
+  .ant-col-12 {
+    width: 100% !important;
+    margin-bottom: 16px;
+  }
 }
 </style>

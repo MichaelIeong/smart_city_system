@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class BranchDTO {
-    private Long branchId;
+    private Integer branchId;
     private Integer branchIndex;
     private String branchName;
     private String fusionTarget;

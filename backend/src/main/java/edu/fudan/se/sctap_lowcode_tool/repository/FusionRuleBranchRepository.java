@@ -6,8 +6,9 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBranch, Long> {
+public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBranch, Integer> {
 
+    // 根据主干规则 ID 查询所有分支
     List<FusionRuleBranch> findByRule_RuleId(Integer ruleId);
 
     // 计算某主干 + 空间（可为 null）下的最大分支序号
@@ -32,7 +33,7 @@ public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBran
     List<FusionRuleBranch> pickOneForExecution(@Param("ruleId") Integer ruleId,
                                                @Param("spaceId") Integer spaceId);
 
-    // ★ 判断该主干在某空间（含 null）是否已有分支 —— 用于“套用到可达空间”时跳过已存在的
+    // 判断该主干在某空间（含 null）是否已有分支 —— 用于“套用到可达空间”时跳过已存在的
     @Query("""
             select (count(b) > 0) from FusionRuleBranch b
             where b.rule.ruleId = :ruleId
@@ -55,4 +56,9 @@ public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBran
             """)
     List<FusionRuleBranch> findByRuleAndSpace(@Param("ruleId") Integer ruleId,
                                               @Param("spaceId") Integer spaceId);
+
+    // 删除指定规则下的所有分支
+    @Modifying
+    @Query("delete from FusionRuleBranch b where b.rule.ruleId = :ruleId")
+    void deleteByRule_RuleId(@Param("ruleId") Integer ruleId);
 }

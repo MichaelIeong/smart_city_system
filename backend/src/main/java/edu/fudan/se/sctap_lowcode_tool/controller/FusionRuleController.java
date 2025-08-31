@@ -1,7 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.BranchDTO;
-import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.CreateBranchReqDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.RuleWithCountDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleService;
@@ -32,30 +31,7 @@ public class FusionRuleController {
         return ResponseEntity.ok(fusionRuleList);
     }
 
-    @Operation(summary = "执行规则（自动挑分支）", description = "优先执行 active 分支，否则执行 index 最小的分支")
-    @PostMapping("/executeRule/{ruleId}")
-    public ResponseEntity<String> executeRuleById(@PathVariable int ruleId) {
-        try {
-            boolean executed = fusionRuleService.executeRuleById(ruleId);
-            if (executed) {
-                return ResponseEntity.ok("执行成功");
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到或无分支可执行");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("执行失败：" + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "暂停规则", description = "停止该规则当前后台循环")
-    @PutMapping("/pauseRule/{ruleId}")
-    public ResponseEntity<String> pauseRuleById(@PathVariable int ruleId) {
-        boolean paused = fusionRuleService.pauseRuleById(ruleId);
-        return paused ? ResponseEntity.ok("暂停成功")
-                : ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到或无法暂停");
-    }
-
-    @Operation(summary = "删除规则", description = "根据 ruleId 删除规则")
+    @Operation(summary = "删除规则", description = "根据 ruleId 删除规则及其关联的分支")
     @DeleteMapping("/deleteRule/{ruleId}")
     public ResponseEntity<String> deleteRuleById(@PathVariable int ruleId) {
         boolean deleted = fusionRuleService.deleteRuleById(ruleId);
@@ -74,6 +50,19 @@ public class FusionRuleController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+
+    @Operation(summary = "修改主干名称")
+    @PutMapping("/rules/{ruleId}")
+    public ResponseEntity<String> renameRule(@PathVariable int ruleId, @RequestBody Map<String, Object> body) {
+        Object v = body.get("ruleName");
+        String newName = (v == null) ? null : String.valueOf(v).trim();
+        if (newName == null || newName.isEmpty()) {
+            return ResponseEntity.badRequest().body("ruleName 不能为空");
+        }
+        boolean ok = fusionRuleService.updateRuleName(ruleId, newName);
+        return ok ? ResponseEntity.ok("更新成功")
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
     }
 
     // （可选）规则列表附带分支数，便于前端展示
@@ -95,31 +84,15 @@ public class FusionRuleController {
 
     @Operation(summary = "列出某条规则的分支", description = "返回主干(ruleId)下的所有分支（以 DTO 形式）")
     @GetMapping("/rules/{ruleId}/branches")
-    public ResponseEntity<List<BranchDTO>> listBranches(@PathVariable Integer ruleId) {
+    public ResponseEntity<List<BranchDTO>> listBranches(@PathVariable int ruleId) {
         List<BranchDTO> branches = fusionRuleService.listBranchesByRule(ruleId)
                 .stream().map(BranchDTO::from).toList();
         return ResponseEntity.ok(branches);
     }
 
-    @Operation(summary = "创建分支", description = "在主干下创建一个分支；未传 branchName 则自动用“主干名 + 序号”")
-    @PostMapping("/branches")
-    public ResponseEntity<Long> createBranch(@RequestBody CreateBranchReqDTO req) {
-        Long branchId = fusionRuleService.createBranch(
-                req.getRuleId(),
-                req.getSpaceId(),
-                req.getBranchName(),
-                req.getFusionTarget(),
-                req.getStatus(),
-                req.getRuleJson(),
-                req.getFlowJson(),
-                req.getRemark()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(branchId);
-    }
-
     @Operation(summary = "执行分支", description = "根据 branchId 执行具体分支")
     @PostMapping("/executeBranch/{branchId}")
-    public ResponseEntity<String> executeBranch(@PathVariable Long branchId) {
+    public ResponseEntity<String> executeBranch(@PathVariable int branchId) {
         boolean ok = fusionRuleService.executeBranch(branchId);
         return ok ? ResponseEntity.ok("执行分支成功")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
@@ -127,7 +100,7 @@ public class FusionRuleController {
 
     @Operation(summary = "暂停分支", description = "暂停该分支（等价于暂停其所属主干的当前执行）")
     @PutMapping("/pauseBranch/{branchId}")
-    public ResponseEntity<String> pauseBranch(@PathVariable Long branchId) {
+    public ResponseEntity<String> pauseBranch(@PathVariable int branchId) {
         boolean ok = fusionRuleService.pauseBranch(branchId);
         return ok ? ResponseEntity.ok("暂停分支成功")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到或无法暂停");
@@ -135,7 +108,7 @@ public class FusionRuleController {
 
     @Operation(summary = "删除分支", description = "根据 branchId 删除分支")
     @DeleteMapping("/branches/{branchId}")
-    public ResponseEntity<String> deleteBranch(@PathVariable Long branchId) {
+    public ResponseEntity<String> deleteBranch(@PathVariable int branchId) {
         boolean ok = fusionRuleService.deleteBranch(branchId);
         return ok ? ResponseEntity.ok("删除分支成功")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");

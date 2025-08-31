@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -47,7 +46,7 @@ public class NodeRedService {
      * 保存上传的规则（方案A：主干+分支）
      * 期望 msg 中至少包含：ruleJson、flowJson、fusionTarget
      * 可选：projectId、spaceId、branchName、status
-     *
+     * <p>
      * 示例 msg 字段：
      * - ruleJson: {...}，其中包含 rulename
      * - flowJson: {...}
@@ -57,7 +56,6 @@ public class NodeRedService {
      * - branchName: "xxx 2"        // 可选，不传则用“主干名 + index”
      * - status: "active"|"inactive"// 可选，默认 inactive
      */
-    @Transactional
     public void handleUploadRule(Map<String, JsonNode> msg) {
         JsonNode ruleJsonNode = msg.get("ruleJson");
         JsonNode flowJsonNode = msg.get("flowJson");
@@ -75,9 +73,9 @@ public class NodeRedService {
 
         // 可选参数
         Integer projectId = msg.get("projectId") != null ? msg.get("projectId").asInt() : null;
-        Integer spaceId   = msg.get("spaceId")   != null ? msg.get("spaceId").asInt()   : null;
-        String  branchName= msg.get("branchName")!= null ? msg.get("branchName").asText(): null;
-        String  status    = msg.get("status")    != null ? msg.get("status").asText()    : "inactive";
+        Integer spaceId = msg.get("spaceId") != null ? msg.get("spaceId").asInt() : null;
+        String branchName = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
+        String status = msg.get("status") != null ? msg.get("status").asText() : "inactive";
 
         // 1) 创建主干（仅 name / project）
         FusionRule rule = new FusionRule();
