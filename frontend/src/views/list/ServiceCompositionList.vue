@@ -184,19 +184,19 @@ const columns = [
     dataIndex: 'action',
     width: '150px',
     scopedSlots: { customRender: 'action' }
-  },
-  {
-    title: 'CSP',
-    dataIndex: 'csp',
-    width: '150px',
-    scopedSlots: { customRender: 'csp' }
-  },
-  {
-    title: '目标',
-    dataIndex: 'target',
-    width: '150px',
-    scopedSlots: { customRender: 'target' }
   }
+  // {
+  //   title: 'CSP',
+  //   dataIndex: 'csp',
+  //   width: '150px',
+  //   scopedSlots: { customRender: 'csp' }
+  // },
+  // {
+  //   title: '目标',
+  //   dataIndex: 'target',
+  //   width: '150px',
+  //   scopedSlots: { customRender: 'target' }
+  // }
 ]
 
 const statusMap = {
