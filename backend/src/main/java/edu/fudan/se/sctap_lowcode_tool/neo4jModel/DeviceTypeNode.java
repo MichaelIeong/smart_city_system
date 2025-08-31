@@ -1,52 +1,47 @@
 package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
-import org.springframework.data.neo4j.core.schema.*;
 import lombok.Data;
-import lombok.ToString;
+import lombok.EqualsAndHashCode;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Node("DeviceType")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class DeviceTypeNode {
 
     @Id
-    @GeneratedValue
-    private Long id;   // 设备类型的唯一标识符
+    @EqualsAndHashCode.Include
+    private Integer deviceTypeId;
 
-    @Relationship(type = "IN_PROJECT", direction = Relationship.Direction.OUTGOING)
-    @ToString.Exclude
+    private String deviceTypeName;
 
-    private String deviceTypeId;    // 用户设定的资源ID(Project内唯一)
-    private String deviceTypeName;  // 设备类型的名称
-    private Boolean isSensor;       // 是否为传感器
+    private Boolean isSensor;
 
-    @Relationship(type = "HAS_STATE_TYPE", direction = Relationship.Direction.INCOMING)
-    @ToString.Exclude
-    private Set<StateDeviceTypeRelation> states = new HashSet<>();   // 状态关系
 
-    @Relationship(type = "SUPPORTED_BY", direction = Relationship.Direction.INCOMING)
-    @ToString.Exclude
-    private Set<ActuatingFunctionDeviceTypeRelation> actuatingFunctions = new HashSet<>();   // 执行功能关系
+    @Relationship(type = "HAS_FUNCTION", direction = Relationship.Direction.OUTGOING)
+    private Set<ActuatingFunctionNode> functions = new HashSet<>();
 
-    @Relationship(type = "OF_TYPE", direction = Relationship.Direction.INCOMING)
-    @ToString.Exclude
-    private Set<DeviceNode> devices = new HashSet<>();   // 实例化设备
+    /**
+     * 新增：DeviceType —AVAILABLE_IN→ Space
+     * 一个全局 DeviceType 可以复用，直接连到多个 Space。
+     */
+    @Relationship(type = "AVAILABLE_IN", direction = Relationship.Direction.OUTGOING)
+    private Set<SpaceNode> spaces = new HashSet<>();
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DeviceTypeNode that)) return false;
-        return Objects.equals(id, that.id) &&
-                Objects.equals(deviceTypeId, that.deviceTypeId) &&
-                Objects.equals(deviceTypeName, that.deviceTypeName) &&
-                Objects.equals(isSensor, that.isSensor);
+    // ====== 便捷方法 ======
+    public void addSpace(SpaceNode space) {
+        if (space == null) return;
+        if (spaces == null) spaces = new HashSet<>();
+        spaces.add(space);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, deviceTypeId, deviceTypeName, isSensor);
+    public void removeSpace(SpaceNode space) {
+        if (space == null) return;
+        if (spaces != null) spaces.remove(space);
     }
 }

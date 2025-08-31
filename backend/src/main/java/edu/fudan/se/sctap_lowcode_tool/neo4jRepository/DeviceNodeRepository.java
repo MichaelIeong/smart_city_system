@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, String> {
+public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, Integer> {
 
     @Query("""
         MATCH (d:Device {deviceId: $deviceId})
@@ -21,7 +21,7 @@ public interface DeviceNodeRepository extends Neo4jRepository<DeviceNode, String
                   collect(r3), collect(sd), collect(state), 
                   collect(r4), collect(af), collect(f)
     """)
-    Optional<DeviceNode> findDeviceWithAllRelationsByDeviceId(String deviceId);
+    Optional<DeviceNode> findDeviceWithAllRelationsByDeviceId(Integer deviceId);
 
-    void deleteByDeviceId(String deviceId);
+    void deleteByDeviceId(Integer deviceId);
 }

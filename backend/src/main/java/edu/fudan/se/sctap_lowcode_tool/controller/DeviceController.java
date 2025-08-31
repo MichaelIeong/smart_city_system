@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
@@ -23,7 +24,7 @@ public class DeviceController {
     @GetMapping("/{deviceId}")
     public ResponseEntity<?> getDevice(@PathVariable String deviceId) {
         // 先尝试查 Neo4j 图结构（含完整关系）
-        Optional<DeviceNode> nodeOpt = deviceService.findByDeviceId(deviceId);
+        Optional<DeviceNode> nodeOpt = deviceService.findByDeviceId(Integer.valueOf(deviceId));
         if (nodeOpt.isPresent()) {
             return ResponseEntity.ok(nodeOpt.get());
         }
@@ -60,5 +61,11 @@ public class DeviceController {
     public ResponseEntity<Void> deleteDevice(@PathVariable Integer deviceId) {
         deviceService.deleteDevice(deviceId);  // MySQL & Neo4j
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping
+    public ResponseEntity<DeviceNode> create(@RequestBody DeviceCreateRequest req) {
+        DeviceNode saved = deviceService.create(req); // 或 createWithLookup(req)
+        return ResponseEntity.ok(saved);
     }
 }

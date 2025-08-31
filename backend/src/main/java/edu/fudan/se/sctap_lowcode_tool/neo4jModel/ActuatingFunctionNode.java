@@ -1,17 +1,20 @@
 package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
-import org.springframework.data.neo4j.core.schema.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
 
 @Node("ActuatingFunction")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ActuatingFunctionNode {
 
     @Id
-    @GeneratedValue
-    private Long id;   // 功能的唯一标识符
+    @EqualsAndHashCode.Include
+    private Integer actuatingFunctionId;
 
-    private String name;         // 功能名称
-    private String params;       // 功能参数（JSON字符串）
-    private String description;  // 功能描述
+    private String functionName;
+
+    private String description;
 }
