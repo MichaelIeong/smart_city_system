@@ -197,7 +197,7 @@ public class AppRuleService {
         }
         AppRuleInfo appRuleInfo = null;
         if (!records.isEmpty()) {
-            AppRuleRecord record = records.getFirst();
+            AppRuleRecord record = records.get(0);
             appRuleInfo = getRuleById(Integer.parseInt(record.getId())).get();
         }
         return ResponseEntity.ok(appRuleInfo);
