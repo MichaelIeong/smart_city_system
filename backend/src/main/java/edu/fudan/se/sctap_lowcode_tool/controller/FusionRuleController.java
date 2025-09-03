@@ -39,12 +39,12 @@ public class FusionRuleController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
     }
 
-    @Operation(summary = "获取规则可执行的空间列表", description = "检查该规则在哪些空间（location）可以执行")
-    @GetMapping("/executableLocations/{ruleId}")
-    public ResponseEntity<List<Integer>> getExecutableLocations(@PathVariable int ruleId) {
+    @Operation(summary = "获取规则可执行的空间列表（含名称）", description = "返回 [{id,name}]")
+    @GetMapping("/executableSpaces/{ruleId}")
+    public ResponseEntity<List<Map<String, Object>>> getExecutableSpaces(@PathVariable int ruleId) {
         try {
-            List<Integer> locations = fusionRuleService.getExecutableLocationsForRuleId(ruleId);
-            return ResponseEntity.ok(locations);
+            List<Map<String, Object>> spaces = fusionRuleService.getExecutableSpaces(ruleId);
+            return ResponseEntity.ok(spaces);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {

@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Service
 public class FusionRuleService {
@@ -162,15 +163,22 @@ public class FusionRuleService {
                 .stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("该规则没有可作为模板的分支"));
 
-        // 3) 计算所有可执行空间
-        List<Integer> execSpaces = getExecutableLocationsForRuleId(ruleId);
+        // 3) 用新方法拿 [{id,name}]，再抽出 ids
+        List<Map<String, Object>> execSpacesWithNames = getExecutableSpaces(ruleId);
+        List<Integer> execSpaceIds = new ArrayList<>();
+        for (Map<String, Object> s : execSpacesWithNames) {
+            Object v = s.get("id");
+            if (v != null) {
+                execSpaceIds.add(Integer.valueOf(String.valueOf(v)));
+            }
+        }
 
         List<Integer> createdSpaces = new ArrayList<>();
         List<Integer> skippedSpaces = new ArrayList<>();
         List<Integer> createdIds = new ArrayList<>();
 
         // 4) 逐空间创建分支（如果该空间已有分支则跳过）
-        for (Integer spaceId : execSpaces) {
+        for (Integer spaceId : execSpaceIds) {
             if (spaceId == null) continue;
 
             boolean exists = branchRepo.existsByRuleAndSpace(ruleId, spaceId);
@@ -179,11 +187,10 @@ public class FusionRuleService {
                 continue;
             }
 
-            // 创建新分支
             Integer bid = createBranch(
                     ruleId,
                     spaceId,
-                    null, // 分支名留空 → 内部默认“主干名 + 序号”
+                    null, // 分支名留空 → 默认“主干名 + 序号”
                     template.getFusionTarget(),
                     activateNewBranches ? "active" :
                             (template.getStatus() == null ? "inactive" : template.getStatus()),
@@ -200,7 +207,7 @@ public class FusionRuleService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("ruleId", ruleId);
         result.put("activateNewBranches", activateNewBranches);
-        result.put("executableSpaces", execSpaces);
+        result.put("executableSpaces", execSpaceIds);       // 仅 ID 列表
         result.put("createdSpaces", createdSpaces);
         result.put("skippedSpaces", skippedSpaces);
         result.put("createdBranchIds", createdIds);
@@ -257,15 +264,11 @@ public class FusionRuleService {
         return true;
     }
 
-    /* =========================
-     * 可执行空间计算（基于选中分支的 ruleJson）
-     * ========================= */
-
     /**
      * 计算规则可执行的空间列表：
      * 选一个分支（优先 active，否则最小 index），用其 ruleJson 做能力匹配。
      */
-    public List<Integer> getExecutableLocationsForRuleId(int ruleId) {
+    public List<Map<String, Object>> getExecutableSpaces(int ruleId) {
         FusionRule rule = fusionRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException("规则 ID 不存在: " + ruleId));
 
@@ -283,16 +286,24 @@ public class FusionRuleService {
             throw new RuntimeException("解析分支规则 JSON 失败", e);
         }
 
+        // 先把 SpaceId->Name 做成 map
         List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
-        List<Integer> executableLocations = new ArrayList<>();
+        Map<Integer, String> id2name = allSpaces.stream()
+                .collect(Collectors.toMap(SpaceInfo::getSpaceId, SpaceInfo::getSpaceName));
 
+        // 逐空间做能力匹配，产出 [{id,name}]
+        List<Map<String, Object>> out = new ArrayList<>();
         for (SpaceInfo space : allSpaces) {
             Integer sid = space.getSpaceId();
+            if (sid == null) continue;
             if (canRuleRunInLocation(ruleJson, sid)) {
-                executableLocations.add(sid);
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", sid);
+                m.put("name", id2name.getOrDefault(sid, "空间 #" + sid));
+                out.add(m);
             }
         }
-        return executableLocations;
+        return out;
     }
 
     /* =========================
