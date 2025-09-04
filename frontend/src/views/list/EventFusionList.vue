@@ -515,7 +515,7 @@ export default {
     async executeBranch (record) {
       const hide = message.loading('执行中...', 0)
       try {
-        await axios.post(`${BASE}/api/fusion/branches/${record.branchId}/execute`)
+        await axios.post(`${BASE}/api/fusion/executeBranch/${record.branchId}`)
         hide()
         message.success('执行成功')
         await this.fetchBranches(this.activeRule.ruleId)
@@ -533,7 +533,7 @@ export default {
         cancelText: '取消',
         onOk: async () => {
           try {
-            await axios.put(`${BASE}/api/fusion/branches/${record.branchId}/pause`)
+            await axios.put(`${BASE}/api/fusion/pauseBranch/${record.branchId}`)
             message.success('分支已暂停')
             await this.fetchBranches(this.activeRule.ruleId)
             this.filterBranches()
