@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @CrossOrigin
@@ -114,16 +116,37 @@ public class FusionRuleController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
     }
 
-    @Operation(
-            summary = "把可达规则套用到其它可执行空间",
-            description = "依据能力匹配结果，为每个可执行空间创建一个分支；已存在分支的空间将跳过"
-    )
+    @Operation(summary = "把可达规则套用到其它可执行空间（可选：只对给定 spaceIds 子集）", description = "依据能力匹配结果，为每个可执行空间创建一个分支；已存在分支的空间将跳过。若 body 携带 spaceIds，则仅对该子集处理")
     @PostMapping("/rules/{ruleId}/applyToExecutableSpaces")
     public ResponseEntity<Map<String, Object>> applyToExecutableSpaces(
             @PathVariable int ruleId,
-            @RequestParam(name = "activate", defaultValue = "false") boolean activateNewBranches
+            @RequestParam(name = "activate", defaultValue = "false") boolean activateNewBranches,
+            @RequestBody(required = false) Map<String, Object> body
     ) {
-        Map<String, Object> result = fusionRuleService.applyRuleToExecutableSpaces(ruleId, activateNewBranches);
+        List<Integer> spaceIds = null;
+
+        if (body != null && body.get("spaceIds") != null) {
+            Object raw = body.get("spaceIds");
+            if (raw instanceof List<?>) {
+                // 兼容 [1,2] / ["1","2"] / 混合类型
+                spaceIds = ((List<?>) raw).stream()
+                        .flatMap(o -> {
+                            if (o == null) return Stream.empty();
+                            if (o instanceof Integer i) return Stream.of(i);
+                            if (o instanceof Number n) return Stream.of(n.intValue());
+                            try {
+                                return Stream.of(Integer.parseInt(String.valueOf(o)));
+                            } catch (Exception e) {
+                                return Stream.empty();
+                            }
+                        })
+                        .distinct()
+                        .collect(Collectors.toList());
+            }
+        }
+
+        Map<String, Object> result =
+                fusionRuleService.applyRuleToExecutableSpaces(ruleId, activateNewBranches, spaceIds);
         return ResponseEntity.ok(result);
     }
 }
