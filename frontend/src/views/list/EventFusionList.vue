@@ -281,7 +281,7 @@ export default {
     },
     rightTitle () {
       if (!this.activeRule) return '分支（请选择左侧主干）'
-      return `分支 - ${this.activeRule.ruleName}（Rule #${this.activeRule.ruleId}）`
+      return `分支 - ${this.activeRule.ruleName}`
     }
   },
   created () {
@@ -371,12 +371,23 @@ export default {
 
       axios.get(`${BASE}/api/fusion/executableSpaces/${rule.ruleId}`)
         .then(res => {
-          const ids = res.data || []
-          // 用 spaceMap 把 ID -> name；展示 name，值传 ID
-          this.applyModal.spaces = ids.map(id => ({
-            id,
-            name: this.spaceMap[id] || `空间 #${id}`
-          }))
+          const list = Array.isArray(res.data) ? res.data : []
+          // 兼容两种返回格式：
+          // 1) 老： [number, number, ...]
+          // 2) 新： [{ id, name }, ...]
+          if (list.length > 0 && typeof list[0] === 'number') {
+            // 老格式：只有 ID，继续用 spaceMap 映射名称
+            this.applyModal.spaces = list.map(id => ({
+              id,
+              name: this.spaceMap[id] || `空间 #${id}`
+            }))
+          } else {
+            // 新格式：后端已给出 name，直接使用；缺失时再兜底 spaceMap
+            this.applyModal.spaces = list.map(it => ({
+              id: it.id,
+              name: it.name || this.spaceMap[it.id] || `空间 #${it.id}`
+            }))
+          }
         })
         .catch(() => {
           this.applyModal.spaces = []
