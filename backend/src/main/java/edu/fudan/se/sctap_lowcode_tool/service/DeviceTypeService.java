@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.springframework.data.util.Optionals.ifPresentOrElse;
+
 
 @Service
 public class DeviceTypeService {
