@@ -38,7 +38,7 @@
             <h3>应用详情</h3>
             <div class="json-actions" v-if="selectedRule">
               <button @click="submitRule" class="submit-btn">提交应用</button>
-              <button @click="regenerateRule" class="llm-btn">大模型生成</button>
+              <button @click="generateRule" class="llm-btn">大模型生成</button>
               <button @click="viewInNodeRed" class="nodered-btn">在 Node-RED 中查看</button>
             </div>
           </div>
@@ -76,12 +76,12 @@
 <script setup>
 /* eslint-disable */
 import { ref } from 'vue'
-import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertComplexJsonRule } from '@/api/manage'
+import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertJsonRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 const uuid = uuidv4()
 const chatHistory = ref([
-  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的应用需求！', isSuccess: false }
+  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的应用需求！', isSuccess: false },
 ])
 const inputContent = ref('')
 const isLoading = ref(false)
@@ -134,7 +134,7 @@ async function findSimilarRule(index) {
   }
 }
 
-async function regenerateRule() {
+async function generateRule() {
   if (selectedRule.value) {
     try {
         selectedRule.value.jsonRule = '正在生成应用JSON...'
@@ -151,8 +151,12 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2))
-        message.success('应用创建成功')
+        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2))
+        if(success) {
+          message.success('应用创建成功')
+        } else {
+          message.error('应用创建失败')
+        }
     } catch (error) {
         message.error('应用创建失败: ' + error.message)
     }
@@ -163,7 +167,7 @@ async function viewInNodeRed() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
     try {
-      const flowJson = await convertComplexJsonRule(JSON.stringify(selectedRule.value.jsonRule))
+      const flowJson = await convertJsonRule(JSON.stringify(selectedRule.value.jsonRule))
 
       await fetch(`${NODE_RED_URL}/flows`, {
         method: 'POST',

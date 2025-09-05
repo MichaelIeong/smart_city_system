@@ -94,7 +94,7 @@ public class NodeRedService {
         }
 
         // 3) 下一个分支序号
-        int nextIdx = branchRepo.findMaxIndex(rule.getRuleId(), spaceId) + 1;
+        int nextIdx = branchRepo.findMaxIndexByRule(rule.getRuleId()) + 1;
         String finalBranchName = (branchName == null || branchName.isBlank())
                 ? ruleName + " " + nextIdx
                 : branchName;

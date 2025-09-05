@@ -327,7 +327,7 @@ export function generateNaturalRule (uuid, message) {
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    timeout: 15000
+    timeout: 30000
   })
 }
 
@@ -359,49 +359,15 @@ export function generateJsonRule (uuid, message) {
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    timeout: 15000
-  })
-}
-
-// 生成复杂应用自然语言描述规则
-export function generateComplexNaturalRule (uuid, message) {
-  const token = store.state.token
-  return request({
-    url: `${api.tap}/recommend/generateComplexNaturalRule`,
-    method: 'post',
-    data: {
-      uuid,
-      message
-    },
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
     timeout: 30000
   })
 }
 
-// 生成复杂应用 json 形式规则
-export function generateComplexJsonRule (uuid, message) {
+// 应用 json 转换
+export function convertJsonRule (ruleJson) {
   const token = store.state.token
   return request({
-    url: `${api.tap}/recommend/generateComplexJsonRule`,
-    method: 'post',
-    data: {
-      uuid,
-      message
-    },
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
-    timeout: 60000
-  })
-}
-
-// 复杂应用 json 转换
-export function convertComplexJsonRule (ruleJson) {
-  const token = store.state.token
-  return request({
-    url: `${api.tap}/recommend/convertComplexJsonRule`,
+    url: `${api.tap}/recommend/convertJsonRule`,
     method: 'post',
     data: {
       ruleJson

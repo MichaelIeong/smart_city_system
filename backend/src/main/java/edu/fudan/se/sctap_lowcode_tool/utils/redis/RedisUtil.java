@@ -2,7 +2,6 @@ package edu.fudan.se.sctap_lowcode_tool.utils.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.fudan.se.sctap_lowcode_tool.DTO.app.ChainStep;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
