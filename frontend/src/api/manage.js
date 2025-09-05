@@ -67,7 +67,7 @@ export function getRuleList () {
 export function getServiceList (project) {
   const token = store.state.token
   return request({
-    url: api.services,
+    url: api.services + '/getServiceList',
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`

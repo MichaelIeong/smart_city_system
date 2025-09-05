@@ -180,23 +180,16 @@ const columns = [
     dataIndex: 'serviceId'
   },
   {
+    title: '服务描述',
+    dataIndex: 'description',
+    ellipsis: true
+  },
+  {
     title: '操作',
     dataIndex: 'action',
     width: '150px',
     scopedSlots: { customRender: 'action' }
   }
-  // {
-  //   title: 'CSP',
-  //   dataIndex: 'csp',
-  //   width: '150px',
-  //   scopedSlots: { customRender: 'csp' }
-  // },
-  // {
-  //   title: '目标',
-  //   dataIndex: 'target',
-  //   width: '150px',
-  //   scopedSlots: { customRender: 'target' }
-  // }
 ]
 
 const statusMap = {
