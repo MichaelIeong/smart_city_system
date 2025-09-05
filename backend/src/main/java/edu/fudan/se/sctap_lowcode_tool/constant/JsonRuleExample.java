@@ -13,60 +13,60 @@ public class JsonRuleExample {
                 "response": {
                     "branch": [
                         {
-                            "history_condition": {
-                                "history_left": {
-                                    "func": "event_count(ill_parking, 1, hour)",
-                                    "func_params": {
-                                        "plate_number": "plate_number"
-                                    }
+                            "current_condition": {
+                                "current_left": {
+                                    "type": "property",
+                                    "property": "NetworkAudioNum"
                                 },
                                 "operator": ">",
                                 "right": "0"
                             },
                             "chain": [
                                 {
-                                    "action": {
-                                        "action_name": "issue_work_order",
-                                        "action_params": {
-                                            "event_type": "ill_parking",
-                                            "location": "location",
-                                            "data": "Vehicle illegal parking information"
-                                        }
-                                    }
-                                },
-                                {
-                                    "wait": {
-                                        "action_wait": {
-                                            "event_type": "ill_parking",
-                                            "wait_params": {
-                                                "location": "location"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "history_condition": {
-                                "history_left": {
-                                    "func": "event_count(ill_parking, 1, hour)",
-                                    "func_params": {
-                                        "plate_number": "plate_number"
-                                    }
-                                },
-                                "operator": "==",
-                                "right": "0"
-                            },
-                            "chain": [
-                                {
                                     "branch": [
                                         {
-                                            "current_condition": {
-                                                "current_left": {
-                                                    "type": "property",
-                                                    "property": "NetworkAudioNum"
+                                            "history_condition": {
+                                                "history_left": {
+                                                    "func": "event_count(ill_parking, 1, hour)",
+                                                    "func_params": {
+                                                        "plate_number": "plate_number"
+                                                    }
                                                 },
                                                 "operator": ">",
+                                                "right": "0"
+                                            },
+                                            "chain": [
+                                                {
+                                                    "action": {
+                                                        "action_name": "issue_work_order",
+                                                        "action_params": {
+                                                            "event_type": "ill_parking",
+                                                            "location": "location",
+                                                            "data": "Vehicle illegal parking information"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "wait": {
+                                                        "action_wait": {
+                                                            "event_type": "ill_parking",
+                                                            "wait_params": {
+                                                                "location": "location"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "history_condition": {
+                                                "history_left": {
+                                                    "func": "event_count(ill_parking, 1, hour)",
+                                                    "func_params": {
+                                                        "plate_number": "plate_number"
+                                                    }
+                                                },
+                                                "operator": "==",
                                                 "right": "0"
                                             },
                                             "chain": [
@@ -93,40 +93,40 @@ public class JsonRuleExample {
                                                     }
                                                 }
                                             ]
-                                        },
-                                        {
-                                            "current_condition": {
-                                                "current_left": {
-                                                    "type": "property",
-                                                    "property": "NetworkAudioNum"
-                                                },
-                                                "operator": "==",
-                                                "right": "0"
-                                            },
-                                            "chain": [
-                                                {
-                                                    "action": {
-                                                        "action_name": "issue_work_order",
-                                                        "action_params": {
-                                                            "event_type": "ill_parking",
-                                                            "location": "location",
-                                                            "data": "Vehicle illegal parking information"
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "wait": {
-                                                        "action_wait": {
-                                                            "event_type": "ill_parking",
-                                                            "wait_params": {
-                                                                "location": "location"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            ]
                                         }
                                     ]
+                                }
+                            ]
+                        },
+                        {
+                            "current_condition": {
+                                "current_left": {
+                                    "type": "property",
+                                    "property": "NetworkAudioNum"
+                                },
+                                "operator": "==",
+                                "right": "0"
+                            },
+                            "chain": [
+                                {
+                                    "action": {
+                                        "action_name": "issue_work_order",
+                                        "action_params": {
+                                            "event_type": "ill_parking",
+                                            "location": "location",
+                                            "data": "Vehicle illegal parking information"
+                                        }
+                                    }
+                                },
+                                {
+                                    "wait": {
+                                        "action_wait": {
+                                            "event_type": "ill_parking",
+                                            "wait_params": {
+                                                "location": "location"
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
