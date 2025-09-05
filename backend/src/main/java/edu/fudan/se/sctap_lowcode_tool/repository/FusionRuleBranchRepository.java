@@ -61,4 +61,12 @@ public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBran
     @Modifying
     @Query("delete from FusionRuleBranch b where b.rule.ruleId = :ruleId")
     void deleteByRule_RuleId(@Param("ruleId") Integer ruleId);
+
+    // 新增：同一 rule 下的全局最大分支序号（忽略 space）
+    @Query("""
+       select coalesce(max(b.branchIndex), 0)
+       from FusionRuleBranch b
+       where b.rule.ruleId = :ruleId
+       """)
+    int findMaxIndexByRule(@Param("ruleId") Integer ruleId);
 }

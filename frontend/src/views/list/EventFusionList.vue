@@ -146,25 +146,36 @@
       </a-form>
     </a-modal>
 
-    <!-- 套用到可达空间 -->
+    <!-- 套用到可达空间（显示 name，选择值为 ID） -->
     <a-modal
       v-model="applyModal.visible"
       title="套用到可达空间"
       @ok="confirmApply"
       @cancel="closeApplyModal"
       :confirmLoading="applyModal.loading"
+      :okButtonProps="{ disabled: applyModal.selectedSpaceIds.length === 0 }"
     >
-      <p>
-        将规则 <b>{{ applyModal.rule?.ruleName }}</b> 的可执行分支复制到系统检测到的“可达空间”。
+      <p style="margin-bottom: 12px;">
+        将规则 <b>{{ applyModal.rule?.ruleName }}</b> 复制到所选可达空间。
       </p>
-      <a-alert
-        v-if="applyModal.preview && applyModal.preview.executableSpaces"
-        type="info"
-        show-icon
-        style="margin-bottom: 12px;"
-        :message="`检测到 ${applyModal.preview.executableSpaces.length} 个可达空间：` +
-          applyModal.preview.executableSpaces.map(id => spaceMap[id] || id).join(', ')"
-      />
+
+      <a-spin :spinning="applyModal.loadingPreview">
+        <template v-if="applyModal.spaces && applyModal.spaces.length">
+          <a-checkbox-group
+            v-model="applyModal.selectedSpaceIds"
+            style="display:flex; flex-direction:column; gap:8px;"
+          >
+            <a-checkbox
+              v-for="sp in applyModal.spaces"
+              :key="sp.id"
+              :value="sp.id"
+            >
+              {{ sp.name }}
+            </a-checkbox>
+          </a-checkbox-group>
+        </template>
+        <a-empty v-else description="未检测到可达空间" />
+      </a-spin>
     </a-modal>
 
     <!-- 主干改名弹窗 -->
@@ -246,8 +257,10 @@ export default {
       applyModal: {
         visible: false,
         loading: false,
+        loadingPreview: false,
         rule: null,
-        preview: null
+        spaces: [], // [{ id, name }]
+        selectedSpaceIds: [] // 仅存选中的 ID
       },
 
       // 主干改名弹窗
@@ -268,7 +281,7 @@ export default {
     },
     rightTitle () {
       if (!this.activeRule) return '分支（请选择左侧主干）'
-      return `分支 - ${this.activeRule.ruleName}（Rule #${this.activeRule.ruleId}）`
+      return `分支 - ${this.activeRule.ruleName}`
     }
   },
   created () {
@@ -276,6 +289,59 @@ export default {
     this.refreshTable()
   },
   methods: {
+    /** 规范化 Node-RED 基地址（去掉尾部 /） */
+    _nrBase () {
+      if (!NODE_RED_URL) {
+        message.error('未配置 NODE_RED_URL')
+        throw new Error('NODE_RED_URL missing')
+      }
+      return String(NODE_RED_URL).replace(/\/$/, '')
+    },
+
+    /** 规范化 flow：把被 stringify 的 JSON（最多两层）还原为对象/数组 */
+    _normalizeFlow (fj) {
+      let v = fj
+      for (let i = 0; i < 2 && typeof v === 'string'; i++) {
+        const s = v.trim()
+        const looksJson =
+          (s.startsWith('{') && s.endsWith('}')) ||
+          (s.startsWith('[') && s.endsWith(']')) ||
+          (s.startsWith('"') && s.endsWith('"'))
+        if (!looksJson) break
+        try {
+          v = JSON.parse(s)
+        } catch (e) {
+          break
+        }
+      }
+      if (!Array.isArray(v) && typeof v !== 'object') {
+        throw new Error('flowJson 不是对象或数组，格式不符合 Node-RED 要求')
+      }
+      return v
+    },
+
+    /** 推送 flow 到 Node-RED Admin API 然后打开编辑器 */
+    async pushFlowAndOpen (flowJson, { deployType = 'flows' } = {}) {
+      const base = this._nrBase()
+      const normalized = this._normalizeFlow(flowJson)
+      const bodyStr = JSON.stringify(normalized)
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Node-RED-Deployment-Type': deployType
+      }
+
+      const resp = await fetch(`${base}/flows`, {
+        method: 'POST',
+        headers,
+        body: bodyStr
+      })
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`推送到 Node-RED 失败：HTTP ${resp.status} ${text}`)
+      }
+      window.open(`${base}`, '_blank')
+    },
     // ===== Space 映射 =====
     async fetchSpaceMap () {
       try {
@@ -310,7 +376,8 @@ export default {
       const params = new URLSearchParams({ source: 'frontend', action: 'create' })
       window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
-    // 改为仅“主干改名”
+
+    // 仅“主干改名”
     handleEdit (record) {
       this.ruleModal.model = { ruleId: record.ruleId, ruleName: record.ruleName }
       this.openRuleModal()
@@ -347,31 +414,59 @@ export default {
       })
     },
 
+    // ====== 套用到可达空间 ======
     openApplyModal (rule) {
       this.applyModal.rule = rule
-      this.applyModal.preview = null
       this.applyModal.visible = true
-      axios.get(`${BASE}/api/fusion/executableLocations/${rule.ruleId}`)
+      this.applyModal.loadingPreview = true
+      this.applyModal.spaces = []
+      this.applyModal.selectedSpaceIds = []
+
+      axios.get(`${BASE}/api/fusion/executableSpaces/${rule.ruleId}`)
         .then(res => {
-          this.applyModal.preview = { executableSpaces: res.data || [] }
+          const list = Array.isArray(res.data) ? res.data : []
+          // 兼容两种返回格式：
+          // 1) 老： [number, number, ...]
+          // 2) 新： [{ id, name }, ...]
+          if (list.length > 0 && typeof list[0] === 'number') {
+            // 老格式：只有 ID，继续用 spaceMap 映射名称
+            this.applyModal.spaces = list.map(id => ({
+              id,
+              name: this.spaceMap[id] || `空间 #${id}`
+            }))
+          } else {
+            // 新格式：后端已给出 name，直接使用；缺失时再兜底 spaceMap
+            this.applyModal.spaces = list.map(it => ({
+              id: it.id,
+              name: it.name || this.spaceMap[it.id] || `空间 #${it.id}`
+            }))
+          }
         })
         .catch(() => {
-          this.applyModal.preview = { executableSpaces: [] }
+          this.applyModal.spaces = []
+        })
+        .finally(() => {
+          this.applyModal.loadingPreview = false
         })
     },
     closeApplyModal () {
       this.applyModal.visible = false
       this.applyModal.loading = false
       this.applyModal.rule = null
+      this.applyModal.selectedSpaceIds = []
     },
     async confirmApply () {
       if (!this.applyModal.rule) return
+      if (this.applyModal.selectedSpaceIds.length === 0) {
+        message.warning('请先勾选至少一个空间')
+        return
+      }
       this.applyModal.loading = true
       try {
         const { ruleId } = this.applyModal.rule
         const res = await axios.post(
           `${BASE}/api/fusion/rules/${ruleId}/applyToExecutableSpaces`,
-          null,
+          { spaceIds: this.applyModal.selectedSpaceIds },
           { params: { activate: false } }
         )
         message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个分支`)
@@ -386,6 +481,8 @@ export default {
         this.applyModal.loading = false
       }
     },
+
+    // ===== 规则操作 =====
     execute (record) {
       const hide = message.loading('执行中...', 0)
       executeRuleById(record.ruleId)
@@ -467,11 +564,11 @@ export default {
       this.filteredBranches = (s === 'all') ? [...this.branches] : this.branches.filter(b => (b.status || 'inactive') === s)
     },
 
-    // 分支操作
+    // ===== 分支操作 =====
     async executeBranch (record) {
       const hide = message.loading('执行中...', 0)
       try {
-        await axios.post(`${BASE}/api/fusion/branches/${record.branchId}/execute`)
+        await axios.post(`${BASE}/api/fusion/executeBranch/${record.branchId}`)
         hide()
         message.success('执行成功')
         await this.fetchBranches(this.activeRule.ruleId)
@@ -489,7 +586,7 @@ export default {
         cancelText: '取消',
         onOk: async () => {
           try {
-            await axios.put(`${BASE}/api/fusion/branches/${record.branchId}/pause`)
+            await axios.put(`${BASE}/api/fusion/pauseBranch/${record.branchId}`)
             message.success('分支已暂停')
             await this.fetchBranches(this.activeRule.ruleId)
             this.filterBranches()
@@ -559,17 +656,27 @@ export default {
     },
 
     // 只跳转到 Node-RED，不提交任何数据
-    goToNodeRed (model) {
-      if (!NODE_RED_URL) {
-        message.error('未配置 NODE_RED_URL')
-        return
+    async goToNodeRed (model) {
+      try {
+        const branchId = model?.branchId
+        let branch = this.branches.find(b => b.branchId === branchId)
+
+        // 如果列表项里没有 flowJson，则补拉一次详情
+        if (!branch || !branch.flowJson) {
+          const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}`)
+          branch = { ...(branch || {}), ...(data || {}) }
+        }
+
+        if (!branch || !branch.flowJson) {
+          message.error('该分支缺少 flowJson，无法推送到 Node-RED')
+          return
+        }
+
+        await this.pushFlowAndOpen(branch.flowJson, { deployType: 'flows' })
+      } catch (e) {
+        console.error(e)
+        message.error('推送 Node-RED 失败')
       }
-      const params = new URLSearchParams({
-        source: 'frontend',
-        branchId: model?.branchId ?? '',
-        branchName: model?.branchName ?? ''
-      })
-      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
 
     // LLM
