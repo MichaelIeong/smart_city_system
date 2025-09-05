@@ -60,6 +60,10 @@ public class ServiceService {
 //        serviceNodeRepository.save(node);
     }
 
+    public List<ServiceInfo> getServiceListByProjectId(String projectId) {
+        return serviceRepository.findAllByProjectId(projectId);
+    }
+
     public ServiceInfo getService(Integer serviceId){
         return serviceRepository.findByServiceId(serviceId);
     }

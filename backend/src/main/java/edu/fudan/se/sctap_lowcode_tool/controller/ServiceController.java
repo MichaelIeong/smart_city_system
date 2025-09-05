@@ -68,6 +68,14 @@ public class ServiceController {
         return ResponseEntity.ok(serviceRuleList);
     }
 
+    @Operation(summary = "根据项目ID获取规则列表", description = "按 projectId 查询服务列表")
+    @GetMapping("/getServiceListByProject")
+    public ResponseEntity<?> getServiceListByProject(@RequestParam("projectId") String projectId) {
+        System.out.println(projectId);
+        List<ServiceInfo> serviceRuleList = serviceService.getServiceListByProjectId(projectId);
+        return ResponseEntity.ok(serviceRuleList);
+    }
+
     @Operation(summary = "上传新的服务", description = "用户在node-red组合好服务，传给后端，加入到数据库")
     @PostMapping("/uploadservice")
     public ResponseEntity<Void> saveService(@RequestBody JsonNode serviceMsg) {

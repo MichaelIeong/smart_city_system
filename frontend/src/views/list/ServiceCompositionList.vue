@@ -474,9 +474,9 @@ export default {
       //     projectName: '2024-05-10'
       //   }
       // ]
-      const project = localStorage.getItem('project_id')
-      console.log(project)
-      return getServiceList(project)
+      const projectId = localStorage.getItem('project_id')
+      console.log(projectId + projectId)
+      return getServiceList(projectId)
         .then(res => {
           console.log('Data received:', res)
           return res // 确保数据格式是数组
