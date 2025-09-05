@@ -61,9 +61,9 @@ public class ServiceController {
     @GetMapping("/getServiceList")
     public ResponseEntity<?> getServiceList(HttpServletRequest request) {
         // 这个是从mysql
-        // List<ServiceInfo> serviceRuleList = serviceService.getServiceList();
+        List<ServiceInfo> serviceRuleList = serviceService.getServiceList();
         // 这个是从neo4j
-        List<ServiceNode> serviceRuleList = serviceService.getServiceNodeList();
+        // List<ServiceNode> serviceRuleList = serviceService.getServiceNodeList();
 
         return ResponseEntity.ok(serviceRuleList);
     }
@@ -71,62 +71,45 @@ public class ServiceController {
     @Operation(summary = "上传新的服务", description = "用户在node-red组合好服务，传给后端，加入到数据库")
     @PostMapping("/uploadservice")
     public ResponseEntity<Void> saveService(@RequestBody JsonNode serviceMsg) {
-        String compositionName = "";
+        String serviceName = "";
+        String description = "";
         String projectId = "";
-        Integer serviceId = 2;
-        Integer spaceId = null;
-        // 遍历 JSON 数组
-        System.out.println(serviceMsg);
-        for (JsonNode node : serviceMsg) {
-            // 获取 type = "tab" 的 serviceId
-            if (node.has("type") && "tab".equals(node.get("type").asText())) {
-                JsonNode envNode = node.get("env");
-                if (envNode != null && envNode.isArray()) {
-                    for (JsonNode env : envNode) {
-                        if ("serviceId".equals(env.get("name").asText())) {
-                            serviceId = env.get("value").asInt();
-                        }
-                    }
-                }
-            }
 
-            // 获取 Composition 里面的 compositionName 和 projectId
+        // 遍历 JSON 数组
+        for (JsonNode node : serviceMsg) {
+            // 获取 Composition 节点的 serviceName / description / projectId
             if (node.has("type") && "Composition".equals(node.get("type").asText())) {
-                compositionName = Optional.ofNullable(node.get("compositionName"))
+                serviceName = Optional.ofNullable(node.get("compositionNameLabel")) // 下拉框显示的服务名
                         .map(JsonNode::asText)
                         .orElse(null);
+                description = Optional.ofNullable(node.get("description"))
+                        .map(JsonNode::asText)
+                        .orElse("");
                 projectId = Optional.ofNullable(node.get("projectId"))
                         .map(JsonNode::asText)
-                        .orElse(null);
-                spaceId = Optional.ofNullable(node.get("spaceId"))
-                        .map(JsonNode::asInt)
                         .orElse(null);
             }
         }
 
-        System.out.println("serviceId: " + serviceId);
-        System.out.println("compositionName: " + compositionName);
-        System.out.println("projectId: " + projectId);
-        System.out.println(626565);
-        System.out.println(compositionName);
+        // ===== MySQL 保存 =====
         ServiceInfo serviceInfo = new ServiceInfo();
         serviceInfo.setServiceJson(serviceMsg.toString());
-        serviceInfo.setServiceName(compositionName);
+        serviceInfo.setServiceName(serviceName);
+        serviceInfo.setDescription(description);
         serviceInfo.setProjectId(projectId);
-        serviceInfo.setServiceId(serviceId);
-        serviceInfo.setParentingSpace(spaceService.findSpaceById(1).get());
+
         serviceService.addOrUpdateService(serviceInfo);
 
         // System.out.println(serviceMsg.get("compositionName"));
         // 这里是neo4j
-        ServiceNode serviceNode = new ServiceNode();
-        serviceNode.setServiceJson(serviceMsg.toString());
-        serviceNode.setServiceId(serviceId);
-        serviceNode.setDescription("这是一个服务");
-        serviceNode.setServiceName(compositionName);
-        SpaceNode currentSpace = spaceNodeRepository.findBySpaceId(spaceId).get();
+//        ServiceNode serviceNode = new ServiceNode();
+//        serviceNode.setServiceJson(serviceMsg.toString());
+//        serviceNode.setServiceId(serviceId);
+//        serviceNode.setDescription("这是一个服务");
+//        serviceNode.setServiceName(compositionName);
+//        SpaceNode currentSpace = spaceNodeRepository.findBySpaceId(spaceId).get();
 
-        serviceNode.setParentingSpace(currentSpace);
+//        serviceNode.setParentingSpace(currentSpace);
 
         return ResponseEntity.ok().build();
     }

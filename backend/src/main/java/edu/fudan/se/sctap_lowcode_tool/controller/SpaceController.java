@@ -71,14 +71,14 @@ public class SpaceController {
                     }).toList();
             result.put("events", eventList);
 
-            List<Map<String, Object>> serviceList = spaceInfo.getServices().stream()
-                    .map(service -> {
-                        Map<String, Object> serviceMap = new HashMap<>();
-                        serviceMap.put("serviceId", service.getServiceId());
-                        serviceMap.put("serviceName", service.getServiceName());
-                        return serviceMap;
-                    }).toList();
-            result.put("services", serviceList);
+//            List<Map<String, Object>> serviceList = spaceInfo.getServices().stream()
+//                    .map(service -> {
+//                        Map<String, Object> serviceMap = new HashMap<>();
+//                        serviceMap.put("serviceId", service.getServiceId());
+//                        serviceMap.put("serviceName", service.getServiceName());
+//                        return serviceMap;
+//                    }).toList();
+//            result.put("services", serviceList);
 
             return new ResponseEntity<>(result, HttpStatus.OK);
         } else {

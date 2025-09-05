@@ -22,11 +22,11 @@ public class ServiceConverterUtil {
         node.setServiceJson(info.getServiceJson());
         node.setDescription(info.getDescription());
 
-        if (info.getParentingSpace() != null) {
-            SpaceNode spaceNode = new SpaceNode();
-            spaceNode.setSpaceId(info.getParentingSpace().getSpaceId());
-            node.setParentingSpace(spaceNode);
-        }
+//        if (info.getParentingSpace() != null) {
+//            SpaceNode spaceNode = new SpaceNode();
+//            spaceNode.setSpaceId(info.getParentingSpace().getSpaceId());
+//            node.setParentingSpace(spaceNode);
+//        }
 
         return node;
     }

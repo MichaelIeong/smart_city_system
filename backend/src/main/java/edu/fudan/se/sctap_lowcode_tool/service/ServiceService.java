@@ -54,10 +54,10 @@ public class ServiceService {
         int neo4jServiceId = (maxId != null ? maxId + 1 : 1);
 
 // 转换实体
-        ServiceNode node = ServiceConverterUtil.convertToNode(serviceInfo, neo4jServiceId);
-
-// 保存到 Neo4j
-        serviceNodeRepository.save(node);
+//        ServiceNode node = ServiceConverterUtil.convertToNode(serviceInfo, neo4jServiceId);
+//
+//// 保存到 Neo4j
+//        serviceNodeRepository.save(node);
     }
 
     public ServiceInfo getService(Integer serviceId){
