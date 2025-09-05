@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.util;
+package edu.fudan.se.sctap_lowcode_tool.utils;
 
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;

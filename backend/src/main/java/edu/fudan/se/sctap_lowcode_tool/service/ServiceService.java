@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import edu.fudan.se.sctap_lowcode_tool.util.ServiceConverterUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.ServiceConverterUtil;
 
 @Service
 public class ServiceService {
