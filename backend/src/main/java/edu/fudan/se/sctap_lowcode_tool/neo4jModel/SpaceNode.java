@@ -2,7 +2,6 @@ package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
 import org.springframework.data.neo4j.core.schema.*;
 import lombok.Data;
-import org.stringtemplate.v4.ST;
 
 import java.util.HashSet;
 import java.util.Set;
