@@ -2,28 +2,10 @@
   <page-header-wrapper>
     <div style="padding: 0 24px 24px 24px;">
       <a-row :gutter="24" style="height: calc(100vh - 180px);">
-        <!-- 左侧：主干规则 -->
+        <!-- 左侧：通用规则 -->
         <a-col :span="12">
-          <a-card title="主干规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
-            <div class="table-page-search-wrapper" style="margin-bottom: 12px;">
-              <a-form layout="inline">
-                <a-row :gutter="48">
-                  <a-col :md="12" :sm="24">
-                    <a-form-item label="使用状态">
-                      <a-select v-model="queryParam.status" placeholder="请选择">
-                        <a-select-option value="all">全部</a-select-option>
-                        <a-select-option value="active">运行中</a-select-option>
-                        <a-select-option value="inactive">已关闭</a-select-option>
-                      </a-select>
-                    </a-form-item>
-                  </a-col>
-                  <a-col :md="12" :sm="24">
-                    <a-button type="primary" @click="refreshTable">查询</a-button>
-                    <a-button style="margin-left: 8px" @click="resetSearchForm">重置</a-button>
-                  </a-col>
-                </a-row>
-              </a-form>
-            </div>
+          <a-card title="通用规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
+            <div class="table-page-search-wrapper" style="margin-bottom: 12px;"></div>
 
             <div style="margin-bottom: 12px;">
               <a-button type="primary" icon="plus" @click="handleAdd">
@@ -53,9 +35,9 @@
                 </span>
 
                 <span slot="action" slot-scope="text, record">
-                  <a @click.stop.prevent="handleEdit(record)">编辑</a>
-                  <a-divider type="vertical" />
                   <a @click.stop.prevent="openApplyModal(record)">套用到可达空间</a>
+                  <a-divider type="vertical" />
+                  <a @click.stop.prevent="handleEdit(record)">编辑</a>
                   <a-divider type="vertical" />
                   <a @click.stop.prevent="deleteRule(record)">删除</a>
                 </span>
@@ -64,14 +46,14 @@
           </a-card>
         </a-col>
 
-        <!-- 右侧：分支（Branch） -->
+        <!-- 右侧：实例（Branch） -->
         <a-col :span="12">
           <a-card :title="rightTitle" bordered :style="{ borderRadius: '8px', height: '100%' }">
             <div style="height: calc(100% - 60px); display:flex; flex-direction: column;">
-              <!-- 分支筛选 -->
+              <!-- 实例筛选 -->
               <a-row :gutter="16" style="margin-bottom: 16px;">
                 <a-col :md="16" :sm="24">
-                  <a-select v-model="branchQuery.status" placeholder="请选择分支状态" style="width:100%;">
+                  <a-select v-model="branchQuery.status" placeholder="请选择实例状态" style="width:100%;">
                     <a-select-option value="all">全部</a-select-option>
                     <a-select-option value="active">运行中</a-select-option>
                     <a-select-option value="inactive">已关闭</a-select-option>
@@ -82,7 +64,7 @@
                 </a-col>
               </a-row>
 
-              <!-- 分支表格 -->
+              <!-- 实例表格 -->
               <a-table
                 :columns="branchColumns"
                 :dataSource="filteredBranches"
@@ -113,20 +95,20 @@
       </a-row>
     </div>
 
-    <!-- 编辑分支（仅名称 + 纯跳转到 Node-RED） -->
+    <!-- 编辑实例（仅名称 + 纯跳转到 Node-RED） -->
     <a-modal
       v-model="branchModal.visible"
-      title="编辑分支"
+      title="编辑实例"
       @ok="submitBranchModal"
       @cancel="closeBranchModal"
       :confirmLoading="branchModal.loading"
     >
       <a-form :form="branchForm">
-        <a-form-item label="分支名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
+        <a-form-item label="实例名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
           <a-input
             v-decorator="[
               'branchName',
-              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入分支名称'}]}
+              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入实例名称'}]}
             ]"
             @pressEnter.prevent
           />
@@ -234,9 +216,9 @@ export default {
 
       activeRule: null, // 当前选中的主干
 
-      // 分支
+      // 实例
       branchColumns: [
-        { title: '分支名称', dataIndex: 'branchName' },
+        { title: '实例名称', dataIndex: 'branchName' },
         { title: '目标表', dataIndex: 'fusionTarget', width: 120 },
         { title: '状态', dataIndex: 'status', width: 120, scopedSlots: { customRender: 'status' } },
         { title: '操作', dataIndex: 'action', width: 240, scopedSlots: { customRender: 'action' } }
@@ -245,7 +227,7 @@ export default {
       filteredBranches: [],
       branchQuery: { status: 'all' },
 
-      // 分支弹窗（仅编辑名称）
+      // 实例弹窗（仅编辑名称）
       branchModal: {
         visible: false,
         loading: false,
@@ -280,8 +262,8 @@ export default {
       return { selectedRowKeys: this.selectedRowKeys, onChange: this.onSelectChange }
     },
     rightTitle () {
-      if (!this.activeRule) return '分支（请选择左侧主干）'
-      return `分支 - ${this.activeRule.ruleName}`
+      if (!this.activeRule) return '实例（请选择左侧主干）'
+      return `实例 - ${this.activeRule.ruleName}`
     }
   },
   created () {
@@ -469,7 +451,7 @@ export default {
           { spaceIds: this.applyModal.selectedSpaceIds },
           { params: { activate: false } }
         )
-        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个分支`)
+        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个实例`)
         this.closeApplyModal()
         if (this.activeRule && this.activeRule.ruleId === ruleId) {
           await this.fetchBranches(ruleId)
@@ -547,7 +529,7 @@ export default {
       this.filterBranches()
     },
 
-    // ===== 分支接口 =====
+    // ===== 实例接口 =====
     async fetchBranches (ruleId) {
       if (!ruleId) return
       try {
@@ -556,7 +538,7 @@ export default {
         this.filteredBranches = [...this.branches]
       } catch (e) {
         console.error(e)
-        message.error('获取分支列表失败')
+        message.error('获取实例列表失败')
       }
     },
     filterBranches () {
@@ -564,7 +546,7 @@ export default {
       this.filteredBranches = (s === 'all') ? [...this.branches] : this.branches.filter(b => (b.status || 'inactive') === s)
     },
 
-    // ===== 分支操作 =====
+    // ===== 实例操作 =====
     async executeBranch (record) {
       const hide = message.loading('执行中...', 0)
       try {
@@ -581,13 +563,13 @@ export default {
     async pauseBranch (record) {
       Modal.confirm({
         title: '确认暂停？',
-        content: `暂停分支：${record.branchName}`,
+        content: `暂停实例：${record.branchName}`,
         okText: '确定',
         cancelText: '取消',
         onOk: async () => {
           try {
             await axios.put(`${BASE}/api/fusion/pauseBranch/${record.branchId}`)
-            message.success('分支已暂停')
+            message.success('实例已暂停')
             await this.fetchBranches(this.activeRule.ruleId)
             this.filterBranches()
           } catch (e) {
@@ -598,8 +580,8 @@ export default {
     },
     async deleteBranch (record) {
       Modal.confirm({
-        title: '确认删除该分支？',
-        content: `是否删除分支：${record.branchName}`,
+        title: '确认删除该实例？',
+        content: `是否删除实例：${record.branchName}`,
         okText: '确定',
         cancelText: '取消',
         onOk: async () => {
@@ -615,7 +597,7 @@ export default {
       })
     },
 
-    // ====== 仅编辑“分支名称”，按钮进入 Node-RED（纯跳转） ======
+    // ====== 仅编辑“实例名称”，按钮进入 Node-RED（纯跳转） ======
     editBranch (record) {
       this.branchModal.model = {
         branchId: record.branchId,
@@ -668,7 +650,7 @@ export default {
         }
 
         if (!branch || !branch.flowJson) {
-          message.error('该分支缺少 flowJson，无法推送到 Node-RED')
+          message.error('该实例缺少 flowJson，无法推送到 Node-RED')
           return
         }
 

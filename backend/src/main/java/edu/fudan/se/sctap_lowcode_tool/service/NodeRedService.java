@@ -42,20 +42,7 @@ public class NodeRedService {
     @Autowired
     private PersonService personService;
 
-    /**
-     * 保存上传的规则（方案A：主干+分支）
-     * 期望 msg 中至少包含：ruleJson、flowJson、fusionTarget
-     * 可选：projectId、spaceId、branchName、status
-     * <p>
-     * 示例 msg 字段：
-     * - ruleJson: {...}，其中包含 rulename
-     * - flowJson: {...}
-     * - fusionTarget: "person"
-     * - projectId: 123             // 可选
-     * - spaceId: 456               // 可选，不传则创建“全局分支”
-     * - branchName: "xxx 2"        // 可选，不传则用“主干名 + index”
-     * - status: "active"|"inactive"// 可选，默认 inactive
-     */
+    /*** 保存上传的规则 */
     public void handleUploadRule(Map<String, JsonNode> msg) {
         JsonNode ruleJsonNode = msg.get("ruleJson");
         JsonNode flowJsonNode = msg.get("flowJson");
@@ -71,35 +58,31 @@ public class NodeRedService {
         }
         String fusionTarget = fusionTargetNode.asText();
 
-        // 可选参数
         Integer projectId = msg.get("projectId") != null ? msg.get("projectId").asInt() : null;
         Integer spaceId = msg.get("spaceId") != null ? msg.get("spaceId").asInt() : null;
         String branchName = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
         String status = msg.get("status") != null ? msg.get("status").asText() : "inactive";
 
-        // 1) 创建主干（仅 name / project）
         FusionRule rule = new FusionRule();
         rule.setRuleName(ruleName);
         if (projectId != null) {
             projectService.findById(projectId).ifPresent(rule::setProjectID);
         }
-        // 主干不再存 fusionTarget/status/ruleJson/flowJson
         fusionRuleRepository.save(rule);
 
-        // 2) 可选 space 关联
         SpaceInfo space = null;
         if (spaceId != null) {
             space = spaceRepository.findById(spaceId)
                     .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
         }
 
-        // 3) 下一个分支序号
+        // 下一个分支序号
         int nextIdx = branchRepo.findMaxIndexByRule(rule.getRuleId()) + 1;
         String finalBranchName = (branchName == null || branchName.isBlank())
                 ? ruleName + " " + nextIdx
                 : branchName;
 
-        // 4) 创建分支（承载可运行内容）
+        // 创建分支（承载可运行内容）
         FusionRuleBranch branch = new FusionRuleBranch();
         branch.setRule(rule);
         branch.setSpace(space);
@@ -115,16 +98,6 @@ public class NodeRedService {
         System.out.println("已创建主干 ruleId=" + rule.getRuleId()
                 + " 与分支 branchId=" + branch.getBranchId()
                 + "（branchIndex=" + nextIdx + "）");
-    }
-
-    /**
-     * 兼容旧接口：直接保存主干
-     * 建议迁移到 handleUploadRule（主干+分支），此方法仅保留兼容性
-     */
-    @Deprecated
-    public void addNewRule(FusionRule fusionRule) {
-        // 旧逻辑：直接存主表。方案A下不再推荐这样做
-        fusionRuleRepository.save(fusionRule);
     }
 
     /**
@@ -187,7 +160,7 @@ public class NodeRedService {
      * 获取与 Space 表有关联的所有表名（静态定义）
      */
     public List<String> getAllFusionTable() {
-        return List.of("person");
+        return List.of("person","null");
     }
 
     /**
