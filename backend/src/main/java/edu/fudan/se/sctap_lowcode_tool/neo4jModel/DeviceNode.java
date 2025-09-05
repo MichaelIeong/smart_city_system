@@ -1,57 +1,55 @@
 package edu.fudan.se.sctap_lowcode_tool.neo4jModel;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.springframework.data.neo4j.core.schema.Id;
-import org.springframework.data.neo4j.core.schema.Node;
-import org.springframework.data.neo4j.core.schema.Relationship;
+import lombok.ToString;
+import org.apache.kafka.common.protocol.types.Field;
+import org.springframework.data.neo4j.core.schema.*;
 
-import java.util.HashSet;
+import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Set;
 
 @Node("Device")
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class DeviceNode {
 
     @Id
-    @EqualsAndHashCode.Include
-    private Integer deviceId;
+    @Property("deviceId")
+    private String deviceId;     // 自定义设备ID
+    @ToString.Exclude
+    @Relationship(type = "INSTALLED_IN", direction = Relationship.Direction.OUTGOING)
+    private SpaceNode space;   // 所属空间
 
-    private String deviceName;
+    private String deviceName;   // 设备名称
+    private String fixedProperties; // 固定属性（JSON）
 
-    private String description;
+    private Float coordinateX;
+    private Float coordinateY;
+    private Float coordinateZ;
 
-    /**
-     * Device —LOCATED_IN→ Space
-     * 表示该设备位于哪个空间
-     */
-    @Relationship(type = "LOCATED_IN", direction = Relationship.Direction.OUTGOING)
-    private SpaceNode locatedIn;
+    private LocalDateTime lastUpdateTime;
 
-    /**
-     * Device —OF_TYPE→ DeviceType
-     * 表示该设备属于哪个设备类型
-     */
-    @Relationship(type = "OF_TYPE", direction = Relationship.Direction.OUTGOING)
+    @Relationship(type = "BELONGS_TO", direction = Relationship.Direction.OUTGOING)
     private DeviceTypeNode deviceType;
 
-    /**
-     * Device —HAS_ACTUATING_FUNCTION→ ActuatingFunction
-     * 这是带属性关系（ActuatingFunctionDeviceRelation），依然保留 url 等字段
-     */
-    @Relationship(type = "HAS_ACTUATING_FUNCTION", direction = Relationship.Direction.OUTGOING)
-    private Set<ActuatingFunctionDeviceRelation> actuatingFunctions = new HashSet<>();
+    @Relationship(type = "HAS_STATE", direction = Relationship.Direction.INCOMING)
+    @ToString.Exclude
+    private Set<StateDeviceRelation> states;
 
-    // ====== 便捷方法 ======
-    public void addActuatingFunction(ActuatingFunctionDeviceRelation relation) {
-        if (relation == null) return;
-        if (actuatingFunctions == null) actuatingFunctions = new HashSet<>();
-        actuatingFunctions.add(relation);
+    @Relationship(type = "HAS_FUNCTION", direction = Relationship.Direction.OUTGOING)
+    @ToString.Exclude
+    private Set<ActuatingFunctionDeviceRelation> actuatingFunctions;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DeviceNode that)) return false;
+        return Objects.equals(deviceId, that.deviceId)
+                && Objects.equals(deviceName, that.deviceName);
     }
 
-    public void removeActuatingFunction(ActuatingFunctionDeviceRelation relation) {
-        if (relation == null) return;
-        if (actuatingFunctions != null) actuatingFunctions.remove(relation);
+    @Override
+    public int hashCode() {
+        return Objects.hash(deviceId, deviceName);
     }
 }

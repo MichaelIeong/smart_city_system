@@ -50,7 +50,7 @@ public class DeviceTypeService {
         DeviceTypeInfo saved = deviceTypeRepository.save(deviceType);
 
         DeviceTypeNode node = new DeviceTypeNode();
-        node.setDeviceTypeId(Integer.valueOf(saved.getDeviceTypeId()));
+        node.setDeviceTypeId(saved.getDeviceTypeId());
         node.setDeviceTypeName(saved.getDeviceTypeName());
         node.setIsSensor(saved.getIsSensor());
 
@@ -65,7 +65,7 @@ public class DeviceTypeService {
             existing.setIsSensor(updated.getIsSensor());
             DeviceTypeInfo saved = deviceTypeRepository.save(existing);
 
-            deviceTypeNodeRepository.findByDeviceTypeId(Integer.valueOf(saved.getDeviceTypeId()))
+            deviceTypeNodeRepository.findByDeviceTypeId(saved.getDeviceTypeId()))
                 .ifPresentOrElse(node -> {
                     node.setDeviceTypeName(saved.getDeviceTypeName());
                     node.setIsSensor(saved.getIsSensor());
