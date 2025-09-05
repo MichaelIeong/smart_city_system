@@ -2,8 +2,8 @@
   <page-header-wrapper>
     <!-- 导航栏区域 - 参考信息资源页面的格式 -->
     <!-- 主要内容区域 - 两个表格并排显示 -->
-    <div style="padding: 0 24px 24px 24px;">
-      <a-row :gutter="24" style="height: calc(100vh - 180px);">
+    <div style="padding: 0 12px 24px 12px;">
+      <a-row :gutter="16" style="height: calc(100vh - 180px);">
         <!-- 左侧：设备类型表格 -->
         <a-col :span="12">
           <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '600px' }">
@@ -200,7 +200,7 @@ export default {
       isDeviceTypeModalVisible: false, // 控制弹窗显示状态
       isDeviceInstanceModalVisible: false,
 
-      // 设备类型表格列定义（保持原有的列）
+      // 设备类型表格列定义
       deviceTypeColumns: [
         { title: '设备类型序号', dataIndex: 'deviceTypeId', key: 'deviceTypeId', align: 'center' },
         { title: '设备类型名称', dataIndex: 'deviceTypeName', key: 'deviceTypeName', align: 'center' },
@@ -220,7 +220,7 @@ export default {
         { title: '操作', dataIndex: 'operation', key: 'operation', width: 120, align: 'center' }
       ],
 
-      deviceInstances: [], // 后端获取的设备实例列表（完整数据）
+      deviceInstances: [], // 后端获取的设备实例列表
 
       newDeviceType: {
         deviceTypeId: '',
@@ -418,12 +418,6 @@ export default {
     // 确认删除设备
     async confirmDeleteDevice () {
       try {
-        // 如果需要调用后端API删除，可以在这里添加
-        // const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // for (const deviceId of this.selectedInstanceKeys) {
-        //   await axios.delete(`${baseUrl}/api/devices/${deviceId}`)
-        // }
-
         // 从本地数据中删除选中的设备实例
         this.deviceInstances = this.deviceInstances.filter(
           device => !this.selectedInstanceKeys.includes(device.deviceId)
@@ -642,6 +636,11 @@ export default {
 </script>
 
 <style scoped>
+/* 自定义页面内容边距 */
+.custom-page-content {
+  margin: 0 -12px;
+}
+
 .ant-form-item {
   margin-bottom: 12px;
 }
@@ -674,7 +673,8 @@ export default {
 .ant-table-thead > tr > th {
   white-space: nowrap;
   text-align: center;
-  padding: 8px 12px;
+  padding: 8px 4px;
+  font-size: 13px;
 }
 
 /* 表格内容居中对齐 */
