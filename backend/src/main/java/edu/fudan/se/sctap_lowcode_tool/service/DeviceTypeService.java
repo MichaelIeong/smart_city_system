@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.springframework.data.util.Optionals.ifPresentOrElse;
+
 @Service
 public class DeviceTypeService {
 
@@ -50,7 +52,7 @@ public class DeviceTypeService {
         DeviceTypeInfo saved = deviceTypeRepository.save(deviceType);
 
         DeviceTypeNode node = new DeviceTypeNode();
-        node.setDeviceTypeId(Integer.valueOf(saved.getDeviceTypeId()));
+        node.setDeviceTypeId(saved.getDeviceTypeId());
         node.setDeviceTypeName(saved.getDeviceTypeName());
         node.setIsSensor(saved.getIsSensor());
 
@@ -65,18 +67,18 @@ public class DeviceTypeService {
             existing.setIsSensor(updated.getIsSensor());
             DeviceTypeInfo saved = deviceTypeRepository.save(existing);
 
-            deviceTypeNodeRepository.findByDeviceTypeId(Integer.valueOf(saved.getDeviceTypeId()))
-                .ifPresentOrElse(node -> {
-                    node.setDeviceTypeName(saved.getDeviceTypeName());
-                    node.setIsSensor(saved.getIsSensor());
-                    deviceTypeNodeRepository.save(node);
-                }, () -> {
-                    DeviceTypeNode newNode = new DeviceTypeNode();
-                    newNode.setDeviceTypeId(Integer.valueOf(saved.getDeviceTypeId()));
-                    newNode.setDeviceTypeName(saved.getDeviceTypeName());
-                    newNode.setIsSensor(saved.getIsSensor());
-                    deviceTypeNodeRepository.save(newNode);
-                });
+            deviceTypeNodeRepository.findByDeviceTypeId(saved.getDeviceTypeId())
+                    .ifPresentOrElse(node -> {
+                        node.setDeviceTypeName(saved.getDeviceTypeName());
+                        node.setIsSensor(saved.getIsSensor());
+                        deviceTypeNodeRepository.save(node);
+                    }, () -> {
+                        DeviceTypeNode newNode = new DeviceTypeNode();
+                        newNode.setDeviceTypeId(saved.getDeviceTypeId());
+                        newNode.setDeviceTypeName(saved.getDeviceTypeName());
+                        newNode.setIsSensor(saved.getIsSensor());
+                        deviceTypeNodeRepository.save(newNode);
+                    });
 
             return saved;
         });
@@ -84,63 +86,63 @@ public class DeviceTypeService {
 
     public void deleteDeviceType(int id) {
         deviceTypeRepository.findById(id).ifPresent(deviceType -> {
-            deviceTypeNodeRepository.findByDeviceTypeId(Integer.valueOf(deviceType.getDeviceTypeId()))
-                    .ifPresent(node -> deviceTypeNodeRepository.deleteById(node.getDeviceTypeId()));
+            deviceTypeNodeRepository.findByDeviceTypeId(deviceType.getDeviceTypeId())
+                    .ifPresent(node -> deviceTypeNodeRepository.deleteById(node.getId()));
         });
         deviceTypeRepository.deleteById(id);
     }
 
     // neo4j
     // 功能 1：新增设备类型节点
-    public DeviceTypeNode createDeviceType(DeviceTypeNode dto) {
-        // 如果传进来的 id 已存在，可以选择抛异常或直接返回已有节点
-        if (deviceTypeNodeRepository.existsById(dto.getDeviceTypeId())) {
-            throw new IllegalArgumentException("DeviceType already exists: " + dto.getDeviceTypeId());
-        }
-        return deviceTypeNodeRepository.save(dto);
-    }
+//    public DeviceTypeNode createDeviceType(DeviceTypeNode dto) {
+//        // 如果传进来的 id 已存在，可以选择抛异常或直接返回已有节点
+//        if (deviceTypeNodeRepository.existsById(dto.getDeviceTypeId())) {
+//            throw new IllegalArgumentException("DeviceType already exists: " + dto.getDeviceTypeId());
+//        }
+//        return deviceTypeNodeRepository.save(dto);
+//    }
 
     // space和设备类型建立关系
-    @Transactional
-    public void addDeviceTypeToSpace(Integer deviceTypeId, Integer spaceId) {
-        DeviceTypeNode deviceType = deviceTypeNodeRepository.findById(deviceTypeId)
-                .orElseThrow(() -> new IllegalArgumentException("DeviceType not found: " + deviceTypeId));
-
-        SpaceNode space = spaceNodeRepository.findById(spaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
-
-        deviceType.addSpace(space);
-
-        deviceTypeNodeRepository.save(deviceType);
-    }
+//    @Transactional
+//    public void addDeviceTypeToSpace(Integer deviceTypeId, Integer spaceId) {
+//        DeviceTypeNode deviceType = deviceTypeNodeRepository.findById(deviceTypeId)
+//                .orElseThrow(() -> new IllegalArgumentException("DeviceType not found: " + deviceTypeId));
+//
+//        SpaceNode space = spaceNodeRepository.findById(spaceId)
+//                .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
+//
+//        deviceType.addSpace(space);
+//
+//        deviceTypeNodeRepository.save(deviceType);
+//    }
 
     // 查询设备类型和类型方法
-    public List<DeviceTypeWithFunctionsDTO> listDeviceTypesAndFunctionsBySpace(Integer spaceId) {
-        List<DeviceTypeNode> types = deviceTypeNodeRepository.findDeviceTypesWithFunctionsBySpaceId(spaceId);
-
-        List<DeviceTypeWithFunctionsDTO> result = new ArrayList<>();
-        for (DeviceTypeNode dt : types) {
-            DeviceTypeWithFunctionsDTO dto = new DeviceTypeWithFunctionsDTO();
-            dto.setDeviceTypeId(dt.getDeviceTypeId());
-            dto.setDeviceTypeName(dt.getDeviceTypeName());
-            dto.setIsSensor(dt.getIsSensor());
-
-            List<DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO> functions =
-                    (dt.getFunctions() == null ? List.<ActuatingFunctionNode>of() : dt.getFunctions())
-                            .stream()
-                            .sorted(Comparator.comparing(ActuatingFunctionNode::getFunctionName, Comparator.nullsLast(String::compareTo)))
-                            .map(af -> {
-                                DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO x = new DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO();
-                                x.setActuatingFunctionId(af.getActuatingFunctionId());
-                                x.setFunctionName(af.getFunctionName());
-                                x.setDescription(af.getDescription());
-                                return x;
-                            })
-                            .collect(Collectors.toList());
-
-            dto.setFunctions(functions);
-            result.add(dto);
-        }
-        return result;
-    }
+//    public List<DeviceTypeWithFunctionsDTO> listDeviceTypesAndFunctionsBySpace(Integer spaceId) {
+//        List<DeviceTypeNode> types = deviceTypeNodeRepository.findDeviceTypesWithFunctionsBySpaceId(spaceId);
+//
+//        List<DeviceTypeWithFunctionsDTO> result = new ArrayList<>();
+//        for (DeviceTypeNode dt : types) {
+//            DeviceTypeWithFunctionsDTO dto = new DeviceTypeWithFunctionsDTO();
+//            dto.setDeviceTypeId(dt.getDeviceTypeId());
+//            dto.setDeviceTypeName(dt.getDeviceTypeName());
+//            dto.setIsSensor(dt.getIsSensor());
+//
+//            List<DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO> functions =
+//                    (dt.getFunctions() == null ? List.<ActuatingFunctionNode>of() : dt.getFunctions())
+//                            .stream()
+//                            .sorted(Comparator.comparing(ActuatingFunctionNode::getFunctionName, Comparator.nullsLast(String::compareTo)))
+//                            .map(af -> {
+//                                DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO x = new DeviceTypeWithFunctionsDTO.ActuatingFunctionDTO();
+//                                x.setActuatingFunctionId(af.getActuatingFunctionId());
+//                                x.setFunctionName(af.getFunctionName());
+//                                x.setDescription(af.getDescription());
+//                                return x;
+//                            })
+//                            .collect(Collectors.toList());
+//
+//            dto.setFunctions(functions);
+//            result.add(dto);
+//        }
+//        return result;
+//    }
 }

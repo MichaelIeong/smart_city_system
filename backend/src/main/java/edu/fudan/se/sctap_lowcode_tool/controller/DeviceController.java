@@ -24,7 +24,7 @@ public class DeviceController {
     @GetMapping("/{deviceId}")
     public ResponseEntity<?> getDevice(@PathVariable String deviceId) {
         // 先尝试查 Neo4j 图结构（含完整关系）
-        Optional<DeviceNode> nodeOpt = deviceService.findByDeviceId(Integer.valueOf(deviceId));
+        Optional<DeviceNode> nodeOpt = deviceService.findByDeviceId(deviceId);
         if (nodeOpt.isPresent()) {
             return ResponseEntity.ok(nodeOpt.get());
         }

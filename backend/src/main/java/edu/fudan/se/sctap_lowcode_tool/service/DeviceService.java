@@ -42,7 +42,7 @@ public class DeviceService {
     private ActuatingFunctionNodeRepository actuatingFunctionNodeRepository;   // Neo4j
 
     // === Neo4j 查询 ===
-    public Optional<DeviceNode> findByDeviceId(Integer deviceId) {
+    public Optional<DeviceNode> findByDeviceId(String deviceId) {
         return deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(deviceId); // neo4j
     }
 
@@ -80,25 +80,25 @@ public class DeviceService {
         // === MySQL 儲存 ===
         DeviceInfo saved = deviceRepository.save(device);
 
-//        // Neo4j 同步保存
-//        DeviceNode node = new DeviceNode();
-//        node.setDeviceId(saved.getDeviceId()); // string 类型
-//        node.setDeviceName(saved.getDeviceName());
-//        node.setFixedProperties(saved.getFixedProperties());
-//        node.setCoordinateX(saved.getCoordinateX());
-//        node.setCoordinateY(saved.getCoordinateY());
-//        node.setCoordinateZ(saved.getCoordinateZ());
-//        node.setLastUpdateTime(saved.getLastUpdateTime());
-//
-//        if (saved.getSpace() != null) {
-//            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-//                    .ifPresent(node::setSpace); // neo4j
-//        }
-//
-//        node.setDeviceType(null); // 可按需处理
-//        deviceNodeRepository.save(node); // neo4j
-        DeviceCreateRequest req = convertToRequest(saved);
-        create(req);
+        // Neo4j 同步保存
+        DeviceNode node = new DeviceNode();
+        node.setDeviceId(saved.getDeviceId()); // string 类型
+        node.setDeviceName(saved.getDeviceName());
+        node.setFixedProperties(saved.getFixedProperties());
+        node.setCoordinateX(saved.getCoordinateX());
+        node.setCoordinateY(saved.getCoordinateY());
+        node.setCoordinateZ(saved.getCoordinateZ());
+        node.setLastUpdateTime(saved.getLastUpdateTime());
+
+        if (saved.getSpace() != null) {
+            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                    .ifPresent(node::setSpace); // neo4j
+        }
+
+        node.setDeviceType(null); // 可按需处理
+        deviceNodeRepository.save(node); // neo4j
+//        DeviceCreateRequest req = convertToRequest(saved);
+//        create(req);
         return saved;
     }
 
@@ -125,40 +125,40 @@ public class DeviceService {
             DeviceInfo saved = deviceRepository.save(existing); // mysql
 
             // Neo4j 更新
-//            deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(saved.getDeviceId())
-//                    .ifPresentOrElse(node -> {
-//                        node.setDeviceName(saved.getDeviceName());
-//                        node.setFixedProperties(saved.getFixedProperties());
-//                        node.setCoordinateX(saved.getCoordinateX());
-//                        node.setCoordinateY(saved.getCoordinateY());
-//                        node.setCoordinateZ(saved.getCoordinateZ());
-//                        node.setLastUpdateTime(saved.getLastUpdateTime());
-//
-//                        if (saved.getSpace() != null) {
-//                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-//                                    .ifPresent(node::setSpace); // neo4j
-//                        } else {
-//                            node.setSpace(null);
-//                        }
-//
-//                        deviceNodeRepository.save(node); // neo4j
-//                    }, () -> {
-//                        DeviceNode newNode = new DeviceNode();
-//                        newNode.setDeviceId(saved.getDeviceId());
-//                        newNode.setDeviceName(saved.getDeviceName());
-//                        newNode.setFixedProperties(saved.getFixedProperties());
-//                        newNode.setCoordinateX(saved.getCoordinateX());
-//                        newNode.setCoordinateY(saved.getCoordinateY());
-//                        newNode.setCoordinateZ(saved.getCoordinateZ());
-//                        newNode.setLastUpdateTime(saved.getLastUpdateTime());
-//
-//                        if (saved.getSpace() != null) {
-//                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-//                                    .ifPresent(newNode::setSpace); // neo4j
-//                        }
-//
-//                        deviceNodeRepository.save(newNode); // neo4j
-//                    });
+            deviceNodeRepository.findDeviceWithAllRelationsByDeviceId(saved.getDeviceId())
+                    .ifPresentOrElse(node -> {
+                        node.setDeviceName(saved.getDeviceName());
+                        node.setFixedProperties(saved.getFixedProperties());
+                        node.setCoordinateX(saved.getCoordinateX());
+                        node.setCoordinateY(saved.getCoordinateY());
+                        node.setCoordinateZ(saved.getCoordinateZ());
+                        node.setLastUpdateTime(saved.getLastUpdateTime());
+
+                        if (saved.getSpace() != null) {
+                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                                    .ifPresent(node::setSpace); // neo4j
+                        } else {
+                            node.setSpace(null);
+                        }
+
+                        deviceNodeRepository.save(node); // neo4j
+                    }, () -> {
+                        DeviceNode newNode = new DeviceNode();
+                        newNode.setDeviceId(saved.getDeviceId());
+                        newNode.setDeviceName(saved.getDeviceName());
+                        newNode.setFixedProperties(saved.getFixedProperties());
+                        newNode.setCoordinateX(saved.getCoordinateX());
+                        newNode.setCoordinateY(saved.getCoordinateY());
+                        newNode.setCoordinateZ(saved.getCoordinateZ());
+                        newNode.setLastUpdateTime(saved.getLastUpdateTime());
+
+                        if (saved.getSpace() != null) {
+                            spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
+                                    .ifPresent(newNode::setSpace); // neo4j
+                        }
+
+                        deviceNodeRepository.save(newNode); // neo4j
+                    });
 
             return saved;
         });
@@ -167,7 +167,7 @@ public class DeviceService {
     // === 删除设备：MySQL + Neo4j ===
     public void deleteDevice(Integer id) {
         deviceRepository.findById(id).ifPresent(device -> {
-            deviceNodeRepository.deleteByDeviceId(Integer.valueOf(device.getDeviceId())); // neo4j
+            deviceNodeRepository.deleteByDeviceId(device.getDeviceId()); // neo4j
             deviceRepository.deleteById(id);                             // mysql
         });
     }
@@ -193,50 +193,50 @@ public class DeviceService {
     /**
      * 创建设备（推荐：只用主键构建 stub，另做存在性校验）
      */
-    @Transactional
-    public DeviceNode create(DeviceCreateRequest req) {
-        DeviceNode d = new DeviceNode();
-        d.setDeviceId(req.getDeviceId());
-        d.setDeviceName(req.getDeviceName());
-        d.setDescription(req.getDescription());
-
-        // --- 方式 A：仅用 id 构建 stub，避免额外查询 ---
-        // 可选：在生产里建议加 existsById 校验（避免“悬挂关系”）
-        if (!spaceNodeRepository.existsById(req.getSpaceId())) {
-            throw new IllegalArgumentException("Space not found: " + req.getSpaceId());
-        }
-        if (!deviceNodeRepository.existsById(req.getDeviceTypeId())) {
-            throw new IllegalArgumentException("DeviceType not found: " + req.getDeviceTypeId());
-        }
-        SpaceNode spaceStub = new SpaceNode();
-        spaceStub.setSpaceId(req.getSpaceId());
-        d.setLocatedIn(spaceStub);
-
-        DeviceTypeNode typeStub = new DeviceTypeNode();
-        typeStub.setDeviceTypeId(req.getDeviceTypeId());
-        d.setDeviceType(typeStub);
-
-        // 设备-功能 带属性关系
-        if (req.getFunctions() != null && !req.getFunctions().isEmpty()) {
-            d.setActuatingFunctions(new HashSet<>());
-            for (DeviceCreateRequest.FunctionBinding fb : req.getFunctions()) {
-                if (!actuatingFunctionNodeRepository.existsById(fb.getActuatingFunctionId())) {
-                    throw new IllegalArgumentException("ActuatingFunction not found: " + fb.getActuatingFunctionId());
-                }
-                ActuatingFunctionNode afStub = new ActuatingFunctionNode();
-                afStub.setActuatingFunctionId(fb.getActuatingFunctionId());
-
-                ActuatingFunctionDeviceRelation rel = new ActuatingFunctionDeviceRelation();
-                rel.setActuatingFunction(afStub);
-                rel.setUrl(fb.getUrl());
-                rel.setDescription(fb.getDescription());
-
-                d.getActuatingFunctions().add(rel);
-            }
-        }
-
-        return deviceNodeRepository.save(d);
-    }
+//    @Transactional
+//    public DeviceNode create(DeviceCreateRequest req) {
+//        DeviceNode d = new DeviceNode();
+//        d.setDeviceId(req.getDeviceId());
+//        d.setDeviceName(req.getDeviceName());
+//        d.setDescription(req.getDescription());
+//
+//        // --- 方式 A：仅用 id 构建 stub，避免额外查询 ---
+//        // 可选：在生产里建议加 existsById 校验（避免“悬挂关系”）
+//        if (!spaceNodeRepository.existsById(req.getSpaceId())) {
+//            throw new IllegalArgumentException("Space not found: " + req.getSpaceId());
+//        }
+//        if (!deviceNodeRepository.existsById(req.getDeviceTypeId())) {
+//            throw new IllegalArgumentException("DeviceType not found: " + req.getDeviceTypeId());
+//        }
+//        SpaceNode spaceStub = new SpaceNode();
+//        spaceStub.setSpaceId(req.getSpaceId());
+//        d.setLocatedIn(spaceStub);
+//
+//        DeviceTypeNode typeStub = new DeviceTypeNode();
+//        typeStub.setDeviceTypeId(req.getDeviceTypeId());
+//        d.setDeviceType(typeStub);
+//
+//        // 设备-功能 带属性关系
+//        if (req.getFunctions() != null && !req.getFunctions().isEmpty()) {
+//            d.setActuatingFunctions(new HashSet<>());
+//            for (DeviceCreateRequest.FunctionBinding fb : req.getFunctions()) {
+//                if (!actuatingFunctionNodeRepository.existsById(fb.getActuatingFunctionId())) {
+//                    throw new IllegalArgumentException("ActuatingFunction not found: " + fb.getActuatingFunctionId());
+//                }
+//                ActuatingFunctionNode afStub = new ActuatingFunctionNode();
+//                afStub.setActuatingFunctionId(fb.getActuatingFunctionId());
+//
+//                ActuatingFunctionDeviceRelation rel = new ActuatingFunctionDeviceRelation();
+//                rel.setActuatingFunction(afStub);
+//                rel.setUrl(fb.getUrl());
+//                rel.setDescription(fb.getDescription());
+//
+//                d.getActuatingFunctions().add(rel);
+//            }
+//        }
+//
+//        return deviceNodeRepository.save(d);
+//    }
 
     public Set<String> getActuatingFunctionNamesBySpace(Integer spaceId) {
         // 取得該空間內所有 device

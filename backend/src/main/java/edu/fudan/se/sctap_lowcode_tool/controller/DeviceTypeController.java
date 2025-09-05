@@ -53,29 +53,29 @@ public class DeviceTypeController {
 
     //neo4j
     // 新增一个设备类型
-    @PostMapping("/deviceTypes")
-    public ResponseEntity<DeviceTypeNode> createDeviceType(@RequestBody DeviceTypeNode dto) {
-        DeviceTypeNode saved = deviceTypeService.createDeviceType(dto);
-        return ResponseEntity.ok(saved);
-    }
-    // 给某个space新增设备类型
-    @PostMapping("/spaces/{spaceId}/deviceTypes/{deviceTypeId}")
-    public ResponseEntity<Void> addDeviceTypeToSpace(
-            @PathVariable Integer spaceId,
-            @PathVariable Integer deviceTypeId) {
-        deviceTypeService.addDeviceTypeToSpace(deviceTypeId, spaceId);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/byspace")
-    public ResponseEntity<List<DeviceTypeWithFunctionsDTO>> getDeviceTypesBySpace(
-            @RequestParam("spaceId") Integer spaceId) {
-        List<DeviceTypeWithFunctionsDTO> deviceTypes = deviceTypeService.listDeviceTypesAndFunctionsBySpace(spaceId);
-        if (deviceTypes.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(deviceTypes);
-    }
+//    @PostMapping("/deviceTypes")
+//    public ResponseEntity<DeviceTypeNode> createDeviceType(@RequestBody DeviceTypeNode dto) {
+//        DeviceTypeNode saved = deviceTypeService.createDeviceType(dto);
+//        return ResponseEntity.ok(saved);
+//    }
+//    // 给某个space新增设备类型
+//    @PostMapping("/spaces/{spaceId}/deviceTypes/{deviceTypeId}")
+//    public ResponseEntity<Void> addDeviceTypeToSpace(
+//            @PathVariable Integer spaceId,
+//            @PathVariable Integer deviceTypeId) {
+//        deviceTypeService.addDeviceTypeToSpace(deviceTypeId, spaceId);
+//        return ResponseEntity.ok().build();
+//    }
+//
+//    @GetMapping("/byspace")
+//    public ResponseEntity<List<DeviceTypeWithFunctionsDTO>> getDeviceTypesBySpace(
+//            @RequestParam("spaceId") Integer spaceId) {
+//        List<DeviceTypeWithFunctionsDTO> deviceTypes = deviceTypeService.listDeviceTypesAndFunctionsBySpace(spaceId);
+//        if (deviceTypes.isEmpty()) {
+//            return ResponseEntity.noContent().build();
+//        }
+//        return ResponseEntity.ok(deviceTypes);
+//    }
 
     @GetMapping("/alldevicetype")
     public ResponseEntity<List<DeviceTypeResponse>> getAllDeviceTypesByProjectId(
