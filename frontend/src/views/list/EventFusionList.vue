@@ -289,6 +289,59 @@ export default {
     this.refreshTable()
   },
   methods: {
+    /** 规范化 Node-RED 基地址（去掉尾部 /） */
+    _nrBase () {
+      if (!NODE_RED_URL) {
+        message.error('未配置 NODE_RED_URL')
+        throw new Error('NODE_RED_URL missing')
+      }
+      return String(NODE_RED_URL).replace(/\/$/, '')
+    },
+
+    /** 规范化 flow：把被 stringify 的 JSON（最多两层）还原为对象/数组 */
+    _normalizeFlow (fj) {
+      let v = fj
+      for (let i = 0; i < 2 && typeof v === 'string'; i++) {
+        const s = v.trim()
+        const looksJson =
+          (s.startsWith('{') && s.endsWith('}')) ||
+          (s.startsWith('[') && s.endsWith(']')) ||
+          (s.startsWith('"') && s.endsWith('"'))
+        if (!looksJson) break
+        try {
+          v = JSON.parse(s)
+        } catch (e) {
+          break
+        }
+      }
+      if (!Array.isArray(v) && typeof v !== 'object') {
+        throw new Error('flowJson 不是对象或数组，格式不符合 Node-RED 要求')
+      }
+      return v
+    },
+
+    /** 推送 flow 到 Node-RED Admin API 然后打开编辑器 */
+    async pushFlowAndOpen (flowJson, { deployType = 'flows' } = {}) {
+      const base = this._nrBase()
+      const normalized = this._normalizeFlow(flowJson)
+      const bodyStr = JSON.stringify(normalized)
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Node-RED-Deployment-Type': deployType
+      }
+
+      const resp = await fetch(`${base}/flows`, {
+        method: 'POST',
+        headers,
+        body: bodyStr
+      })
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`推送到 Node-RED 失败：HTTP ${resp.status} ${text}`)
+      }
+      window.open(`${base}`, '_blank')
+    },
     // ===== Space 映射 =====
     async fetchSpaceMap () {
       try {
@@ -603,17 +656,27 @@ export default {
     },
 
     // 只跳转到 Node-RED，不提交任何数据
-    goToNodeRed (model) {
-      if (!NODE_RED_URL) {
-        message.error('未配置 NODE_RED_URL')
-        return
+    async goToNodeRed (model) {
+      try {
+        const branchId = model?.branchId
+        let branch = this.branches.find(b => b.branchId === branchId)
+
+        // 如果列表项里没有 flowJson，则补拉一次详情
+        if (!branch || !branch.flowJson) {
+          const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}`)
+          branch = { ...(branch || {}), ...(data || {}) }
+        }
+
+        if (!branch || !branch.flowJson) {
+          message.error('该分支缺少 flowJson，无法推送到 Node-RED')
+          return
+        }
+
+        await this.pushFlowAndOpen(branch.flowJson, { deployType: 'flows' })
+      } catch (e) {
+        console.error(e)
+        message.error('推送 Node-RED 失败')
       }
-      const params = new URLSearchParams({
-        source: 'frontend',
-        branchId: model?.branchId ?? '',
-        branchName: model?.branchName ?? ''
-      })
-      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
 
     // LLM
