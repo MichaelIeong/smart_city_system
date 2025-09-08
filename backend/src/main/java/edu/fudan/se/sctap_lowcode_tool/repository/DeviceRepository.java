@@ -17,4 +17,7 @@ public interface DeviceRepository extends JpaRepository<DeviceInfo, Integer> {
     List<DeviceInfo> findAllByProjectId(@Param("projectId") Integer projectId);
 
     Optional<DeviceInfo> findByDeviceId(String deviceId);
+
+    List<DeviceInfo> findBySpaceSpaceIdAndDeviceTypeId(Integer spaceId, Integer deviceTypeId);
+
 }

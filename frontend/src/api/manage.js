@@ -64,15 +64,15 @@ export function getRuleList () {
   })
 }
 
-export function getServiceList (project) {
+export function getServiceList (projectId) {
   const token = store.state.token
   return request({
-    url: api.services,
+    url: api.services + '/getServiceListByProject',
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    params: { project }
+    params: { projectId }
   })
 }
 

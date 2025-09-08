@@ -1,0 +1,24 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t your-registry/smart-city-backend:latest .'
+      }
+    }
+
+    stage('Push to Registry') {
+      steps {
+        sh 'docker push your-registry/smart-city-backend:latest'
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        sh 'kubectl apply -f k8s/deployment-backend.yaml'
+        sh 'kubectl apply -f k8s/service-backend.yaml'
+      }
+    }
+  }
+}

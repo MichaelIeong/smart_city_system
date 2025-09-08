@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Service
 public class FusionRuleService {
@@ -152,62 +153,84 @@ public class FusionRuleService {
         return branchRepo.save(b).getBranchId();
     }
 
-    public Map<String, Object> applyRuleToExecutableSpaces(int ruleId, boolean activateNewBranches) {
-        // 1) 获取规则主干信息
+    /**
+     * 按可执行空间创建分支；spaceIds == null 表示对全部可执行空间处理；
+     * 非空表示仅对子集处理。
+     * 返回结构：
+     * {
+     * "createdBranches": 2,
+     * "created": [{branchId, spaceId, spaceName}],
+     * "skipped": [{spaceId, reason}],
+     * "errors":  [{spaceId, error}]
+     * }
+     */
+    public Map<String, Object> applyRuleToExecutableSpaces(int ruleId,
+                                                           boolean activateNewBranches,
+                                                           List<Integer> spaceIds) {
+        Map<String, Object> out = new HashMap<>();
+        List<Map<String, Object>> created = new ArrayList<>();
+        List<Map<String, Object>> skipped = new ArrayList<>();
+        List<Map<String, Object>> errors = new ArrayList<>();
+
         FusionRule rule = fusionRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+                .orElseThrow(() -> new IllegalArgumentException("规则未找到: " + ruleId));
 
-        // 2) 选择一个用于执行的分支（优先 active，其次 index 最小）
-        FusionRuleBranch template = branchRepo.pickOneForExecution(ruleId, null)
-                .stream().findFirst()
-                .orElseThrow(() -> new IllegalStateException("该规则没有可作为模板的分支"));
+        // 1) 可执行空间全集（建议与你的 Controller 的 getExecutableSpaces 复用）
+        List<Map<String, Object>> executableSpaces = getExecutableSpaces(ruleId);
 
-        // 3) 计算所有可执行空间
-        List<Integer> execSpaces = getExecutableLocationsForRuleId(ruleId);
-
-        List<Integer> createdSpaces = new ArrayList<>();
-        List<Integer> skippedSpaces = new ArrayList<>();
-        List<Integer> createdIds = new ArrayList<>();
-
-        // 4) 逐空间创建分支（如果该空间已有分支则跳过）
-        for (Integer spaceId : execSpaces) {
-            if (spaceId == null) continue;
-
-            boolean exists = branchRepo.existsByRuleAndSpace(ruleId, spaceId);
-            if (exists) {
-                skippedSpaces.add(spaceId);
-                continue;
-            }
-
-            // 创建新分支
-            Integer bid = createBranch(
-                    ruleId,
-                    spaceId,
-                    null, // 分支名留空 → 内部默认“主干名 + 序号”
-                    template.getFusionTarget(),
-                    activateNewBranches ? "active" :
-                            (template.getStatus() == null ? "inactive" : template.getStatus()),
-                    template.getRuleJson(),
-                    template.getFlowJson(),
-                    "[auto] cloned from ruleId=" + ruleId + " to space=" + spaceId
-            );
-
-            createdSpaces.add(spaceId);
-            createdIds.add(bid);
+        // 2) 子集过滤（如果传了 spaceIds）
+        if (spaceIds != null) {
+            Set<Integer> allow = new HashSet<>(spaceIds);
+            executableSpaces.removeIf(m -> !allow.contains((Integer) m.get("id")));
         }
 
-        // 返回创建分支的相关信息
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ruleId", ruleId);
-        result.put("activateNewBranches", activateNewBranches);
-        result.put("executableSpaces", execSpaces);
-        result.put("createdSpaces", createdSpaces);
-        result.put("skippedSpaces", skippedSpaces);
-        result.put("createdBranchIds", createdIds);
-        result.put("createdCount", createdSpaces.size());
-        result.put("skippedCount", skippedSpaces.size());
+        // 3) 逐空间处理
+        for (Map<String, Object> sp : executableSpaces) {
+            Integer sid = (Integer) sp.get("id");
+            String sname = String.valueOf(sp.get("name"));
 
-        return result;
+            try {
+                // 3.1 已存在则跳过
+                if (branchRepo.existsByRuleAndSpace(ruleId, sid)) {
+                    skipped.add(Map.of("spaceId", sid, "reason", "已存在分支"));
+                    continue;
+                }
+
+                SpaceInfo space = spaceRepository.findById(sid)
+                        .orElseThrow(() -> new IllegalArgumentException("空间不存在: " + sid));
+
+                // 3.2 生成 index
+                int nextIdx = branchRepo.findMaxIndexByRule(ruleId) + 1;
+
+                // 3.3 组装分支
+                FusionRuleBranch branch = new FusionRuleBranch();
+                branch.setRule(rule);
+                branch.setSpace(space);
+                branch.setBranchIndex(nextIdx);
+                branch.setBranchName(rule.getRuleName() + " " + nextIdx);
+                branch.setStatus(activateNewBranches ? "active" : "inactive");
+                // 如果需要：branch.setFusionTarget(...) / setRuleJson(...) / setFlowJson(...)
+
+                branchRepo.save(branch);
+
+                created.add(Map.of(
+                        "branchId", branch.getBranchId(),
+                        "spaceId", sid,
+                        "spaceName", sname
+                ));
+            } catch (Exception ex) {
+                errors.add(Map.of(
+                        "spaceId", sid,
+                        "error", ex.getMessage()
+                ));
+            }
+        }
+
+        out.put("createdBranches", created.size());
+        out.put("created", created);
+        out.put("skipped", skipped);
+        out.put("errors", errors);
+        return out;
     }
 
     /* =========================
@@ -257,15 +280,11 @@ public class FusionRuleService {
         return true;
     }
 
-    /* =========================
-     * 可执行空间计算（基于选中分支的 ruleJson）
-     * ========================= */
-
     /**
      * 计算规则可执行的空间列表：
      * 选一个分支（优先 active，否则最小 index），用其 ruleJson 做能力匹配。
      */
-    public List<Integer> getExecutableLocationsForRuleId(int ruleId) {
+    public List<Map<String, Object>> getExecutableSpaces(int ruleId) {
         FusionRule rule = fusionRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException("规则 ID 不存在: " + ruleId));
 
@@ -283,16 +302,24 @@ public class FusionRuleService {
             throw new RuntimeException("解析分支规则 JSON 失败", e);
         }
 
+        // 先把 SpaceId->Name 做成 map
         List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
-        List<Integer> executableLocations = new ArrayList<>();
+        Map<Integer, String> id2name = allSpaces.stream()
+                .collect(Collectors.toMap(SpaceInfo::getSpaceId, SpaceInfo::getSpaceName));
 
+        // 逐空间做能力匹配，产出 [{id,name}]
+        List<Map<String, Object>> out = new ArrayList<>();
         for (SpaceInfo space : allSpaces) {
             Integer sid = space.getSpaceId();
+            if (sid == null) continue;
             if (canRuleRunInLocation(ruleJson, sid)) {
-                executableLocations.add(sid);
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", sid);
+                m.put("name", id2name.getOrDefault(sid, "空间 #" + sid));
+                out.add(m);
             }
         }
-        return executableLocations;
+        return out;
     }
 
     /* =========================

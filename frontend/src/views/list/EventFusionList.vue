@@ -2,28 +2,10 @@
   <page-header-wrapper>
     <div style="padding: 0 24px 24px 24px;">
       <a-row :gutter="24" style="height: calc(100vh - 180px);">
-        <!-- 左侧：主干规则 -->
+        <!-- 左侧：通用规则 -->
         <a-col :span="12">
-          <a-card title="主干规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
-            <div class="table-page-search-wrapper" style="margin-bottom: 12px;">
-              <a-form layout="inline">
-                <a-row :gutter="48">
-                  <a-col :md="12" :sm="24">
-                    <a-form-item label="使用状态">
-                      <a-select v-model="queryParam.status" placeholder="请选择">
-                        <a-select-option value="all">全部</a-select-option>
-                        <a-select-option value="active">运行中</a-select-option>
-                        <a-select-option value="inactive">已关闭</a-select-option>
-                      </a-select>
-                    </a-form-item>
-                  </a-col>
-                  <a-col :md="12" :sm="24">
-                    <a-button type="primary" @click="refreshTable">查询</a-button>
-                    <a-button style="margin-left: 8px" @click="resetSearchForm">重置</a-button>
-                  </a-col>
-                </a-row>
-              </a-form>
-            </div>
+          <a-card title="通用规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
+            <div class="table-page-search-wrapper" style="margin-bottom: 12px;"></div>
 
             <div style="margin-bottom: 12px;">
               <a-button type="primary" icon="plus" @click="handleAdd">
@@ -53,9 +35,9 @@
                 </span>
 
                 <span slot="action" slot-scope="text, record">
-                  <a @click.stop.prevent="handleEdit(record)">编辑</a>
-                  <a-divider type="vertical" />
                   <a @click.stop.prevent="openApplyModal(record)">套用到可达空间</a>
+                  <a-divider type="vertical" />
+                  <a @click.stop.prevent="handleEdit(record)">编辑</a>
                   <a-divider type="vertical" />
                   <a @click.stop.prevent="deleteRule(record)">删除</a>
                 </span>
@@ -64,14 +46,14 @@
           </a-card>
         </a-col>
 
-        <!-- 右侧：分支（Branch） -->
+        <!-- 右侧：实例（Branch） -->
         <a-col :span="12">
           <a-card :title="rightTitle" bordered :style="{ borderRadius: '8px', height: '100%' }">
             <div style="height: calc(100% - 60px); display:flex; flex-direction: column;">
-              <!-- 分支筛选 -->
+              <!-- 实例筛选 -->
               <a-row :gutter="16" style="margin-bottom: 16px;">
                 <a-col :md="16" :sm="24">
-                  <a-select v-model="branchQuery.status" placeholder="请选择分支状态" style="width:100%;">
+                  <a-select v-model="branchQuery.status" placeholder="请选择实例状态" style="width:100%;">
                     <a-select-option value="all">全部</a-select-option>
                     <a-select-option value="active">运行中</a-select-option>
                     <a-select-option value="inactive">已关闭</a-select-option>
@@ -82,7 +64,7 @@
                 </a-col>
               </a-row>
 
-              <!-- 分支表格 -->
+              <!-- 实例表格 -->
               <a-table
                 :columns="branchColumns"
                 :dataSource="filteredBranches"
@@ -113,20 +95,20 @@
       </a-row>
     </div>
 
-    <!-- 编辑分支（仅名称 + 纯跳转到 Node-RED） -->
+    <!-- 编辑实例（仅名称 + 纯跳转到 Node-RED） -->
     <a-modal
       v-model="branchModal.visible"
-      title="编辑分支"
+      title="编辑实例"
       @ok="submitBranchModal"
       @cancel="closeBranchModal"
       :confirmLoading="branchModal.loading"
     >
       <a-form :form="branchForm">
-        <a-form-item label="分支名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
+        <a-form-item label="实例名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
           <a-input
             v-decorator="[
               'branchName',
-              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入分支名称'}]}
+              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入实例名称'}]}
             ]"
             @pressEnter.prevent
           />
@@ -146,25 +128,36 @@
       </a-form>
     </a-modal>
 
-    <!-- 套用到可达空间 -->
+    <!-- 套用到可达空间（显示 name，选择值为 ID） -->
     <a-modal
       v-model="applyModal.visible"
       title="套用到可达空间"
       @ok="confirmApply"
       @cancel="closeApplyModal"
       :confirmLoading="applyModal.loading"
+      :okButtonProps="{ disabled: applyModal.selectedSpaceIds.length === 0 }"
     >
-      <p>
-        将规则 <b>{{ applyModal.rule?.ruleName }}</b> 的可执行分支复制到系统检测到的“可达空间”。
+      <p style="margin-bottom: 12px;">
+        将规则 <b>{{ applyModal.rule?.ruleName }}</b> 复制到所选可达空间。
       </p>
-      <a-alert
-        v-if="applyModal.preview && applyModal.preview.executableSpaces"
-        type="info"
-        show-icon
-        style="margin-bottom: 12px;"
-        :message="`检测到 ${applyModal.preview.executableSpaces.length} 个可达空间：` +
-          applyModal.preview.executableSpaces.map(id => spaceMap[id] || id).join(', ')"
-      />
+
+      <a-spin :spinning="applyModal.loadingPreview">
+        <template v-if="applyModal.spaces && applyModal.spaces.length">
+          <a-checkbox-group
+            v-model="applyModal.selectedSpaceIds"
+            style="display:flex; flex-direction:column; gap:8px;"
+          >
+            <a-checkbox
+              v-for="sp in applyModal.spaces"
+              :key="sp.id"
+              :value="sp.id"
+            >
+              {{ sp.name }}
+            </a-checkbox>
+          </a-checkbox-group>
+        </template>
+        <a-empty v-else description="未检测到可达空间" />
+      </a-spin>
     </a-modal>
 
     <!-- 主干改名弹窗 -->
@@ -223,9 +216,9 @@ export default {
 
       activeRule: null, // 当前选中的主干
 
-      // 分支
+      // 实例
       branchColumns: [
-        { title: '分支名称', dataIndex: 'branchName' },
+        { title: '实例名称', dataIndex: 'branchName' },
         { title: '目标表', dataIndex: 'fusionTarget', width: 120 },
         { title: '状态', dataIndex: 'status', width: 120, scopedSlots: { customRender: 'status' } },
         { title: '操作', dataIndex: 'action', width: 240, scopedSlots: { customRender: 'action' } }
@@ -234,7 +227,7 @@ export default {
       filteredBranches: [],
       branchQuery: { status: 'all' },
 
-      // 分支弹窗（仅编辑名称）
+      // 实例弹窗（仅编辑名称）
       branchModal: {
         visible: false,
         loading: false,
@@ -246,8 +239,10 @@ export default {
       applyModal: {
         visible: false,
         loading: false,
+        loadingPreview: false,
         rule: null,
-        preview: null
+        spaces: [], // [{ id, name }]
+        selectedSpaceIds: [] // 仅存选中的 ID
       },
 
       // 主干改名弹窗
@@ -267,8 +262,8 @@ export default {
       return { selectedRowKeys: this.selectedRowKeys, onChange: this.onSelectChange }
     },
     rightTitle () {
-      if (!this.activeRule) return '分支（请选择左侧主干）'
-      return `分支 - ${this.activeRule.ruleName}（Rule #${this.activeRule.ruleId}）`
+      if (!this.activeRule) return '实例（请选择左侧主干）'
+      return `实例 - ${this.activeRule.ruleName}`
     }
   },
   created () {
@@ -276,6 +271,59 @@ export default {
     this.refreshTable()
   },
   methods: {
+    /** 规范化 Node-RED 基地址（去掉尾部 /） */
+    _nrBase () {
+      if (!NODE_RED_URL) {
+        message.error('未配置 NODE_RED_URL')
+        throw new Error('NODE_RED_URL missing')
+      }
+      return String(NODE_RED_URL).replace(/\/$/, '')
+    },
+
+    /** 规范化 flow：把被 stringify 的 JSON（最多两层）还原为对象/数组 */
+    _normalizeFlow (fj) {
+      let v = fj
+      for (let i = 0; i < 2 && typeof v === 'string'; i++) {
+        const s = v.trim()
+        const looksJson =
+          (s.startsWith('{') && s.endsWith('}')) ||
+          (s.startsWith('[') && s.endsWith(']')) ||
+          (s.startsWith('"') && s.endsWith('"'))
+        if (!looksJson) break
+        try {
+          v = JSON.parse(s)
+        } catch (e) {
+          break
+        }
+      }
+      if (!Array.isArray(v) && typeof v !== 'object') {
+        throw new Error('flowJson 不是对象或数组，格式不符合 Node-RED 要求')
+      }
+      return v
+    },
+
+    /** 推送 flow 到 Node-RED Admin API 然后打开编辑器 */
+    async pushFlowAndOpen (flowJson, { deployType = 'flows' } = {}) {
+      const base = this._nrBase()
+      const normalized = this._normalizeFlow(flowJson)
+      const bodyStr = JSON.stringify(normalized)
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Node-RED-Deployment-Type': deployType
+      }
+
+      const resp = await fetch(`${base}/flows`, {
+        method: 'POST',
+        headers,
+        body: bodyStr
+      })
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`推送到 Node-RED 失败：HTTP ${resp.status} ${text}`)
+      }
+      window.open(`${base}`, '_blank')
+    },
     // ===== Space 映射 =====
     async fetchSpaceMap () {
       try {
@@ -310,7 +358,8 @@ export default {
       const params = new URLSearchParams({ source: 'frontend', action: 'create' })
       window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
-    // 改为仅“主干改名”
+
+    // 仅“主干改名”
     handleEdit (record) {
       this.ruleModal.model = { ruleId: record.ruleId, ruleName: record.ruleName }
       this.openRuleModal()
@@ -347,34 +396,62 @@ export default {
       })
     },
 
+    // ====== 套用到可达空间 ======
     openApplyModal (rule) {
       this.applyModal.rule = rule
-      this.applyModal.preview = null
       this.applyModal.visible = true
-      axios.get(`${BASE}/api/fusion/executableLocations/${rule.ruleId}`)
+      this.applyModal.loadingPreview = true
+      this.applyModal.spaces = []
+      this.applyModal.selectedSpaceIds = []
+
+      axios.get(`${BASE}/api/fusion/executableSpaces/${rule.ruleId}`)
         .then(res => {
-          this.applyModal.preview = { executableSpaces: res.data || [] }
+          const list = Array.isArray(res.data) ? res.data : []
+          // 兼容两种返回格式：
+          // 1) 老： [number, number, ...]
+          // 2) 新： [{ id, name }, ...]
+          if (list.length > 0 && typeof list[0] === 'number') {
+            // 老格式：只有 ID，继续用 spaceMap 映射名称
+            this.applyModal.spaces = list.map(id => ({
+              id,
+              name: this.spaceMap[id] || `空间 #${id}`
+            }))
+          } else {
+            // 新格式：后端已给出 name，直接使用；缺失时再兜底 spaceMap
+            this.applyModal.spaces = list.map(it => ({
+              id: it.id,
+              name: it.name || this.spaceMap[it.id] || `空间 #${it.id}`
+            }))
+          }
         })
         .catch(() => {
-          this.applyModal.preview = { executableSpaces: [] }
+          this.applyModal.spaces = []
+        })
+        .finally(() => {
+          this.applyModal.loadingPreview = false
         })
     },
     closeApplyModal () {
       this.applyModal.visible = false
       this.applyModal.loading = false
       this.applyModal.rule = null
+      this.applyModal.selectedSpaceIds = []
     },
     async confirmApply () {
       if (!this.applyModal.rule) return
+      if (this.applyModal.selectedSpaceIds.length === 0) {
+        message.warning('请先勾选至少一个空间')
+        return
+      }
       this.applyModal.loading = true
       try {
         const { ruleId } = this.applyModal.rule
         const res = await axios.post(
           `${BASE}/api/fusion/rules/${ruleId}/applyToExecutableSpaces`,
-          null,
+          { spaceIds: this.applyModal.selectedSpaceIds },
           { params: { activate: false } }
         )
-        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个分支`)
+        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个实例`)
         this.closeApplyModal()
         if (this.activeRule && this.activeRule.ruleId === ruleId) {
           await this.fetchBranches(ruleId)
@@ -386,6 +463,8 @@ export default {
         this.applyModal.loading = false
       }
     },
+
+    // ===== 规则操作 =====
     execute (record) {
       const hide = message.loading('执行中...', 0)
       executeRuleById(record.ruleId)
@@ -450,7 +529,7 @@ export default {
       this.filterBranches()
     },
 
-    // ===== 分支接口 =====
+    // ===== 实例接口 =====
     async fetchBranches (ruleId) {
       if (!ruleId) return
       try {
@@ -459,7 +538,7 @@ export default {
         this.filteredBranches = [...this.branches]
       } catch (e) {
         console.error(e)
-        message.error('获取分支列表失败')
+        message.error('获取实例列表失败')
       }
     },
     filterBranches () {
@@ -467,11 +546,11 @@ export default {
       this.filteredBranches = (s === 'all') ? [...this.branches] : this.branches.filter(b => (b.status || 'inactive') === s)
     },
 
-    // 分支操作
+    // ===== 实例操作 =====
     async executeBranch (record) {
       const hide = message.loading('执行中...', 0)
       try {
-        await axios.post(`${BASE}/api/fusion/branches/${record.branchId}/execute`)
+        await axios.post(`${BASE}/api/fusion/executeBranch/${record.branchId}`)
         hide()
         message.success('执行成功')
         await this.fetchBranches(this.activeRule.ruleId)
@@ -484,13 +563,13 @@ export default {
     async pauseBranch (record) {
       Modal.confirm({
         title: '确认暂停？',
-        content: `暂停分支：${record.branchName}`,
+        content: `暂停实例：${record.branchName}`,
         okText: '确定',
         cancelText: '取消',
         onOk: async () => {
           try {
-            await axios.put(`${BASE}/api/fusion/branches/${record.branchId}/pause`)
-            message.success('分支已暂停')
+            await axios.put(`${BASE}/api/fusion/pauseBranch/${record.branchId}`)
+            message.success('实例已暂停')
             await this.fetchBranches(this.activeRule.ruleId)
             this.filterBranches()
           } catch (e) {
@@ -501,8 +580,8 @@ export default {
     },
     async deleteBranch (record) {
       Modal.confirm({
-        title: '确认删除该分支？',
-        content: `是否删除分支：${record.branchName}`,
+        title: '确认删除该实例？',
+        content: `是否删除实例：${record.branchName}`,
         okText: '确定',
         cancelText: '取消',
         onOk: async () => {
@@ -518,7 +597,7 @@ export default {
       })
     },
 
-    // ====== 仅编辑“分支名称”，按钮进入 Node-RED（纯跳转） ======
+    // ====== 仅编辑“实例名称”，按钮进入 Node-RED（纯跳转） ======
     editBranch (record) {
       this.branchModal.model = {
         branchId: record.branchId,
@@ -559,17 +638,27 @@ export default {
     },
 
     // 只跳转到 Node-RED，不提交任何数据
-    goToNodeRed (model) {
-      if (!NODE_RED_URL) {
-        message.error('未配置 NODE_RED_URL')
-        return
+    async goToNodeRed (model) {
+      try {
+        const branchId = model?.branchId
+        let branch = this.branches.find(b => b.branchId === branchId)
+
+        // 如果列表项里没有 flowJson，则补拉一次详情
+        if (!branch || !branch.flowJson) {
+          const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}`)
+          branch = { ...(branch || {}), ...(data || {}) }
+        }
+
+        if (!branch || !branch.flowJson) {
+          message.error('该实例缺少 flowJson，无法推送到 Node-RED')
+          return
+        }
+
+        await this.pushFlowAndOpen(branch.flowJson, { deployType: 'flows' })
+      } catch (e) {
+        console.error(e)
+        message.error('推送 Node-RED 失败')
       }
-      const params = new URLSearchParams({
-        source: 'frontend',
-        branchId: model?.branchId ?? '',
-        branchName: model?.branchName ?? ''
-      })
-      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
 
     // LLM
