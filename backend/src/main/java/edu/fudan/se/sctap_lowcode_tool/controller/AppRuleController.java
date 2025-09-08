@@ -29,9 +29,12 @@ public class AppRuleController {
         return ResponseEntity.of(appRuleService.getRuleById(id));
     }
 
+    /**
+     * 保存应用
+     * */
     @PostMapping
-    public boolean create(@RequestBody AppRuleRequest rule) {
-        return appRuleService.createRule(rule);
+    public boolean create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
+        return appRuleService.createRule(appRuleSaveRequest);
     }
 
     @PutMapping("/{id}")
@@ -41,6 +44,9 @@ public class AppRuleController {
         appRuleService.updateRule(id, rule);
     }
 
+    /**
+     * 删除应用
+     * */
     @DeleteMapping("/{id}")
     public void delete(@PathVariable("id") Integer id) {
         appRuleService.deleteRulesByIds(List.of(id));
@@ -49,6 +55,17 @@ public class AppRuleController {
     @DeleteMapping
     public void deleteAll(@RequestParam("id") List<Integer> ids) {
         appRuleService.deleteRulesByIds(ids);
+    }
+
+    /**
+     * 分页查询
+     * */
+    @PostMapping("/list/{projectId}")
+    public PageDTO<AppRuleInfo> list(
+            @PathVariable Integer projectId,
+            @RequestBody AppRuleQueryRequest appRuleQueryRequest
+    ) {
+        return appRuleService.list(projectId, appRuleQueryRequest);
     }
 
     /**

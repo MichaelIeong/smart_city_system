@@ -15,4 +15,18 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
 
     Optional<AppRuleInfo> findById(int id);
 
+    @Query("""
+        SELECT a FROM AppRuleInfo a
+        WHERE a.project.projectId = :projectId
+          AND (:eventType IS NULL OR :eventType = '' OR a.eventType = :eventType)
+          AND (:description IS NULL OR :description = ''
+               OR LOWER(a.description) LIKE LOWER(CONCAT('%', :description, '%')))
+        ORDER BY a.id ASC
+    """)
+    Page<AppRuleInfo> searchByProjectWithFilters(
+            @Param("projectId") Integer projectId,
+            @Param("eventType") String eventType,
+            @Param("description") String description,
+            Pageable pageable);
+
 }

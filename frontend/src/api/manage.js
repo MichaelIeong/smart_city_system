@@ -133,9 +133,13 @@ export function saveTap (parameter) {
 }
 
 export function deleteTap (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'delete'
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
@@ -310,6 +314,23 @@ export function getSensors (projectId) {
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}` // 将 JWT token 添加到请求头
+    }
+  })
+}
+
+export function listTapRule ({ projectId, eventType, description, pageNo, pageSize }) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/list/${projectId}`,
+    method: 'post',
+    data: {
+      eventType,
+      description,
+      pageNo,
+      pageSize
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
     }
   })
 }

@@ -29,6 +29,11 @@ public class AppRuleInfo {
 
     private LocalDateTime updateTime; // 最近一次更新时间
 
+    private String eventType; // 事件类型
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String flowJson; // Node-Red流的JSON格式
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

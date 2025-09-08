@@ -22,6 +22,8 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -87,21 +89,30 @@ public class AppRuleService {
         }
     }
 
-    public boolean createRule(AppRuleRequest rule) {
-        // 检查生成的JSON规则是否能被解析
-        AppRule appRule = parseJsonRule(rule.ruleJson());
-        if (appRule!= null) {
-            var appRuleInfo = getEntityFromRequest(rule);
-            appRuleInfo = appRuleRepository.save(appRuleInfo);
-            // 加入向量数据库
-            AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), rule.description());
-            try{
-                milvusUtil.insertRecord(record);
-            } catch (NoApiKeyException e) {
-                log.error("No api key");
+    public boolean createRule(AppRuleSaveRequest appRuleSaveRequest) {
+        String ruleJson = appRuleSaveRequest.getRuleJson();
+        String flowJson = appRuleSaveRequest.getFlowJson();
+        // 如果是大模型生成直接保存
+        if(ruleJson!=null&&!ruleJson.isEmpty()){
+            AppRule appRule = parseJsonRule(ruleJson);
+            if (appRule != null) {
+                var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
+                // 设置事件类型
+                appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+                // 插入数据库
+                appRuleInfo = appRuleRepository.save(appRuleInfo);
+                // 插入向量数据库
+                AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleSaveRequest.getDescription());
+                try{
+                    milvusUtil.insertRecord(record);
+                } catch (NoApiKeyException e) {
+                    log.error("No api key");
+                }
+                return true;
             }
-            return true;
+            return false;
         }
+        // TODO: Node-RED 规则生成
         return false;
     }
 
@@ -125,6 +136,23 @@ public class AppRuleService {
         }
     }
 
+    private AppRuleInfo getEntityFromRequest(AppRuleSaveRequest appRuleSaveRequest) {
+        AppRuleInfo appRuleInfo = new AppRuleInfo();
+        projectRepository.findById(appRuleSaveRequest.getProjectId()).ifPresentOrElse(
+                appRuleInfo::setProject,
+                () -> {
+                    throw new BadRequestException(
+                            "400", "Project not found",
+                            "rule.projectId", appRuleSaveRequest.getProjectId().toString(), "projectId not found"
+                    );
+                });
+        appRuleInfo.setDescription(appRuleSaveRequest.getDescription());
+        appRuleInfo.setRuleJson(appRuleInfo.getRuleJson());
+        appRuleInfo.setFlowJson(appRuleInfo.getFlowJson());
+        appRuleInfo.setUpdateTime(LocalDateTime.now());
+        return appRuleInfo;
+    }
+
     private AppRuleInfo getEntityFromRequest(AppRuleRequest rule) {
         AppRuleInfo appRuleInfo = new AppRuleInfo();
         projectRepository.findById(rule.projectId()).ifPresentOrElse(
@@ -139,6 +167,16 @@ public class AppRuleService {
         appRuleInfo.setRuleJson(rule.ruleJson());
         appRuleInfo.setUpdateTime(LocalDateTime.now());
         return appRuleInfo;
+    }
+
+    public PageDTO<AppRuleInfo> list(Integer projectId, AppRuleQueryRequest appRuleQueryRequest) {
+        Pageable pageable = PageRequest.of(appRuleQueryRequest.getPageNo() - 1, appRuleQueryRequest.getPageSize(), Sort.by("id").ascending());
+        Page<AppRuleInfo> repoResult = appRuleRepository.searchByProjectWithFilters(projectId, appRuleQueryRequest.getEventType(), appRuleQueryRequest.getDescription(), pageable);
+        return new PageDTO<>(
+                appRuleQueryRequest.getPageNo(), appRuleQueryRequest.getPageSize(),
+                repoResult.getTotalElements(), repoResult.getTotalPages(),
+                repoResult.getContent()
+        );
     }
 
     public ResponseEntity<String> generateNaturalRule(RuleGenerateRequest ruleGenerateRequest) {
