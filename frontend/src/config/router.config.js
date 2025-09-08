@@ -114,7 +114,7 @@ export const asyncRouterMap = [{
     {
       path: '/tap/recommend',
       name: 'tap-recommend',
-      component: () => import('@/views/recommend/RecommendDetail'),
+      component: () => import('@/views/recommend/TapRecommend'),
       meta: { title: 'menu.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
     },
     // result

@@ -61,6 +61,52 @@
           </template>
         </span>
       </s-table>
+
+      <a-modal
+        :visible="saveVisible"
+        title="保存应用"
+        :confirm-loading="saveLoading"
+        ok-text="保存"
+        cancel-text="取消"
+        @ok="submitSave"
+        @cancel="closeSave"
+        destroy-on-close
+      >
+        <a-form
+          ref="saveFormRef"
+          :model="saveForm"
+          layout="vertical"
+        >
+          <a-form-item label="应用描述" name="description">
+            <a-textarea
+              :rows="4"
+              v-model="saveForm.description"
+              placeholder="请输入应用的简要描述，不能超过 300 字"
+              allow-clear
+            />
+            <span
+              style="
+                position: absolute;
+                right: 8px;
+                bottom: -18px;
+                font-size: 12px;
+                color: #999;
+              "
+            >
+              {{ saveForm.description.length }} / 300
+            </span>
+          </a-form-item>
+
+          <a-form-item label="Node-RED 导出 JSON" name="flowJson">
+            <a-textarea
+              v-model="saveForm.flowJson"
+              placeholder="请将 Node-RED 导出的 JSON 粘贴到这里"
+              :rows="8"
+              allow-clear
+            />
+          </a-form-item>
+        </a-form>
+      </a-modal>
     </a-card>
   </page-header-wrapper>
 </template>
@@ -193,8 +239,7 @@ function handleCreate () {
 }
 
 function handleSave () {
-  console.log('保存应用')
-  message.success('已保存（示例）')
+  saveVisible.value = true
 }
 
 function handleEdit (record) {
@@ -219,8 +264,72 @@ function handleDelete (record) {
     }
   })
 }
-</script>
 
+// 保存应用： 弹窗和表单
+const saveVisible = ref(false)
+const saveLoading = ref(false)
+const saveFormRef = ref(null)
+
+const saveForm = reactive({
+  description: '',
+  flowJson: ''
+})
+
+function closeSave () {
+  saveVisible.value = false
+  // 可选：关闭时重置表单
+  saveForm.description = ''
+  saveForm.flowJson = ''
+}
+
+// 提交保存
+async function submitSave () {
+  try {
+    saveLoading.value = true
+    // --- 手动校验 ---
+    if (!saveForm.description || saveForm.description.trim() === '') {
+      message.error('请输入应用描述')
+      return
+    }
+    if (saveForm.description.length > 300) {
+      message.error('描述不能超过 300 个字符')
+      return
+    }
+    if (!saveForm.flowJson || saveForm.flowJson.trim() === '') {
+      message.error('请粘贴 Node-RED 导出的 JSON')
+      return
+    }
+    try {
+      JSON.parse(saveForm.flowJson)
+    } catch (e) {
+      message.error('JSON 格式不正确，请检查后再试')
+      return
+    }
+    // 这里用示例替代
+    console.log('即将保存：', {
+      description: saveForm.description,
+      flow: JSON.parse(saveForm.flowJson)
+    })
+
+    message.success('保存成功')
+    saveVisible.value = false
+    // 重置并刷新表格（可选）
+    saveForm.description = ''
+    saveForm.flowJson = ''
+    tableRef.value?.refresh?.()
+  } catch (err) {
+    // 校验失败或接口报错
+    if (err?.errorFields) {
+      // 表单校验错误由 antdv 弹出
+    } else {
+      console.error('保存失败：', err)
+      message.error(`保存失败：${err?.message || '未知错误'}`)
+    }
+  } finally {
+    saveLoading.value = false
+  }
+}
+</script>
 <style lang="less" scoped>
 .table-page-search-wrapper {
   margin-bottom: 16px;
