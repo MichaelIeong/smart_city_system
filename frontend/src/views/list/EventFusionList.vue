@@ -70,9 +70,16 @@
                 :dataSource="filteredBranches"
                 row-key="branchId"
                 :pagination="false"
-                :scroll="{ y: 'calc(100vh - 540px)' }"
+                :scroll="{ x: 600, y: 'calc(100vh - 540px)' }"
                 style="flex:1;"
               >
+                <!-- 新增：实例名称的自定义插槽 -->
+                <span slot="branchName" slot-scope="text">
+                  <a-tooltip :title="text">
+                    <span class="one-line-ellipsis">{{ text }}</span>
+                  </a-tooltip>
+                </span>
+
                 <span slot="status" slot-scope="text">
                   <a-badge
                     :status="text === 'active' ? 'processing' : 'default'"
@@ -218,10 +225,10 @@ export default {
 
       // 实例
       branchColumns: [
-        { title: '实例名称', dataIndex: 'branchName' },
-        { title: '目标表', dataIndex: 'fusionTarget', width: 120 },
-        { title: '状态', dataIndex: 'status', width: 120, scopedSlots: { customRender: 'status' } },
-        { title: '操作', dataIndex: 'action', width: 240, scopedSlots: { customRender: 'action' } }
+        { title: '实例名称', dataIndex: 'branchName', width: 60, scopedSlots: { customRender: 'branchName' } },
+        { title: '目标表', dataIndex: 'fusionTarget', width: 50 },
+        { title: '状态', dataIndex: 'status', width: 50, scopedSlots: { customRender: 'status' } },
+        { title: '操作', dataIndex: 'action', width: 100, scopedSlots: { customRender: 'action' } }
       ],
       branches: [],
       filteredBranches: [],
