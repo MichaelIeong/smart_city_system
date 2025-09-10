@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
@@ -61,4 +62,5 @@ public class DeviceController {
         deviceService.deleteDevice(deviceId);  // MySQL & Neo4j
         return ResponseEntity.noContent().build();
     }
+
 }

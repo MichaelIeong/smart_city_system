@@ -151,11 +151,11 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2))
+        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2), "")
         if(success) {
           message.success('应用创建成功')
         } else {
-          message.error('应用创建失败')
+          message.error('应用创建失败，请稍后重试')
         }
     } catch (error) {
         message.error('应用创建失败: ' + error.message)
@@ -165,7 +165,7 @@ async function submitRule() {
 
 async function viewInNodeRed() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
-    const hide = message.loading('正在推送至 Node-RED，请等待片刻...', 0)
+    const hide = message.loading('正在推送至 Node-RED，请稍等片刻...', 0)
     try {
       const flowJson = await convertJsonRule(JSON.stringify(selectedRule.value.jsonRule))
 

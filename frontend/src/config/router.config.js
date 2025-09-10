@@ -1,5 +1,7 @@
 // eslint-disable-next-line
 import { UserLayout, BasicLayout } from '@/layouts'
+// import { name } from 'file-loader'
+// import { component } from 'node_modules/vue/types/umd'
 
 const RouteView = {
   name: 'RouteView', render: h => h('router-view')
@@ -81,33 +83,39 @@ export const asyncRouterMap = [{
 
     // 应用构造
     {
-      path: '/tap',
-      name: 'tap',
-      component: RouteView,
-      hideChildrenInMenu: true, // 隐藏子目录
-      redirect: '/tap/tap-list',
-      meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
-      children: [
-        {
-          path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
-          name: 'TapListWrapper',
-          component: () => import('@/views/tap/TapList'),
-          meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
-        },
-        {
-          path: '/tap/tap-detail/:id',
-          name: 'TapDetail',
-          component: () => import('@/views/tap/TapDetail'),
-          meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
-        }
-      ]
+      path: 'tap/list',
+      name: 'tap-list',
+      component: () => import('@/views/recommend/TapList'),
+      meta: { title: 'menu.tap', keepAlive: true, icon: 'table', permission: ['table'] }
     },
+    // {
+    //   path: '/tap',
+    //   name: 'tap',
+    //   component: RouteView,
+    //   hideChildrenInMenu: true, // 隐藏子目录
+    //   redirect: '/tap/tap-list',
+    //   meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
+    //   children: [
+    //     {
+    //       path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
+    //       name: 'TapListWrapper',
+    //       component: () => import('@/views/tap/TapList'),
+    //       meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
+    //     },
+    //     {
+    //       path: '/tap/tap-detail/:id',
+    //       name: 'TapDetail',
+    //       component: () => import('@/views/tap/TapDetail'),
+    //       meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
+    //     }
+    //   ]
+    // },
     // 应用推荐
     {
-      path: '/recommend',
-      name: 'RecommendDetail',
-      component: () => import('@/views/recommend/RecommendDetail'),
-      meta: { title: 'menu.recommend', keepAlive: true, icon: 'star' }
+      path: '/tap/recommend',
+      name: 'tap-recommend',
+      component: () => import('@/views/recommend/TapRecommend'),
+      meta: { title: 'menu.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
     },
     // result
     {

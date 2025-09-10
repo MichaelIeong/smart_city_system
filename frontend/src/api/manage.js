@@ -64,15 +64,15 @@ export function getRuleList () {
   })
 }
 
-export function getServiceList (project) {
+export function getServiceList (projectId) {
   const token = store.state.token
   return request({
-    url: api.services,
+    url: api.services + '/getServiceListByProject',
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    params: { project }
+    params: { projectId }
   })
 }
 
@@ -118,9 +118,14 @@ export function getTapList (parameter) {
 }
 
 export function getTapDetail (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'get'
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
   })
 }
 
@@ -133,9 +138,13 @@ export function saveTap (parameter) {
 }
 
 export function deleteTap (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'delete'
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
@@ -314,6 +323,23 @@ export function getSensors (projectId) {
   })
 }
 
+export function listTapRule ({ projectId, eventType, description, pageNo, pageSize }) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/list/${projectId}`,
+    method: 'post',
+    data: {
+      eventType,
+      description,
+      pageNo,
+      pageSize
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
 // 生成自然语言描述 tap 规则
 export function generateNaturalRule (uuid, message) {
   const token = store.state.token
@@ -380,18 +406,38 @@ export function convertJsonRule (ruleJson) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, description, ruleJson) {
+export function createTapRule (projectId, description, ruleJson, flowJson) {
   const token = store.state.token
   return request({
-    url: `${api.tap}`,
+    url: `${api.tap}/create`,
     method: 'post',
     data: {
+      projectId,
       description,
       ruleJson,
-      projectId
+      flowJson
     },
     headers: {
       'Authorization': `Bearer ${token}`
-    }
+    },
+    timeout: 120000
+  })
+}
+
+// 更新tap规则
+export function updateTapRule (id, description, flowJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/update`,
+    method: 'post',
+    data: {
+      id,
+      description,
+      flowJson
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 120000
   })
 }

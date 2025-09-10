@@ -180,22 +180,15 @@ const columns = [
     dataIndex: 'serviceId'
   },
   {
+    title: '服务描述',
+    dataIndex: 'description',
+    ellipsis: true
+  },
+  {
     title: '操作',
     dataIndex: 'action',
     width: '150px',
     scopedSlots: { customRender: 'action' }
-  },
-  {
-    title: 'CSP',
-    dataIndex: 'csp',
-    width: '150px',
-    scopedSlots: { customRender: 'csp' }
-  },
-  {
-    title: '目标',
-    dataIndex: 'target',
-    width: '150px',
-    scopedSlots: { customRender: 'target' }
   }
 ]
 
@@ -481,9 +474,9 @@ export default {
       //     projectName: '2024-05-10'
       //   }
       // ]
-      const project = localStorage.getItem('project_id')
-      console.log(project)
-      return getServiceList(project)
+      const projectId = localStorage.getItem('project_id')
+      console.log(projectId + projectId)
+      return getServiceList(projectId)
         .then(res => {
           console.log('Data received:', res)
           return res // 确保数据格式是数组

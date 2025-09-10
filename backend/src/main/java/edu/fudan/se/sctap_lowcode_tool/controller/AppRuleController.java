@@ -26,21 +26,25 @@ public class AppRuleController {
     @GetMapping("/{id}")
     public ResponseEntity<AppRuleInfo> queryById(
             @PathVariable("id") Integer id) {
-        return ResponseEntity.of(appRuleService.getRuleById(id));
+        return ResponseEntity.ok(appRuleService.getAppRuleById(id));
     }
 
-    @PostMapping
-    public boolean create(@RequestBody AppRuleRequest rule) {
-        return appRuleService.createRule(rule);
+    /**
+     * 保存应用
+     * */
+    @PostMapping("/create")
+    public boolean create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
+        return appRuleService.createRule(appRuleSaveRequest);
     }
 
-    @PutMapping("/{id}")
-    public void update(
-            @PathVariable("id") Integer id,
-            @RequestBody AppRuleRequest rule) {
-        appRuleService.updateRule(id, rule);
+    @PostMapping("/update")
+    public boolean update(@RequestBody AppRuleUpdateRequest appRuleUpdateRequest) {
+        return appRuleService.updateRule(appRuleUpdateRequest);
     }
 
+    /**
+     * 删除应用
+     * */
     @DeleteMapping("/{id}")
     public void delete(@PathVariable("id") Integer id) {
         appRuleService.deleteRulesByIds(List.of(id));
@@ -49,6 +53,17 @@ public class AppRuleController {
     @DeleteMapping
     public void deleteAll(@RequestParam("id") List<Integer> ids) {
         appRuleService.deleteRulesByIds(ids);
+    }
+
+    /**
+     * 分页查询
+     * */
+    @PostMapping("/list/{projectId}")
+    public PageDTO<AppRuleInfo> list(
+            @PathVariable Integer projectId,
+            @RequestBody AppRuleQueryRequest appRuleQueryRequest
+    ) {
+        return appRuleService.list(projectId, appRuleQueryRequest);
     }
 
     /**
@@ -80,7 +95,11 @@ public class AppRuleController {
      * */
     @PostMapping("/recommend/convertJsonRule")
     public ResponseEntity<String> convertJsonRule(@RequestBody String jsonRule) {
-        return appRuleService.convertJsonRule(jsonRule);
+        String flowJson = appRuleService.convertAppRuleJsonToNodeRedFlowJson(jsonRule);
+        if(flowJson != null) {
+            return ResponseEntity.ok(flowJson);
+        }
+        return ResponseEntity.badRequest().body("转换失败");
     }
 
 

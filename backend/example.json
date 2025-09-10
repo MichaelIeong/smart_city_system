@@ -1,12 +1,1 @@
-{
-  "user" : "seer",
-  "dsl" : {
-    "Scenario_Trigger" : {
-      "event_type" : [ [ "Noisy_Detected" ] ],
-      "filter" : [ "location is DiningArea05" ]
-    }
-  },
-  "endTime" : "",
-  "startTime" : 1715766137691,
-  "app" : "overwork"
-}
+[{"id":"71d08f2305d85148","type":"tab","label":"流程 1","disabled":false,"info":"","env":[]},{"id":"70067ee46c7310ad","type":"Device Service","z":"71d08f2305d85148","deviceType":"5","deviceTypeName":"广播喇叭","deviceService":"12","deviceServiceName":"broadcast","deviceId":"","x":190,"y":260,"wires":[["c4795691711610ce"]]},{"id":"06357d0920ecae4c","type":"Social Service","z":"71d08f2305d85148","location":"D2地下车库","socialResource":"车库工作人员","x":190,"y":340,"wires":[["c4795691711610ce"]]},{"id":"00e8ac2f99b176ea","type":"Information Service","z":"71d08f2305d85148","location":"D2地下车库","informationResource":"车位信息","x":170,"y":440,"wires":[["c4795691711610ce"]]},{"id":"c4795691711610ce","type":"Composition","z":"71d08f2305d85148","compositionName":"2","compositionNameLabel":"应急疏导指挥服务","description":"这是一个应急指挥服务神的随波逐流天才般的爱豆大人","projectId":"","x":560,"y":320,"wires":[]}]
