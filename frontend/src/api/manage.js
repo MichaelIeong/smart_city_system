@@ -118,9 +118,14 @@ export function getTapList (parameter) {
 }
 
 export function getTapDetail (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'get'
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
   })
 }
 
@@ -401,18 +406,38 @@ export function convertJsonRule (ruleJson) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, description, ruleJson) {
+export function createTapRule (projectId, description, ruleJson, flowJson) {
   const token = store.state.token
   return request({
-    url: `${api.tap}`,
+    url: `${api.tap}/create`,
     method: 'post',
     data: {
+      projectId,
       description,
       ruleJson,
-      projectId
+      flowJson
     },
     headers: {
       'Authorization': `Bearer ${token}`
-    }
+    },
+    timeout: 120000
+  })
+}
+
+// 更新tap规则
+export function updateTapRule (id, description, flowJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/update`,
+    method: 'post',
+    data: {
+      id,
+      description,
+      flowJson
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 120000
   })
 }

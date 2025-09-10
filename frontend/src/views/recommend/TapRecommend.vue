@@ -151,7 +151,7 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2))
+        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2), "")
         if(success) {
           message.success('应用创建成功')
         } else {

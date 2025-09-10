@@ -26,22 +26,20 @@ public class AppRuleController {
     @GetMapping("/{id}")
     public ResponseEntity<AppRuleInfo> queryById(
             @PathVariable("id") Integer id) {
-        return ResponseEntity.of(appRuleService.getRuleById(id));
+        return ResponseEntity.ok(appRuleService.getAppRuleById(id));
     }
 
     /**
      * 保存应用
      * */
-    @PostMapping
+    @PostMapping("/create")
     public boolean create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
         return appRuleService.createRule(appRuleSaveRequest);
     }
 
-    @PutMapping("/{id}")
-    public void update(
-            @PathVariable("id") Integer id,
-            @RequestBody AppRuleRequest rule) {
-        appRuleService.updateRule(id, rule);
+    @PostMapping("/update")
+    public boolean update(@RequestBody AppRuleUpdateRequest appRuleUpdateRequest) {
+        return appRuleService.updateRule(appRuleUpdateRequest);
     }
 
     /**
@@ -97,7 +95,11 @@ public class AppRuleController {
      * */
     @PostMapping("/recommend/convertJsonRule")
     public ResponseEntity<String> convertJsonRule(@RequestBody String jsonRule) {
-        return appRuleService.convertJsonRule(jsonRule);
+        String flowJson = appRuleService.convertAppRuleJsonToNodeRedFlowJson(jsonRule);
+        if(flowJson != null) {
+            return ResponseEntity.ok(flowJson);
+        }
+        return ResponseEntity.badRequest().body("转换失败");
     }
 
 

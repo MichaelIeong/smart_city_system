@@ -81,6 +81,24 @@ public class AppRuleService {
         return appRuleRepository.findById(ruleId);
     }
 
+    public AppRuleInfo getAppRuleById(Integer id) {
+        AppRuleInfo appRuleInfo = appRuleRepository.findById(id).orElse(null);
+        if(appRuleInfo!=null) {
+            // 判断flowJson是否为空
+            if(appRuleInfo.getFlowJson()==null||appRuleInfo.getFlowJson().isBlank()) {
+                // 使用大模型转换
+                String flowJson = convertAppRuleJsonToNodeRedFlowJson(appRuleInfo.getRuleJson());
+                if(flowJson==null) {
+                    return null;
+                }
+                appRuleInfo.setFlowJson(flowJson);
+                appRuleRepository.save(appRuleInfo);
+            }
+            return appRuleInfo;
+        }
+        return null;
+    }
+
     public void deleteRulesByIds(Iterable<Integer> ruleIds) {
         appRuleRepository.deleteAllById(ruleIds);
         // 从向量数据库中删除
@@ -92,8 +110,8 @@ public class AppRuleService {
     public boolean createRule(AppRuleSaveRequest appRuleSaveRequest) {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
-        // 如果是大模型生成直接保存
-        if(ruleJson!=null&&!ruleJson.isEmpty()){
+        // 如果是大模型创建应用
+        if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
             if (appRule != null) {
                 var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
@@ -102,38 +120,85 @@ public class AppRuleService {
                 // 插入数据库
                 appRuleInfo = appRuleRepository.save(appRuleInfo);
                 // 插入向量数据库
+                if(appRuleInfo.getDescription()!=null&&!appRuleInfo.getDescription().isBlank()) {
+                    AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleSaveRequest.getDescription());
+                    try{
+                        milvusUtil.insertRecord(record);
+                    } catch (NoApiKeyException e) {
+                        log.error("No api key");
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+        // 如果是通过Node-RED创建应用
+        if(flowJson!=null&&!flowJson.isBlank()) {
+            // 转换为JSON
+            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+            if(jsonRule==null||jsonRule.isBlank()) {
+                return false;
+            }
+            var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
+            appRuleInfo.setRuleJson(jsonRule);
+            var appRule = parseJsonRule(jsonRule);
+            appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+            // 插入数据库
+            appRuleInfo = appRuleRepository.save(appRuleInfo);
+            // 插入向量数据库
+            if(appRuleInfo.getDescription()!=null&&!appRuleInfo.getDescription().isBlank()) {
                 AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleSaveRequest.getDescription());
                 try{
                     milvusUtil.insertRecord(record);
                 } catch (NoApiKeyException e) {
                     log.error("No api key");
                 }
-                return true;
             }
-            return false;
+            return true;
         }
-        // TODO: Node-RED 规则生成
         return false;
     }
 
-    public void updateRule(Integer ruleId, AppRuleRequest rule) {
-        var appRuleInfo = getEntityFromRequest(rule);
-        if (appRuleRepository.findById(ruleId).isEmpty()) {
-            throw new BadRequestException(
-                    "400", "Rule not exists to update",
-                    "rule.id", ruleId.toString(), "ruleId not found"
-            );
+    public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
+        // 首先判断应用是否存在
+        AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
+        if(appRuleInfo==null) {
+            return false;
         }
-        appRuleInfo.setId(ruleId);
-        appRuleRepository.save(appRuleInfo);
-        // 更新向量数据库
-        milvusUtil.deleteRecordById(ruleId.toString());
-        AppRuleRecord record = new AppRuleRecord(ruleId.toString(), rule.description());
-        try{
-            milvusUtil.insertRecord(record);
-        } catch (NoApiKeyException e) {
-            log.error("No api key found");
+        String flowJson = appRuleUpdateRequest.getFlowJson();
+        String description = appRuleUpdateRequest.getDescription();
+        if(flowJson!=null&&!flowJson.isBlank()) {
+            // 更新 flowJson 和 ruleJson
+            if(!flowJson.equals(appRuleInfo.getFlowJson())) {
+                // 转换JSON
+                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+                if(jsonRule==null||jsonRule.isBlank()) {
+                    return false;
+                }
+                var appRule = parseJsonRule(jsonRule);
+                appRuleInfo.setRuleJson(jsonRule);
+                appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+                appRuleInfo.setFlowJson(flowJson);
+            }
+            // 更新 description
+            if(!description.equals(appRuleInfo.getDescription())) {
+                appRuleInfo.setDescription(description);
+                // 更新向量数据库
+                try{
+                    milvusUtil.deleteRecordById(appRuleInfo.getId().toString());
+                    if(!description.isBlank()) {
+                        AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleUpdateRequest.getDescription());
+                        milvusUtil.insertRecord(record);
+                    }
+                } catch (NoApiKeyException e) {
+                    log.error("No api key");
+                }
+            }
+            appRuleInfo.setUpdateTime(LocalDateTime.now());
+            appRuleRepository.save(appRuleInfo);
+            return true;
         }
+        return false;
     }
 
     private AppRuleInfo getEntityFromRequest(AppRuleSaveRequest appRuleSaveRequest) {
@@ -147,24 +212,8 @@ public class AppRuleService {
                     );
                 });
         appRuleInfo.setDescription(appRuleSaveRequest.getDescription());
-        appRuleInfo.setRuleJson(appRuleInfo.getRuleJson());
-        appRuleInfo.setFlowJson(appRuleInfo.getFlowJson());
-        appRuleInfo.setUpdateTime(LocalDateTime.now());
-        return appRuleInfo;
-    }
-
-    private AppRuleInfo getEntityFromRequest(AppRuleRequest rule) {
-        AppRuleInfo appRuleInfo = new AppRuleInfo();
-        projectRepository.findById(rule.projectId()).ifPresentOrElse(
-                appRuleInfo::setProject,
-                () -> {
-                    throw new BadRequestException(
-                            "400", "Project not found",
-                            "rule.projectId", rule.projectId().toString(), "projectId not found"
-                    );
-                });
-        appRuleInfo.setDescription(rule.description());
-        appRuleInfo.setRuleJson(rule.ruleJson());
+        appRuleInfo.setRuleJson(appRuleSaveRequest.getRuleJson());
+        appRuleInfo.setFlowJson(appRuleSaveRequest.getFlowJson());
         appRuleInfo.setUpdateTime(LocalDateTime.now());
         return appRuleInfo;
     }
@@ -241,23 +290,44 @@ public class AppRuleService {
         return ResponseEntity.ok(appRuleInfo);
     }
 
-    public ResponseEntity<String> convertJsonRule(String jsonRule) {
+    public String convertAppRuleJsonToNodeRedFlowJson(String jsonRule) {
         // 构造系统消息和用户消息
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new SystemMessage(SystemPrompt.JSON_RULE_CONVERT_NODE_RED_PROMPT));
         messages.add(new UserMessage(jsonRule));
-        // 调用大模型
-        ChatResponse response = chatLanguageModel.chat(messages);
-        if(response!=null) {
-            String text = response.aiMessage().text();
-            Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(text);
-            // 如果是用 ```json ``` 包围，就提取其中的 JSON 内容
-            if(matcher.find()) {
-                return ResponseEntity.ok(matcher.group(1).trim());
+        // 最多重试一次
+        final int MAX_RETRY = 1;
+        for(int attempt=0; attempt<=MAX_RETRY; attempt++) {
+            ChatResponse response;
+            String rawText;
+            try {
+                // 调用大模型
+                response = chatLanguageModel.chat(messages);
+                if (response == null || response.aiMessage() == null) {
+                    appendFeedback(messages,
+                            "模型未返回有效响应（response/aiMessage 为 null）。请仅输出一个 ```json ... ``` 代码块，内容为符合约束的 Node-RED Flow JSON。");
+                    continue;
+                }
+                rawText = response.aiMessage().text();
+                if (rawText == null || rawText.isBlank()) {
+                    appendFeedback(messages,
+                            "模型返回文本为空。请仅输出一个 ```json ... ``` 代码块，且不要包含解释性文字。");
+                    continue;
+                }
+                Matcher matcher = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```").matcher(rawText);
+                // 提取JSON
+                if (!matcher.find()) {
+                    appendFeedback(messages,
+                            "未在输出中找到 ```json ... ``` 代码块。请仅输出一个 ```json ... ``` 代码块，且内容必须是单个 JSON 对象。");
+                    continue;
+                }
+                return matcher.group(1).trim();
+            } catch (Exception callEx) {
+                appendFeedback(messages,
+                        "调用模型异常：" + callEx.getMessage() + "。请仅输出一个 ```json ... ``` 代码块的有效 Node-RED Flow JSON。");
             }
-            return ResponseEntity.ok(text);
         }
-        return ResponseEntity.badRequest().body("发生错误，请稍后重试！");
+        return null;
     }
 
     // 解析JSON规则
@@ -270,6 +340,80 @@ public class AppRuleService {
             log.error("解析JSON规则失败: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 将Node-RED Flow 转换成JSON规则
+     * */
+    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson) {
+        // 构造系统消息和用户消息
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new SystemMessage(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT));
+        messages.add(new UserMessage(nodeRedFlowJson));
+        // 最多重试一次
+        final int MAX_RETRY = 1;
+        for(int attempt=0; attempt<=MAX_RETRY; attempt++) {
+            ChatResponse response;
+            String rawText;
+            try{
+                // 调用大模型
+                response = chatLanguageModel.chat(messages);
+                if (response == null || response.aiMessage() == null) {
+                    appendFeedback(messages,
+                            "模型未返回有效响应（response/aiMessage 为 null）。请仅输出一个 ```json ... ``` 代码块，内容为符合约束的 AppRule JSON。");
+                    continue;
+                }
+                rawText = response.aiMessage().text();
+                if (rawText == null || rawText.isBlank()) {
+                    appendFeedback(messages,
+                            "模型返回文本为空。请仅输出一个 ```json ... ``` 代码块，且不要包含解释性文字。");
+                    continue;
+                }
+                Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(rawText);
+                // 提取JSON
+                if (!matcher.find()) {
+                    appendFeedback(messages,
+                            "未在输出中找到 ```json ... ``` 代码块。请仅输出一个 ```json ... ``` 代码块，且内容必须是单个 JSON 对象。");
+                    continue;
+                }
+                String jsonRule = matcher.group(1).trim();
+                // 判断能否被解析
+                try {
+                    AppRule appRule = parseJsonRule(jsonRule);
+                    if (appRule != null) {
+                        // 通过：返回原始 JSON 字符串
+                        return jsonRule;
+                    } else {
+                        appendFeedback(messages,
+                                "解析失败：parseJsonRule 返回 null。请根据提示修正并仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
+                    }
+                } catch (Exception parseEx) {
+                    appendFeedback(messages,
+                            "解析异常：" + parseEx.getMessage() + "。请修正并仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
+                }
+
+            } catch (Exception callEx) {
+                appendFeedback(messages,
+                        "调用模型异常：" + callEx.getMessage() + "。请仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
+            }
+        }
+        // 全部尝试失败
+        return null;
+    }
+
+    /**
+     * 将失败原因作为「用户消息」追加到同一个 messages 中，引导模型按要求重试。
+     * 这里强调：只输出一个 ```json``` 代码块，且是单个 JSON 对象，不能有多余说明。
+     */
+    private void appendFeedback(List<ChatMessage> messages, String reason) {
+        String guidance =
+                "上一次输出有问题：" + reason + "\n\n" +
+                        "请严格按照以下要求重新生成：\n" +
+                        "1) 仅输出一个代码块，形如：```json\\n{...}\\n```\n" +
+                        "2) 代码块内容必须是**单个 JSON 对象**（不能是数组或多段）。\n" +
+                        "3) 不要在代码块外输出任何解释、注释或额外文本。\n" +
+                        "4) 严格满足系统提示（AppRule JSON 结构与字段约束）。";
+        messages.add(new UserMessage(guidance));
     }
 
 //    public void triggerAppRule(EventTriggerDTO eventTriggerDTO) {

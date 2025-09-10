@@ -29,12 +29,12 @@
               </a-form-item>
             </a-col>
 
-            <a-col :md="8" :sm="24">
+            <a-col :md="10" :sm="24">
               <span>
-                <a-button style="margin-left: 15px" type="primary" @click="doSearch">搜索</a-button>
+                <a-button style="margin-left: 20px" type="primary" @click="doSearch">搜索</a-button>
                 <a-button style="margin-left: 10px" @click="handleReset">重置</a-button>
+                <a-button style="margin-left: 10px" type="dashed" @click="handleBuild">构造应用</a-button>
                 <a-button style="margin-left: 10px" type="dashed" @click="handleCreate">创建应用</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleSave">保存应用</a-button>
               </span>
             </a-col>
           </a-row>
@@ -64,11 +64,8 @@
 
       <a-modal
         :visible="saveVisible"
-        title="保存应用"
+        title="创建应用"
         :confirm-loading="saveLoading"
-        ok-text="保存"
-        cancel-text="取消"
-        @ok="submitSave"
         @cancel="closeSave"
         destroy-on-close
       >
@@ -106,6 +103,11 @@
             />
           </a-form-item>
         </a-form>
+        <template slot="footer">
+          <a-button @click="closeSave">取消</a-button>
+          <a-button type="default" @click="openNodeRed">打开 Node-RED</a-button>
+          <a-button type="primary" :loading="saveLoading" @click="submitSave">保存</a-button>
+        </template>
       </a-modal>
     </a-card>
   </page-header-wrapper>
@@ -116,7 +118,7 @@
 import { message, Modal } from 'ant-design-vue'
 import { ref, reactive } from 'vue'
 import dayjs from 'dayjs'
-import { listTapRule, deleteTap } from '@/api/manage'
+import { listTapRule, deleteTap, createTapRule, getTapDetail, updateTapRule } from '@/api/manage'
 import { STable, Ellipsis } from '@/components'
 
 // 如果是 Vite，请用 import.meta.env.VITE_NODE_RED_URL；如果是 Vue-CLI，保留原样
@@ -133,7 +135,7 @@ const searchParams = reactive({
 // 事件选项
 const eventOptions = [
   { value: 'manhole-flooding', label: '井盖水浸' },
-  { value: 'manhole-tilt', label: '井盖倾斜' },
+  { value: 'manhole-tilte', label: '井盖倾斜' },
   { value: 'truck_detect', label: '渣土车识别' },
   { value: 'ill_parking', label: '机动车违章停车' },
   { value: 'ill_parking2', label: '非机动车违章停车' },
@@ -230,7 +232,7 @@ function handleReset () {
   tableRef.value?.refresh(true)
 }
 
-function handleCreate () {
+function handleBuild () {
   if (NODE_RED_URL) {
     window.open(NODE_RED_URL, '_blank')
   } else {
@@ -238,13 +240,43 @@ function handleCreate () {
   }
 }
 
-function handleSave () {
+function handleCreate () {
   saveVisible.value = true
 }
 
-function handleEdit (record) {
-  console.log('编辑', record)
-  message.info(`编辑：${record?.id ?? ''}`)
+async function handleEdit(record) {
+  const hide = message.loading('正在获取应用数据，请稍等片刻...', 0)
+  try {
+    // 调用接口获取详情
+    const res = await getTapDetail({ id: record.id })
+    if (res) {
+      hide()
+      // 把返回的数据填充到表单
+      saveForm.description = res.description || ''
+      saveForm.flowJson = res.flowJson || ''  // 根据后端字段名调整
+      saveForm.id = res.id  // 如果要更新时带上 id
+
+      // 打开弹窗
+      saveVisible.value = true
+    } else {
+      hide()
+      message.error('未获取到应用数据')
+    }
+  } catch (error) {
+    hide()
+    message.error('获取应用数据失败：' + (error.message || '未知错误'))
+  }
+}
+
+async function openNodeRed () {
+  if(saveForm.flowJson) {
+    await fetch(`${NODE_RED_URL}/flows`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: saveForm.flowJson
+    })
+  }
+  window.open(`${NODE_RED_URL}`, '_blank')
 }
 
 function handleDelete (record) {
@@ -271,6 +303,7 @@ const saveLoading = ref(false)
 const saveFormRef = ref(null)
 
 const saveForm = reactive({
+  id: '',
   description: '',
   flowJson: ''
 })
@@ -278,6 +311,7 @@ const saveForm = reactive({
 function closeSave () {
   saveVisible.value = false
   // 可选：关闭时重置表单
+  saveForm.id = ''
   saveForm.description = ''
   saveForm.flowJson = ''
 }
@@ -305,25 +339,56 @@ async function submitSave () {
       message.error('JSON 格式不正确，请检查后再试')
       return
     }
-    // 这里用示例替代
-    console.log('即将保存：', {
-      description: saveForm.description,
-      flow: JSON.parse(saveForm.flowJson)
-    })
-
-    message.success('保存成功')
-    saveVisible.value = false
-    // 重置并刷新表格（可选）
-    saveForm.description = ''
-    saveForm.flowJson = ''
-    tableRef.value?.refresh?.()
+    // 修改应用
+    if(saveForm.id) {
+      const hide = message.loading('正在更新应用，请稍等片刻...', 0)
+      try {
+        const success = await updateTapRule(saveForm.id, saveForm.description, saveForm.flowJson)
+        if (success) {
+          hide()
+          message.success('应用更新成功')
+          saveVisible.value = false
+          saveForm.id = ''
+          saveForm.description = ''
+          saveForm.flowJson = ''
+          tableRef.value?.refresh?.()
+        } else {
+          hide()
+          message.error('应用更新失败，请稍后重试')
+        }
+      } catch (error) {
+        hide()
+        message.error('应用更新失败: ' + error.message)
+      }
+    }
+    // 创建应用
+    else {
+      const hide = message.loading('正在创建应用，请稍等片刻...', 0)
+      try {
+        const projectId = localStorage.getItem('project_id')
+        const success = await createTapRule(projectId, saveForm.description, "", saveForm.flowJson)
+        if (success) {
+          hide()
+          message.success('应用创建成功')
+          saveVisible.value = false
+          saveForm.id = ''
+          saveForm.description = ''
+          saveForm.flowJson = ''
+          tableRef.value?.refresh?.()
+        } else {
+          hide()
+          message.error('应用创建失败，请稍后重试')
+        }
+      } catch (error) {
+        hide()
+        message.error('应用创建失败: ' + error.message)
+      }
+    }
   } catch (err) {
-    // 校验失败或接口报错
     if (err?.errorFields) {
       // 表单校验错误由 antdv 弹出
     } else {
-      console.error('保存失败：', err)
-      message.error(`保存失败：${err?.message || '未知错误'}`)
+      message.error(`创建失败：${err?.message || '未知错误'}`)
     }
   } finally {
     saveLoading.value = false
