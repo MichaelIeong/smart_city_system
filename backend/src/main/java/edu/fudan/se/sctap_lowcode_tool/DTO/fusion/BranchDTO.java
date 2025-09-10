@@ -12,7 +12,6 @@ public class BranchDTO {
     private String status;
     private String ruleJson;
     private String flowJson;
-    private String remark;
     private Integer spaceId; // 仅返回ID，避免懒加载问题
 
     public static BranchDTO from(FusionRuleBranch b) {
@@ -24,7 +23,7 @@ public class BranchDTO {
         dto.setStatus(b.getStatus());
         dto.setRuleJson(b.getRuleJson());
         dto.setFlowJson(b.getFlowJson());
-        dto.setSpaceId(b.getSpaceId());
+        dto.setSpaceId(b.getSpace() == null ? null : b.getSpace().getSpaceId());
         return dto;
     }
 }

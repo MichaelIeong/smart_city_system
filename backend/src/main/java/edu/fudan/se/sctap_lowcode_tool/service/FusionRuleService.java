@@ -71,7 +71,6 @@ public class FusionRuleService {
         if (!fusionRuleRepository.existsById(ruleId)) {
             return false;
         }
-
         // 1) 先删子：逐条删分支（避免 @Modifying 批量更新需要事务）
         List<FusionRuleBranch> branches = branchRepo.findByRule_RuleId(ruleId);
         if (branches != null && !branches.isEmpty()) {
@@ -80,7 +79,6 @@ public class FusionRuleService {
                 branchRepo.deleteById(b.getBranchId());
             }
         }
-
         // 2) 再删父：删除主干
         fusionRuleRepository.deleteById(ruleId);
         return true;
@@ -155,14 +153,6 @@ public class FusionRuleService {
 
     /**
      * 按可执行空间创建分支；spaceIds == null 表示对全部可执行空间处理；
-     * 非空表示仅对子集处理。
-     * 返回结构：
-     * {
-     * "createdBranches": 2,
-     * "created": [{branchId, spaceId, spaceName}],
-     * "skipped": [{spaceId, reason}],
-     * "errors":  [{spaceId, error}]
-     * }
      */
     public Map<String, Object> applyRuleToExecutableSpaces(int ruleId,
                                                            boolean activateNewBranches,

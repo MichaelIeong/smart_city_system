@@ -18,13 +18,12 @@ public class FusionRuleBranch {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", nullable = false)
-    @JsonIgnore // ✅ 避免把主干规则懒代理序列化出去
+    @JsonIgnore
     private FusionRule rule;
 
-    // ✅ 正确映射 space（可为空）
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "space_id")
-    @JsonIgnore // ✅ 不直接序列化 LAZY 对象，前端用 spaceId 即可
+    @JsonIgnore
     private SpaceInfo space;
 
     @Column(name = "branch_index", nullable = false)
@@ -46,10 +45,4 @@ public class FusionRuleBranch {
     @Lob
     @Column(name = "flow_json", columnDefinition = "LONGTEXT")
     private String flowJson;
-
-    // ✅ 供前端使用的只读字段：返回 spaceId
-    @Transient
-    public Integer getSpaceId() {
-        return space == null ? null : space.getSpaceId();
-    }
 }
