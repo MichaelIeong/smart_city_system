@@ -121,28 +121,28 @@ public class FusionRuleController {
     public ResponseEntity<Map<String, Object>> applyToExecutableSpaces(
             @PathVariable int ruleId,
             @RequestParam(name = "activate", defaultValue = "false") boolean activateNewBranches,
-            @RequestBody(required = false) Map<String, Object> body
-    ) {
-        List<Integer> spaceIds = null;
+            @RequestBody(required = false) Map<String, Object> body) {
 
-        if (body != null && body.get("spaceIds") != null) {
-            Object raw = body.get("spaceIds");
-            if (raw instanceof List<?>) {
-                // 兼容 [1,2] / ["1","2"] / 混合类型
-                spaceIds = ((List<?>) raw).stream()
-                        .flatMap(o -> {
-                            if (o == null) return Stream.empty();
-                            if (o instanceof Integer i) return Stream.of(i);
-                            if (o instanceof Number n) return Stream.of(n.intValue());
-                            try {
-                                return Stream.of(Integer.parseInt(String.valueOf(o)));
-                            } catch (Exception e) {
-                                return Stream.empty();
-                            }
-                        })
-                        .distinct()
-                        .collect(Collectors.toList());
-            }
+        if (body == null || body.get("spaceIds") == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "spaceIds 不能为空"));
+        }
+
+        List<Integer> spaceIds = ((List<?>) body.get("spaceIds")).stream()
+                .flatMap(o -> {
+                    if (o == null) return Stream.empty();
+                    if (o instanceof Integer i) return Stream.of(i);
+                    if (o instanceof Number n) return Stream.of(n.intValue());
+                    try {
+                        return Stream.of(Integer.parseInt(String.valueOf(o)));
+                    } catch (Exception e) {
+                        return Stream.empty();
+                    }
+                })
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (spaceIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "spaceIds 不能为空"));
         }
 
         Map<String, Object> result =

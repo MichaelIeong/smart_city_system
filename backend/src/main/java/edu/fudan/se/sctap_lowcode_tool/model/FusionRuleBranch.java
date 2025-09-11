@@ -26,9 +26,6 @@ public class FusionRuleBranch {
     @JsonIgnore
     private SpaceInfo space;
 
-    @Column(name = "branch_index", nullable = false)
-    private Integer branchIndex;
-
     @Column(name = "branch_name")
     private String branchName;
 

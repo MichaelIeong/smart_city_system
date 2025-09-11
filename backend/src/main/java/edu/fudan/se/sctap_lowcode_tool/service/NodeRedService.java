@@ -60,9 +60,10 @@ public class NodeRedService {
 
         Integer projectId = msg.get("projectId") != null ? msg.get("projectId").asInt() : null;
         Integer spaceId = msg.get("spaceId") != null ? msg.get("spaceId").asInt() : null;
-        String branchName = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
-        String status = msg.get("status") != null ? msg.get("status").asText() : "inactive";
+        String branchNameReq = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
+        String statusReq = msg.get("status") != null ? msg.get("status").asText() : "inactive";
 
+        // 先建主干
         FusionRule rule = new FusionRule();
         rule.setRuleName(ruleName);
         if (projectId != null) {
@@ -70,26 +71,30 @@ public class NodeRedService {
         }
         fusionRuleRepository.save(rule);
 
+        // 取空间（可为空）
         SpaceInfo space = null;
         if (spaceId != null) {
             space = spaceRepository.findById(spaceId)
                     .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
         }
 
-        // 下一个分支序号
-        int nextIdx = branchRepo.findMaxIndexByRule(rule.getRuleId()) + 1;
-        String finalBranchName = (branchName == null || branchName.isBlank())
-                ? ruleName + " " + nextIdx
-                : branchName;
+        // 分支名策略：优先用前端传入 -> 其次用空间名 -> 否则回退 ruleName
+        String finalBranchName;
+        if (branchNameReq != null && !branchNameReq.isBlank()) {
+            finalBranchName = branchNameReq.trim();
+        } else if (space != null && space.getSpaceName() != null && !space.getSpaceName().isBlank()) {
+            finalBranchName = space.getSpaceName().trim();
+        } else {
+            finalBranchName = ruleName;
+        }
 
         // 创建分支（承载可运行内容）
         FusionRuleBranch branch = new FusionRuleBranch();
         branch.setRule(rule);
         branch.setSpace(space);
-        branch.setBranchIndex(nextIdx);
         branch.setBranchName(finalBranchName);
         branch.setFusionTarget(fusionTarget);
-        branch.setStatus((status == null || status.isBlank()) ? "inactive" : status);
+        branch.setStatus((statusReq == null || statusReq.isBlank()) ? "inactive" : statusReq.trim());
         branch.setRuleJson(ruleJsonNode.toString());
         branch.setFlowJson(flowJsonNode.toString());
 
@@ -97,7 +102,7 @@ public class NodeRedService {
 
         System.out.println("已创建主干 ruleId=" + rule.getRuleId()
                 + " 与分支 branchId=" + branch.getBranchId()
-                + "（branchIndex=" + nextIdx + "）");
+                + "（branch_index 已移除，不再使用）");
     }
 
     /**
@@ -160,7 +165,7 @@ public class NodeRedService {
      * 获取与 Space 表有关联的所有表名（静态定义）
      */
     public List<String> getAllFusionTable() {
-        return List.of("person","null");
+        return List.of("person", "null");
     }
 
     /**
