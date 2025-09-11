@@ -2,6 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
@@ -114,111 +116,143 @@ public class FusionRuleService {
     }
 
     /**
-     * 创建分支：branchName 为空则默认“主干名 + index”；index 为当前最大 + 1。
-     * spaceId 可为 null（不按空间区分的分支）。
-     */
-    public int createBranch(Integer ruleId,
-                            Integer spaceId,
-                            String branchName,
-                            String fusionTarget,
-                            String status,
-                            String ruleJson,
-                            String flowJson,
-                            String remark) {
-        FusionRule rule = fusionRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
-
-        SpaceInfo space = null;
-        if (spaceId != null) {
-            space = spaceRepository.findById(spaceId)
-                    .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
-        }
-
-        int nextIdx = branchRepo.findMaxIndex(ruleId, spaceId) + 1;
-
-        FusionRuleBranch b = new FusionRuleBranch();
-        b.setRule(rule);
-        b.setSpace(space);
-        b.setBranchIndex(nextIdx);
-        b.setBranchName((branchName == null || branchName.isBlank())
-                ? rule.getRuleName() + " " + nextIdx
-                : branchName);
-        b.setFusionTarget(fusionTarget);
-        b.setStatus(status == null ? "inactive" : status);
-        b.setRuleJson(ruleJson);
-        b.setFlowJson(flowJson);
-
-        return branchRepo.save(b).getBranchId();
-    }
-
-    /**
      * 按可执行空间创建分支；spaceIds == null 表示对全部可执行空间处理；
      */
     public Map<String, Object> applyRuleToExecutableSpaces(int ruleId,
                                                            boolean activateNewBranches,
                                                            List<Integer> spaceIds) {
+        if (spaceIds == null || spaceIds.isEmpty()) {
+            throw new IllegalArgumentException("spaceIds 不能为空");
+        }
+
         Map<String, Object> out = new HashMap<>();
         List<Map<String, Object>> created = new ArrayList<>();
-        List<Map<String, Object>> skipped = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>();
 
+        // 1) 主干 & 模板分支（优先 active，否则按 branchId 最小）
         FusionRule rule = fusionRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException("规则未找到: " + ruleId));
 
-        // 1) 可执行空间全集（建议与你的 Controller 的 getExecutableSpaces 复用）
-        List<Map<String, Object>> executableSpaces = getExecutableSpaces(ruleId);
+        FusionRuleBranch template = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可用于拷贝的分支（缺少 ruleJson/flowJson）"));
 
-        // 2) 子集过滤（如果传了 spaceIds）
-        if (spaceIds != null) {
-            Set<Integer> allow = new HashSet<>(spaceIds);
-            executableSpaces.removeIf(m -> !allow.contains((Integer) m.get("id")));
-        }
+        final String baseFusionTarget = template.getFusionTarget();
+        final String baseRuleJson = template.getRuleJson();
+        final String baseFlowJson = template.getFlowJson();
 
-        // 3) 逐空间处理
-        for (Map<String, Object> sp : executableSpaces) {
-            Integer sid = (Integer) sp.get("id");
-            String sname = String.valueOf(sp.get("name"));
+        final ObjectMapper mapper = new ObjectMapper();
 
+        // 2) 逐空间创建
+        for (Integer sid : spaceIds) {
             try {
-                // 3.1 已存在则跳过
-                if (branchRepo.existsByRuleAndSpace(ruleId, sid)) {
-                    skipped.add(Map.of("spaceId", sid, "reason", "已存在分支"));
-                    continue;
-                }
-
                 SpaceInfo space = spaceRepository.findById(sid)
                         .orElseThrow(() -> new IllegalArgumentException("空间不存在: " + sid));
 
-                // 3.2 生成 index
-                int nextIdx = branchRepo.findMaxIndexByRule(ruleId) + 1;
+                String spaceName = Optional.ofNullable(space.getSpaceName()).orElse("").trim();
+                if (spaceName.isEmpty()) spaceName = "空间#" + sid;
 
-                // 3.3 组装分支
+                // —— 就地替换：把所有键名为 "location" 的文本值替换为当前 spaceName —— //
+                String ruleJsonForSpace = baseRuleJson;
+                String flowJsonForSpace = baseFlowJson;
+
+                if (ruleJsonForSpace != null && !ruleJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(ruleJsonForSpace);
+                        // 用一个栈做深度遍历，避免额外方法
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        ruleJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                if (flowJsonForSpace != null && !flowJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(flowJsonForSpace);
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        flowJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                // 3) 组装并保存新分支
                 FusionRuleBranch branch = new FusionRuleBranch();
                 branch.setRule(rule);
                 branch.setSpace(space);
-                branch.setBranchIndex(nextIdx);
-                branch.setBranchName(rule.getRuleName() + " " + nextIdx);
+                branch.setBranchName(spaceName);                       // 名称=location=空间名
+                branch.setFusionTarget(baseFusionTarget);              // 复制模板
                 branch.setStatus(activateNewBranches ? "active" : "inactive");
-                // 如果需要：branch.setFusionTarget(...) / setRuleJson(...) / setFlowJson(...)
+                branch.setRuleJson(ruleJsonForSpace);
+                branch.setFlowJson(flowJsonForSpace);
 
-                branchRepo.save(branch);
+                branchRepo.saveAndFlush(branch);
 
                 created.add(Map.of(
                         "branchId", branch.getBranchId(),
                         "spaceId", sid,
-                        "spaceName", sname
+                        "spaceName", spaceName
                 ));
             } catch (Exception ex) {
+                // 唯一约束冲突/其他异常直接记录为错误项（executableSpaces 已过滤过已存在）
                 errors.add(Map.of(
                         "spaceId", sid,
-                        "error", ex.getMessage()
+                        "error", ex.getClass().getSimpleName() + ": " + ex.getMessage()
                 ));
             }
         }
 
         out.put("createdBranches", created.size());
         out.put("created", created);
-        out.put("skipped", skipped);
         out.put("errors", errors);
         return out;
     }
@@ -275,41 +309,24 @@ public class FusionRuleService {
      * 选一个分支（优先 active，否则最小 index），用其 ruleJson 做能力匹配。
      */
     public List<Map<String, Object>> getExecutableSpaces(int ruleId) {
-        FusionRule rule = fusionRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("规则 ID 不存在: " + ruleId));
+        FusionRuleBranch probe = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可用于分析的分支或分支缺少 ruleJson"));
 
-        Optional<FusionRuleBranch> branchOpt = branchRepo.pickOneForExecution(ruleId, null).stream().findFirst();
-        if (branchOpt.isEmpty() || branchOpt.get().getRuleJson() == null) {
-            throw new IllegalStateException("该规则没有可用于分析的分支或分支缺少 ruleJson");
-        }
-
-        String ruleJsonStr = branchOpt.get().getRuleJson();
-        ObjectMapper mapper = new ObjectMapper();
         JsonNode ruleJson;
         try {
-            ruleJson = mapper.readTree(ruleJsonStr);
+            ruleJson = new ObjectMapper().readTree(probe.getRuleJson());
         } catch (Exception e) {
             throw new RuntimeException("解析分支规则 JSON 失败", e);
         }
 
-        // 先把 SpaceId->Name 做成 map
         List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
-        Map<Integer, String> id2name = allSpaces.stream()
-                .collect(Collectors.toMap(SpaceInfo::getSpaceId, SpaceInfo::getSpaceName));
-
-        // 逐空间做能力匹配，产出 [{id,name}]
-        List<Map<String, Object>> out = new ArrayList<>();
-        for (SpaceInfo space : allSpaces) {
-            Integer sid = space.getSpaceId();
-            if (sid == null) continue;
-            if (canRuleRunInLocation(ruleJson, sid)) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id", sid);
-                m.put("name", id2name.getOrDefault(sid, "空间 #" + sid));
-                out.add(m);
-            }
-        }
-        return out;
+        return allSpaces.stream()
+                .filter(sp -> sp.getSpaceId() != null)
+                .filter(sp -> canRuleRunInLocation(ruleJson, sp.getSpaceId()))                  // 能力匹配
+                .filter(sp -> !branchRepo.existsByRuleAndSpace(ruleId, sp.getSpaceId()))       // 仅此处过滤“已存在”
+                .map(sp -> Map.<String, Object>of("id", sp.getSpaceId(), "name", sp.getSpaceName()))
+                .collect(Collectors.toList());
     }
 
     /* =========================

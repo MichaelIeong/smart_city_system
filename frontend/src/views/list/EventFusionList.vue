@@ -73,7 +73,6 @@
                 :scroll="{ x: 600, y: 'calc(100vh - 540px)' }"
                 style="flex:1;"
               >
-                <!-- 新增：实例名称的自定义插槽 -->
                 <span slot="branchName" slot-scope="text">
                   <a-tooltip :title="text">
                     <span class="one-line-ellipsis">{{ text }}</span>
@@ -157,7 +156,7 @@
             <a-checkbox
               v-for="sp in applyModal.spaces"
               :key="sp.id"
-              :value="sp.id"
+              :value="Number(sp.id)"
             >
               {{ sp.name }}
             </a-checkbox>
@@ -221,7 +220,7 @@ export default {
       selectedRows: [],
       modelModalVisible: false,
 
-      activeRule: null, // 当前选中的主干
+      activeRule: null,
 
       // 实例
       branchColumns: [
@@ -234,7 +233,7 @@ export default {
       filteredBranches: [],
       branchQuery: { status: 'all' },
 
-      // 实例弹窗（仅编辑名称）
+      // 实例弹窗
       branchModal: {
         visible: false,
         loading: false,
@@ -278,7 +277,6 @@ export default {
     this.refreshTable()
   },
   methods: {
-    /** 规范化 Node-RED 基地址（去掉尾部 /） */
     _nrBase () {
       if (!NODE_RED_URL) {
         message.error('未配置 NODE_RED_URL')
@@ -286,8 +284,6 @@ export default {
       }
       return String(NODE_RED_URL).replace(/\/$/, '')
     },
-
-    /** 规范化 flow：把被 stringify 的 JSON（最多两层）还原为对象/数组 */
     _normalizeFlow (fj) {
       let v = fj
       for (let i = 0; i < 2 && typeof v === 'string'; i++) {
@@ -308,8 +304,6 @@ export default {
       }
       return v
     },
-
-    /** 推送 flow 到 Node-RED Admin API 然后打开编辑器 */
     async pushFlowAndOpen (flowJson, { deployType = 'flows' } = {}) {
       const base = this._nrBase()
       const normalized = this._normalizeFlow(flowJson)
@@ -331,6 +325,7 @@ export default {
       }
       window.open(`${base}`, '_blank')
     },
+
     // ===== Space 映射 =====
     async fetchSpaceMap () {
       try {
@@ -353,10 +348,6 @@ export default {
         if (this.data.length > 0) this.onPickRule(this.data[0])
       })
     },
-    resetSearchForm () {
-      this.queryParam.status = 'all'
-      this.refreshTable()
-    },
     handleAdd () {
       if (!NODE_RED_URL) {
         message.error('未配置 NODE_RED_URL')
@@ -366,7 +357,6 @@ export default {
       window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
     },
 
-    // 仅“主干改名”
     handleEdit (record) {
       this.ruleModal.model = { ruleId: record.ruleId, ruleName: record.ruleName }
       this.openRuleModal()
@@ -414,17 +404,14 @@ export default {
       axios.get(`${BASE}/api/fusion/executableSpaces/${rule.ruleId}`)
         .then(res => {
           const list = Array.isArray(res.data) ? res.data : []
-          // 兼容两种返回格式：
-          // 1) 老： [number, number, ...]
-          // 2) 新： [{ id, name }, ...]
+          console.debug('[executableSpaces]', list)
+
           if (list.length > 0 && typeof list[0] === 'number') {
-            // 老格式：只有 ID，继续用 spaceMap 映射名称
             this.applyModal.spaces = list.map(id => ({
               id,
               name: this.spaceMap[id] || `空间 #${id}`
             }))
           } else {
-            // 新格式：后端已给出 name，直接使用；缺失时再兜底 spaceMap
             this.applyModal.spaces = list.map(it => ({
               id: it.id,
               name: it.name || this.spaceMap[it.id] || `空间 #${it.id}`
@@ -453,12 +440,37 @@ export default {
       this.applyModal.loading = true
       try {
         const { ruleId } = this.applyModal.rule
+        const ids = this.applyModal.selectedSpaceIds.map(x => Number(x)).filter(x => !Number.isNaN(x))
+
         const res = await axios.post(
           `${BASE}/api/fusion/rules/${ruleId}/applyToExecutableSpaces`,
-          { spaceIds: this.applyModal.selectedSpaceIds },
+          { spaceIds: ids },
           { params: { activate: false } }
         )
-        message.success(`已套用：新建 ${res.data?.createdBranches || 0} 个实例`)
+
+        const created = res?.data?.created || []
+        const errors = res?.data?.errors || []
+        const okCount = res?.data?.createdBranches ?? created.length
+
+        if (okCount > 0) {
+          message.success(`已套用：新建 ${okCount} 个实例`)
+        }
+        if (errors.length > 0) {
+          Modal.error({
+            title: '部分空间套用失败',
+            width: 700,
+            content: (
+              <div style="max-height:40vh; overflow:auto;">
+                <ul>
+                  {errors.map((e, i) => (
+                    <li key={i}>spaceId={e.spaceId}，错误：{String(e.error)}</li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })
+        }
+
         this.closeApplyModal()
         if (this.activeRule && this.activeRule.ruleId === ruleId) {
           await this.fetchBranches(ruleId)
@@ -650,7 +662,6 @@ export default {
         const branchId = model?.branchId
         let branch = this.branches.find(b => b.branchId === branchId)
 
-        // 如果列表项里没有 flowJson，则补拉一次详情
         if (!branch || !branch.flowJson) {
           const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}`)
           branch = { ...(branch || {}), ...(data || {}) }
@@ -692,6 +703,14 @@ export default {
 
 .ant-table-wrapper {
   height: 100%;
+}
+
+.one-line-ellipsis {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

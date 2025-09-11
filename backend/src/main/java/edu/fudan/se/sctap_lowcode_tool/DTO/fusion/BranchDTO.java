@@ -17,7 +17,6 @@ public class BranchDTO {
     public static BranchDTO from(FusionRuleBranch b) {
         BranchDTO dto = new BranchDTO();
         dto.setBranchId(b.getBranchId());
-        dto.setBranchIndex(b.getBranchIndex());
         dto.setBranchName(b.getBranchName());
         dto.setFusionTarget(b.getFusionTarget());
         dto.setStatus(b.getStatus());
