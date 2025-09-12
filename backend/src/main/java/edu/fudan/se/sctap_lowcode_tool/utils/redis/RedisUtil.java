@@ -37,9 +37,9 @@ public class RedisUtil {
      * */
     public void setWait(String key, Map<String, Object> data) throws JsonProcessingException {
         // 序列化 Map<String, Object> 为 JSON 字符串
-        String json = objectMapper.writeValueAsString(data);
+        String jsonData = objectMapper.writeValueAsString(data);
         // 写入 Redis
-        stringRedisTemplate.opsForValue().set(key, json);
+        stringRedisTemplate.opsForValue().set(key, jsonData);
     }
 
     /**

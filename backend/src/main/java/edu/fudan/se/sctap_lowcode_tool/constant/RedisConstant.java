@@ -1,10 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.constant;
 
 public class RedisConstant {
-    public static final String Event_Prefix = "event:";
-    public static final String Property_Prefix = "property:";
-    public static final String Action_Prefix = "action:";
-    public static final String NATURAL_PROMPT = "natural_prompt";
-    public static final String Time_Wait = "time_wait:";
-    public static final String Action_Wait = "action_wait:";
+    public static final String TimeWait = "time_wait:";
+    public static final String ActionWait = "action_wait:";
 }

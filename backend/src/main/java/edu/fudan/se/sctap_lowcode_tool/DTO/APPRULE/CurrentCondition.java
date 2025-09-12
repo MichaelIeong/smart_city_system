@@ -9,7 +9,7 @@ public class CurrentCondition {
     private String right;
 
     @Data
-    static class CurrentLeft {
+    public static class CurrentLeft {
         private String type;
 
         private String property;
