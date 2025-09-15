@@ -17,7 +17,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # 使用来自Docker Hub的官方OpenJDK镜像作为运行阶段
-FROM openjdk:22
+FROM openjdk:17
 
 # 添加一个指向/tmp的卷
 VOLUME /tmp
