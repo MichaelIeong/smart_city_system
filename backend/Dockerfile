@@ -19,6 +19,10 @@ RUN mvn clean package -DskipTests
 # 使用来自Docker Hub的官方OpenJDK镜像作为运行阶段
 FROM openjdk:17
 
+# 设置时区为上海
+ENV TIME_ZONE=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
+
 # 添加一个指向/tmp的卷
 VOLUME /tmp
 
