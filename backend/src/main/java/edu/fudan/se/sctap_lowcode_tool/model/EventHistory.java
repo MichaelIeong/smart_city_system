@@ -8,34 +8,34 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "event_history")
 @Data
-// TODO: 表结构需要修改，等待重构
 public class EventHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
-    private int historyId;   // 历史记录的唯一标识符，应有其自己的ID
+    @Column(name = "history_id")
+    private Integer historyId;
 
-    @Column(nullable = false)
-    private String eventType; // 事件类型
+    @Column(name = "event_type", nullable = false)
+    private String eventType;
 
-    @Column(nullable = false)
-    private String location; // 事件发生的位置
+    @Column(name = "location", nullable = false)
+    private String location;
 
-    @Column(nullable = false)
-    private int objectId; // 事件相关对象的ID
+    @Column(name = "object_id")
+    private Integer objectId;
 
-    @Column
-    private String eventData; // 事件数据
+    @Lob
+    @Column(name = "event_data")
+    private String eventData;
 
-    @Column
-    private String dataValue; // 数据值
+    @Column(name = "data_value")
+    private String dataValue;
 
-    @Column
-    private String state; // 状态
+    @Column(name = "state")
+    private String state;
 
-    @Column(nullable = false)
-    private LocalDateTime timestamp; // 事件发生的时间
+    @Column(name = "timestamp", nullable = false)
+    private LocalDateTime timestamp;
 
-    @Column
-    private String eventDetails; // 事件详情
+    @Column(name = "event_details")
+    private String eventDetails;
 }

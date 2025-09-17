@@ -33,7 +33,7 @@ public class RedisUtil {
     }
 
     /**
-     * 存储Chain
+     * 存储wait
      * */
     public void setWait(String key, Map<String, Object> data) throws JsonProcessingException {
         // 序列化 Map<String, Object> 为 JSON 字符串

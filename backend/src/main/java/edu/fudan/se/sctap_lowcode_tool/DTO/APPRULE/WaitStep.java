@@ -46,5 +46,15 @@ public class WaitStep implements ChainStep{
         public boolean isActionWait() {
             return action_wait != null;
         }
+
+        public String getWaitKey() {
+            Map<String, String> waitParams;
+            if (isTimeWait()) {
+                waitParams = time_wait.wait_params;
+            } else {
+                waitParams = action_wait.wait_params;
+            }
+            return waitParams.entrySet().iterator().next().getKey();
+        }
     }
 }

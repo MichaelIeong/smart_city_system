@@ -2,11 +2,15 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
+import edu.fudan.se.sctap_lowcode_tool.service.AppRuleExecutorService;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
+import edu.fudan.se.sctap_lowcode_tool.service.EventHistoryService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -14,6 +18,12 @@ import java.util.*;
 public class AppRuleController {
     @Resource
     private AppRuleService appRuleService;
+
+    @Resource
+    private AppRuleExecutorService appRuleExecutorService;
+
+    @Resource
+    private EventHistoryService eventHistoryService;
 
     @GetMapping
     public PageDTO<AppRuleInfo> queryAll(
@@ -108,7 +118,7 @@ public class AppRuleController {
      * */
     @PostMapping("/trigger")
     public void triggerAppRule(@RequestBody EventTriggerRequest eventTriggerRequest) {
-        appRuleService.triggerAppRule(eventTriggerRequest);
+        appRuleExecutorService.triggerAppRule(eventTriggerRequest);
     }
 
     /**
@@ -116,7 +126,15 @@ public class AppRuleController {
      * */
     @PostMapping("/complete")
     public void complete(@RequestBody AppRuleCompleteRequest appRuleCompleteRequest) {
-        appRuleService.complete(appRuleCompleteRequest);
+        appRuleExecutorService.complete(appRuleCompleteRequest);
     }
 
+    /**
+     * 获取tsl事件数据
+     * */
+    @GetMapping ("/tsl/getEventData")
+    public ResponseEntity<List<Map<String, Object>>> getTslEventData(@RequestParam("pageNum") int pageNum, @RequestParam("pageSize") int pageSize) {
+        List<Map<String, Object>> eventData = appRuleExecutorService.getTslEventData(pageNum, pageSize);
+        return ResponseEntity.ok(eventData);
+    }
 }
