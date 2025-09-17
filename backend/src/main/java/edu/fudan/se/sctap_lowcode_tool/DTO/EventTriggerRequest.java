@@ -5,9 +5,10 @@ import lombok.Data;
 import java.util.Map;
 
 @Data
-public class EventTriggerDTO {
+public class EventTriggerRequest {
+    private Integer projectId;
 
-    private String event_type;
+    private String eventType;
 
     private Map<String, String> params;
 }

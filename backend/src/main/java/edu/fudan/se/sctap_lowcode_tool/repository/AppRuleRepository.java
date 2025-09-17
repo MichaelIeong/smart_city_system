@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
@@ -14,6 +15,14 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     Page<AppRuleInfo> findAllByProjectId(@Param("projectId") Integer projectId, Pageable pageable);
 
     Optional<AppRuleInfo> findById(int id);
+
+    @Query("""
+        SELECT a FROM AppRuleInfo a WHERE a.eventType = :eventType AND a.project.projectId = :projectId
+    """)
+    List<AppRuleInfo> findByEventTypeAndProjectId(
+            @Param("eventType") String eventType,
+            @Param("projectId") Integer projectId);
+
 
     @Query("""
         SELECT a FROM AppRuleInfo a

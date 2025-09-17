@@ -11,7 +11,7 @@ public class HistoryCondition {
     private String right;
 
     @Data
-    static class HistoryLeft {
+    public static class HistoryLeft {
         private String func;
         private Map<String, String> func_params;
     }

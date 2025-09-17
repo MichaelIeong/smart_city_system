@@ -103,20 +103,20 @@ public class AppRuleController {
     }
 
 
-//    /**
-//     * 触发应用规则
-//     * */
-//    @PostMapping("/trigger")
-//    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
-//        appRuleService.triggerAppRule(eventTriggerDTO);
-//    }
-//
-//    /**
-//     * 动作完成上报
-//     * */
-//    @PostMapping("/action/complete")
-//    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
-//        appRuleService.actionComplete(actionCompleteDTO);
-//    }
+    /**
+     * 事件触发应用规则
+     * */
+    @PostMapping("/trigger")
+    public void triggerAppRule(@RequestBody EventTriggerRequest eventTriggerRequest) {
+        appRuleService.triggerAppRule(eventTriggerRequest);
+    }
+
+    /**
+     * 动作完成上报
+     * */
+    @PostMapping("/complete")
+    public void complete(@RequestBody AppRuleCompleteRequest appRuleCompleteRequest) {
+        appRuleService.complete(appRuleCompleteRequest);
+    }
 
 }

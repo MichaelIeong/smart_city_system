@@ -28,7 +28,11 @@ public class AppRuleExecutor {
         scheduler.scheduleAtFixedRate(appRuleService::cleanUpOldData, 0, 1, TimeUnit.HOURS);
 
         // 每隔 30 秒执行一次检查任务
-        // 调用 checkExpiredChain 方法
-//        scheduler.scheduleAtFixedRate(appRuleService::checkExpiredChain, 0, 30, TimeUnit.SECONDS);
+        // 调用 checkExpiredTimeWait 方法
+        scheduler.scheduleAtFixedRate(appRuleService::checkExpiredTimeWait, 0, 30, TimeUnit.SECONDS);
+
+        // 每隔 10 分钟执行一次检查任务
+        // 调用 checkExpiredActionWait 方法
+        scheduler.scheduleAtFixedRate(appRuleService::checkExpiredActionWait, 0, 10, TimeUnit.MINUTES);
     }
 }
