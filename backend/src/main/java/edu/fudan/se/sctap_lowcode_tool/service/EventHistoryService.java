@@ -14,13 +14,8 @@ public class EventHistoryService {
     @Resource
     private EventHistoryRepository eventHistoryRepository;
 
-    @Transactional(
-        transactionManager = "transactionManager", // 指定 JPA 事务管理器
-        propagation = Propagation.REQUIRES_NEW
-    )
+    @Transactional(transactionManager = "jpaTransactionManager", propagation = Propagation.REQUIRES_NEW)
     public void saveEventHistory(EventHistory eventHistory) {
-        log.info("保存历史事件: {}", eventHistory);
         eventHistoryRepository.save(eventHistory);
-        log.info("保存历史事件成功...");
     }
 }

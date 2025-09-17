@@ -8,7 +8,7 @@ import org.springframework.data.neo4j.core.transaction.Neo4jTransactionManager;
 @Configuration
 public class Neo4jTransactionConfig {
 
-    @Bean
+    @Bean(name = "neo4jTransactionManager")
     public Neo4jTransactionManager transactionManager(
             Driver driver,
             DatabaseSelectionProvider databaseSelectionProvider

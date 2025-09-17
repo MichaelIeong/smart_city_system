@@ -224,7 +224,7 @@ public class AppRuleExecutorService {
     /**
      * 存储历史事件
      * */
-    private void storeEventHistory(String eventType, Map<String, Object> eventParams, String waitValue) {
+    public void storeEventHistory(String eventType, Map<String, Object> eventParams, String waitValue) {
         addLog(LogConstant.INFO, eventType, waitValue, "存储历史事件...");
         EventHistory eventHistory = new EventHistory();
         eventHistory.setEventType(eventType);
@@ -235,10 +235,6 @@ public class AppRuleExecutorService {
             addLog(LogConstant.ERROR, eventType, waitValue, "存储历史事件失败: " + e.getMessage());
         }
         eventHistory.setTimestamp(LocalDateTime.now());
-        System.out.println("----------");
-        System.out.println(eventParams);
-        System.out.println(eventHistory);
-        System.out.println("----------");
         eventHistoryService.saveEventHistory(eventHistory);
     }
 
@@ -557,8 +553,7 @@ public class AppRuleExecutorService {
         List<EventHistory> eventHistories = eventHistoryRepository.findByEventTypeSince(eventType, startTime);
         int count = 0;
         if(funcKey==null) {
-            // 由于本次上报事件也会计入，所以需要减1
-            count = eventHistories.size() - 1;
+            count = eventHistories.size();
             addLog(LogConstant.INFO, eventType, waitValue, "历史事件次数计算结果为: " + count);
             return count;
         }
@@ -574,8 +569,6 @@ public class AppRuleExecutorService {
                 return 0;
             }
         }
-        // 由于本次上报事件也会计入，所以需要减1
-        count = count - 1;
         addLog(LogConstant.INFO, eventType, waitValue, "历史事件次数计算结果为: " + count);
         return count;
     }
