@@ -17,7 +17,9 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
 import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.AppRuleLog;
 import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
+import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleLogRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EventHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
@@ -48,6 +50,9 @@ public class AppRuleExecutorService {
 
     @Resource
     private EventHistoryService eventHistoryService;
+
+    @Resource
+    private AppRuleLogRepository appRuleLogRepository;
 
     @Resource
     private RedisUtil redisUtil;
@@ -688,6 +693,28 @@ public class AppRuleExecutorService {
         appRuleWaitMap.put(eventType, waitSet);
         addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
         addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+        // 将日志存入数据库
+        saveLog(eventType, waitValue);
+    }
+
+    /**
+     * 将日志存入数据库
+     */
+    public void saveLog(String eventType, String waitValue) {
+        try {
+            AppRuleLog appRuleLog = new AppRuleLog();
+            appRuleLog.setEventType(eventType);
+            appRuleLog.setWaitValue(waitValue);
+            // 从 appRuleLogMap 中获取
+            List<String> logs = appRuleLogMap.get(eventType).get(waitValue);
+            appRuleLog.setLogs(objectMapper.writeValueAsString(logs));
+            appRuleLog.setTimestamp(LocalDateTime.now());
+            appRuleLogRepository.save(appRuleLog);
+            // 删除 appRuleLogMap 中
+            appRuleLogMap.get(eventType).remove(waitValue);
+        } catch (JsonProcessingException e) {
+            log.error("日志转换失败{}", e.getMessage());
+        }
     }
 
     /**
@@ -753,6 +780,8 @@ public class AppRuleExecutorService {
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+                    // 存储日志
+                    saveLog(eventType, waitValue);
                 }
             } catch (Exception e) {
                 log.error("反序列化 wait 数据失败：{}", e.getMessage());
@@ -792,6 +821,8 @@ public class AppRuleExecutorService {
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+                    // 存储日志
+                    saveLog(eventType, waitValue);
                 }
             } catch (Exception e) {
                 log.error("反序列化 wait 数据失败：{}", e.getMessage());
