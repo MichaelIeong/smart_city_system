@@ -19,12 +19,6 @@ public class AppRuleController {
     @Resource
     private AppRuleService appRuleService;
 
-    @Resource
-    private AppRuleExecutorService appRuleExecutorService;
-
-    @Resource
-    private EventHistoryService eventHistoryService;
-
     @GetMapping
     public PageDTO<AppRuleInfo> queryAll(
             @RequestParam(name = "project") Integer projectId,
@@ -110,31 +104,5 @@ public class AppRuleController {
             return ResponseEntity.ok(flowJson);
         }
         return ResponseEntity.badRequest().body("转换失败");
-    }
-
-
-    /**
-     * 事件触发应用规则
-     * */
-    @PostMapping("/trigger")
-    public void triggerAppRule(@RequestBody EventTriggerRequest eventTriggerRequest) {
-        appRuleExecutorService.triggerAppRule(eventTriggerRequest);
-    }
-
-    /**
-     * 动作完成上报
-     * */
-    @PostMapping("/complete")
-    public void complete(@RequestBody AppRuleCompleteRequest appRuleCompleteRequest) {
-        appRuleExecutorService.complete(appRuleCompleteRequest);
-    }
-
-    /**
-     * 获取tsl事件数据
-     * */
-    @GetMapping ("/tsl/getEventData")
-    public ResponseEntity<List<Map<String, Object>>> getTslEventData(@RequestParam("pageNum") int pageNum, @RequestParam("pageSize") int pageSize) {
-        List<Map<String, Object>> eventData = appRuleExecutorService.getTslEventData(pageNum, pageSize);
-        return ResponseEntity.ok(eventData);
     }
 }

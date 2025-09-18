@@ -24,7 +24,6 @@ import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Type;
@@ -225,17 +224,18 @@ public class AppRuleExecutorService {
      * 存储历史事件
      * */
     public void storeEventHistory(String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "存储历史事件...");
-        EventHistory eventHistory = new EventHistory();
-        eventHistory.setEventType(eventType);
-        eventHistory.setLocation(eventParams.get("location").toString());
+        addLog(LogConstant.INFO, eventType, waitValue, "开始存储历史事件...");
         try {
+            EventHistory eventHistory = new EventHistory();
+            eventHistory.setEventType(eventType);
+            eventHistory.setLocation(eventParams.get("location").toString());
             eventHistory.setEventData(objectMapper.writeValueAsString(eventParams));
-        } catch (JsonProcessingException e) {
+            eventHistory.setTimestamp(LocalDateTime.now());
+            eventHistoryService.saveEventHistory(eventHistory);
+            addLog(LogConstant.INFO, eventType, waitValue, "存储历史事件成功...");
+        } catch (Exception e) {
             addLog(LogConstant.ERROR, eventType, waitValue, "存储历史事件失败: " + e.getMessage());
         }
-        eventHistory.setTimestamp(LocalDateTime.now());
-        eventHistoryService.saveEventHistory(eventHistory);
     }
 
     /**
@@ -269,6 +269,8 @@ public class AppRuleExecutorService {
                 CurrentCondition currentCondition = branchNode.getCurrent_condition();
                 if(checkCurrentCondition(currentCondition, eventType, eventParams, waitValue)) {
                     handleChain(branchNode.getChain(), eventType, eventParams, waitValue);
+                    // 命中一个条件就不再检查其他条件
+                    return;
                 }
             }
             if(branchNode.isHistoryCondition()) {
@@ -276,6 +278,8 @@ public class AppRuleExecutorService {
                 HistoryCondition historyCondition = branchNode.getHistory_condition();
                 if(checkHistoryCondition(historyCondition, eventType, eventParams, waitValue)) {
                     handleChain(branchNode.getChain(), eventType, eventParams, waitValue);
+                    // 命中一个条件就不再检查其他条件
+                    return;
                 }
             }
         }
@@ -297,7 +301,7 @@ public class AppRuleExecutorService {
             case "property":
                 return checkCurrentProperty(currentLeft.getProperty(), operator, right, eventParams, eventType, waitValue);
             default:
-                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前条件检查失败，不支持的类型：'%s'", currentLeft.getType()));
+                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前条件检查失败, 不支持的类型: '%s'", currentLeft.getType()));
                 return false;
         }
     }
@@ -306,7 +310,7 @@ public class AppRuleExecutorService {
      * 检查当前时间条件
      * */
     private boolean checkCurrentTimeCondition(String operator, String right, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前时间条件，operator='%s', right='%s'", operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前时间条件, operator: '%s', right: '%s'", operator, right));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
         LocalTime now = LocalTime.now();
         try {
@@ -319,39 +323,39 @@ public class AppRuleExecutorService {
                 case ">":
                 case ">=":
                     result = now.isAfter(conditionTime);
-                    detail = String.format("当前时间 %s %s %s", nowStr,
+                    detail = String.format("当前时间 '%s' %s '%s'", nowStr,
                             result ? "晚于" : "不晚于", condStr);
                     break;
                 case "<":
                 case "<=":
                     result = now.isBefore(conditionTime);
-                    detail = String.format("当前时间 %s %s %s", nowStr,
+                    detail = String.format("当前时间 '%s' %s '%s'", nowStr,
                             result ? "早于" : "不早于", condStr);
                     break;
                 case "=":
                 case "==":
                     result = now.equals(conditionTime);
-                    detail = String.format("当前时间 %s %s %s", nowStr,
+                    detail = String.format("当前时间 '%s' %s '%s'", nowStr,
                             result ? "等于" : "不等于", condStr);
                     break;
                 case "!=":
                     result = !now.equals(conditionTime);
-                    detail = String.format("当前时间 %s %s %s", nowStr,
+                    detail = String.format("当前时间 '%s' %s '%s'", nowStr,
                             result ? "不等于" : "等于", condStr);
                     break;
                 default:
-                    addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前时间条件检查失败，不支持的运算符：'%s'", operator));
+                    addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前时间条件检查失败, 不支持的运算符: '%s'", operator));
                     return false;
             }
             if (result) {
-                addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件成立。");
+                addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件成立。");
                 return true;
             } else {
-                addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件不成立。");
+                addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件不成立。");
                 return false;
             }
         } catch (Exception e) {
-            addLog(LogConstant.ERROR, eventType, waitValue, "检查当前时间条件时发生异常: " + e.getMessage());
+            addLog(LogConstant.ERROR, eventType, waitValue, "当前时间条件检查失败:  " + e.getMessage());
             return false;
         }
     }
@@ -360,10 +364,10 @@ public class AppRuleExecutorService {
      * 检查当前位置
      * */
     private boolean checkCurrentLocation(String operator, String right, Map<String, Object> eventParams, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前位置条件，operator='%s', right='%s'", operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前位置条件, operator: '%s', right: '%s'", operator, right));
         String location = (String) eventParams.get("location");
         if (location == null) {
-            addLog(LogConstant.ERROR, eventType, waitValue, "当前位置条件检查失败，上报事件中不存在 'location' 字段");
+            addLog(LogConstant.ERROR, eventType, waitValue, "当前位置条件检查失败, 上报事件中不存在 'location' 字段");
             return false;
         }
         boolean result;
@@ -379,7 +383,7 @@ public class AppRuleExecutorService {
                 detail = String.format("当前位置 '%s' %s 条件位置 '%s'", location, result ? "不等于" : "等于", right);
                 break;
             default:
-                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前位置条件检查失败，不支持的运算符：'%s'。仅支持 '==' 和 '!='", operator));
+                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前位置条件检查失败, 不支持的运算符: '%s', 仅支持 '==' 和 '!='", operator));
                 return false;
         }
         if (result) {
@@ -394,9 +398,9 @@ public class AppRuleExecutorService {
      * 检查当前属性
      * */
     private boolean checkCurrentProperty(String property, String operator, String right, Map<String, Object> eventParams, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前属性条件，property='%s', operator='%s', right='%s'", property, operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前属性条件, property: '%s', operator: '%s', right: '%s'", property, operator, right));
         if (property == null || property.isEmpty()) {
-            addLog(LogConstant.ERROR, eventType, waitValue, "当前属性条件检查失败，property 参数为空");
+            addLog(LogConstant.ERROR, eventType, waitValue, "当前属性条件检查失败，'property' 参数为空");
             return false;
         }
         String location = (String) eventParams.get("location");
@@ -411,7 +415,7 @@ public class AppRuleExecutorService {
             leftVal = 1;
             rightVal = Integer.parseInt(right);
         } catch (NumberFormatException e) {
-            addLog(LogConstant.ERROR, eventType, waitValue, String.format("属性值转换失败，right='%s' 不是有效的整数", right));
+            addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, right: '%s' 不是有效的整数", right));
             return false;
         }
         boolean result;
@@ -420,36 +424,36 @@ public class AppRuleExecutorService {
             case "=":
             case "==":
                 result = leftVal == rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "等于" : "不等于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "等于" : "不等于", rightVal);
                 break;
             case ">":
                 result = leftVal > rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "大于" : "不大于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "大于" : "不大于", rightVal);
                 break;
             case ">=":
                 result = leftVal >= rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "大于等于" : "小于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "大于等于" : "小于", rightVal);
                 break;
             case "<":
                 result = leftVal < rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "小于" : "不小于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "小于" : "不小于", rightVal);
                 break;
             case "<=":
                 result = leftVal <= rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "小于等于" : "大于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "小于等于" : "大于", rightVal);
                 break;
             case "!=":
                 result = leftVal != rightVal;
-                detail = String.format("属性[%s] 当前值=%d %s 条件值=%d", property, leftVal, result ? "不等于" : "等于", rightVal);
+                detail = String.format("属性[%s] 当前值 %d %s 条件值 %d", property, leftVal, result ? "不等于" : "等于", rightVal);
                 break;
             default:
-                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败，不支持的运算符：'%s'。支持：=, ==, >, >=, <, <=, !=", operator));
+                addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, 不支持的运算符: '%s', 支持：'==', '>', '>=', '<', '<=', '!='", operator));
                 return false;
         }
         if (result) {
-            addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件成立。");
+            addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件成立");
         } else {
-            addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件不成立。");
+            addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件不成立");
         }
         return result;
     }
@@ -474,7 +478,7 @@ public class AppRuleExecutorService {
             String paramStr = matcher.group(2);
             String[] paramArray = paramStr.split(",\\s*");
             if(paramArray.length != 3) {
-                log.error("历史条件检查，func参数错误：{}", func);
+                addLog(LogConstant.ERROR, eventType, waitValue, "历史条件检查失败, func参数错误: "+ func);
                 return false;
             }
             String duration = paramArray[1];
@@ -489,40 +493,40 @@ public class AppRuleExecutorService {
                 case "=":
                 case "==":
                     result = leftVal == rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "等于" : "不等于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "等于" : "不等于", rightVal);
                     break;
                 case ">":
                     result = leftVal > rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "大于" : "不大于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "大于" : "不大于", rightVal);
                     break;
                 case ">=":
                     result = leftVal >= rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "大于等于" : "小于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "大于等于" : "小于", rightVal);
                     break;
                 case "<":
                     result = leftVal < rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "小于" : "不小于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "小于" : "不小于", rightVal);
                     break;
                 case "<=":
                     result = leftVal <= rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "小于等于" : "大于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "小于等于" : "大于", rightVal);
                     break;
                 case "!=":
                     result = leftVal != rightVal;
-                    detail = String.format("历史事件值=%d %s 条件值=%d", leftVal, result ? "不等于" : "等于", rightVal);
+                    detail = String.format("历史事件值 %d %s 条件值 %d", leftVal, result ? "不等于" : "等于", rightVal);
                     break;
                 default:
-                    addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败，不支持的运算符：'%s'。支持：=, ==, >, >=, <, <=, !=", operator));
+                    addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, 不支持的运算符: '%s', 支持：'==', '>', '>=', '<', '<=', '!='", operator));
                     return false;
             }
             if (result) {
-                addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件成立。");
+                addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件成立");
             } else {
-                addLog(LogConstant.INFO, eventType, waitValue, detail + "，条件不成立。");
+                addLog(LogConstant.INFO, eventType, waitValue, detail + ", 条件不成立");
             }
             return result;
         } else {
-            addLog(LogConstant.ERROR, eventType, waitValue, "历史条件检查失败，func格式错误：" + func);
+            addLog(LogConstant.ERROR, eventType, waitValue, "历史条件检查失败, func格式错误: " + func);
             return false;
         }
     }
@@ -531,7 +535,7 @@ public class AppRuleExecutorService {
      * 计算某事件过去一段时间发生的次数
      */
     private int eventCount(String eventType, int duration, String unit, String funcKey, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始计算事件历史次数, 事件类型: '%s', 持续时间: '%d''%s', 额外参数: '%s'", eventType, duration, unit, funcKey));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始计算历史事件次数, 事件类型: '%s', 持续时间: %d%s, 额外参数: '%s'", eventType, duration, unit, funcKey));
         LocalDateTime startTime;
         switch (unit) {
             case "second":
@@ -547,7 +551,7 @@ public class AppRuleExecutorService {
                 startTime = LocalDateTime.now().minusHours(duration);
                 break;
             default:
-                addLog(LogConstant.ERROR, eventType, waitValue, String.format("历史条件检查失败，时间单位错误：'%s'。支持：second, seconds, minute, minutes, hour, hours", unit));
+                addLog(LogConstant.ERROR, eventType, waitValue, String.format("历史事件计算失败, 时间单位错误: '%s', 支持 'second', 'minute', 'hour'", unit));
                 return 0;
         }
         List<EventHistory> eventHistories = eventHistoryRepository.findByEventTypeSince(eventType, startTime);
@@ -565,7 +569,7 @@ public class AppRuleExecutorService {
                     count++;
                 }
             } catch (Exception e) {
-                addLog(LogConstant.ERROR, eventType, waitValue, "历史条件检查失败，eventData解析失败：" + eventHistory.getEventData());
+                addLog(LogConstant.ERROR, eventType, waitValue, "历史事件计算失败, eventData解析失败: " + eventHistory.getEventData());
                 return 0;
             }
         }
@@ -591,7 +595,7 @@ public class AppRuleExecutorService {
                     handleWaitStep((WaitStep) step, eventType, eventParams, chain, i, waitValue);
                     return;
                 default:
-                    addLog(LogConstant.ERROR, eventType, waitValue, "未知步骤类型: " + step.getType());
+                    addLog(LogConstant.WARN, eventType, waitValue, "未知顺序链路步骤类型: " + step.getType());
             }
         }
     }
@@ -603,7 +607,7 @@ public class AppRuleExecutorService {
         addLog(LogConstant.INFO, eventType, waitValue, "开始处理action...");
         // TODO ，这里暂时模拟执行动作
         ActionStep.Action action = actionStep.getAction();
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("下发执行动作:%s, 地点:%s, 事件类型:%s", action.getAction_name(), eventParams.get("location"), eventType));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("下发执行动作: '%s', 事件类型: '%s', 地点: '%s'", action.getAction_name(), eventType, eventParams.get("location")));
     }
 
     /**
@@ -617,7 +621,7 @@ public class AppRuleExecutorService {
                 .add(waitValue);
         // wait是chain的最后一个步骤
         if(chain.size() != index + 1) {
-            addLog(LogConstant.WARN, eventType, waitValue, "wait步骤不是chain的最后一个步骤，请检查应用规则！");
+            addLog(LogConstant.WARN, eventType, waitValue, "wait步骤不是chain的最后一个步骤, 请检查应用规则!");
         }
         Map<String, Object> redisData = new HashMap<>();
         redisData.put("eventType", eventType);
@@ -637,7 +641,7 @@ public class AppRuleExecutorService {
         if(wait.isTimeWait()) {
             int waitDuration = Integer.parseInt(wait.getTime_wait().getDuration());
             String waitUnit = wait.getTime_wait().getUnit();
-            addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 加入时间等待, 等待时长: '%d''%s' 标识: '%s'", eventType, waitDuration, waitUnit, waitValue));
+            addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 加入时间等待, 等待时长: %d%s 标识: '%s'", eventType, waitDuration, waitUnit, waitValue));
             redisKey = RedisConstant.TimeWait + eventType + ":" + waitValue;
             // 存储到期时间
             long expireTimeMillis = currentTimeMillis;
@@ -655,7 +659,7 @@ public class AppRuleExecutorService {
                     expireTimeMillis += waitDuration * 60 * 60 * 1000L;
                     break;
                 default:
-                    addLog(LogConstant.WARN, eventType, waitValue, "时间单位错误：'" + waitUnit + "'。支持：second, minute, hour");
+                    addLog(LogConstant.WARN, eventType, waitValue, "时间单位错误: '" + waitUnit + "', 支持 'second', 'minute', 'hour'");
                     // 默认使用分钟
                     expireTimeMillis += waitDuration * 60 * 1000L;
             }
@@ -665,7 +669,7 @@ public class AppRuleExecutorService {
         try {
             redisUtil.setWait(redisKey, redisData);
         } catch (JsonProcessingException e) {
-            addLog(LogConstant.ERROR, eventType, waitValue, "wait步骤处理失败，redis存储失败");
+            addLog(LogConstant.ERROR, eventType, waitValue, "wait步骤处理失败, redis存储失败");
         }
     }
 
@@ -683,7 +687,38 @@ public class AppRuleExecutorService {
         waitSet.remove(waitValue);
         appRuleWaitMap.put(eventType, waitSet);
         addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
-        addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
+        addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+    }
+
+    /**
+     * 获取正在运行的事件
+     * */
+    public List<String> getRunningEvent() {
+        return appRuleLogMap.keySet().stream().toList();
+    }
+
+    /**
+     * 获取某一事件的所有执行标识
+     * */
+    public List<String> getWaitValueOfEvent(String eventType) {
+        if(appRuleLogMap.containsKey(eventType)) {
+            return appRuleLogMap.get(eventType).keySet().stream().toList();
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * 获取日志
+     * */
+    public List<String> getLog(String eventType, String waitValue) {
+        Map<String, List<String>> logMap = appRuleLogMap.get(eventType);
+        if(logMap!=null) {
+            if(logMap.containsKey(waitValue)) {
+                return logMap.get(waitValue);
+            }
+            return new ArrayList<>();
+        }
+        return new ArrayList<>();
     }
 
     /**
@@ -717,7 +752,7 @@ public class AppRuleExecutorService {
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
-                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行完成");
+                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
                 }
             } catch (Exception e) {
                 log.error("反序列化 wait 数据失败：{}", e.getMessage());
@@ -756,7 +791,7 @@ public class AppRuleExecutorService {
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
-                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行完成");
+                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
                 }
             } catch (Exception e) {
                 log.error("反序列化 wait 数据失败：{}", e.getMessage());
@@ -794,7 +829,6 @@ public class AppRuleExecutorService {
                 List<Map<String, Object>> eventDataList = parseEventData(responseBody);
                 return eventDataList;
             }
-            log.error("获取特斯联事件数据失败：{}", responseBody);
             return null;
         } catch (Exception e) {
             log.error("获取特斯联事件数据失败：{}", e.getMessage());
