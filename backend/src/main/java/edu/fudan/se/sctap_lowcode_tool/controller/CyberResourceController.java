@@ -20,6 +20,7 @@ public class CyberResourceController {
 
     @GetMapping("/project/{projectId}")
     public ResponseEntity<List<CyberResourceInfo>> getCyberResourcesByProjectId(@PathVariable Integer projectId) {
+        System.out.println(cyberResourceService.getCyberResourceByProjectId(projectId));
         return ResponseEntity.ok(cyberResourceService.getCyberResourceByProjectId(projectId));
     }
 
