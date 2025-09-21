@@ -76,6 +76,13 @@ export function getServiceList (projectId) {
   })
 }
 
+export function addEnvService (data) {
+  return request({
+    url: '/api/env-services', // 这里对应你后端 EnvServiceInfoController 的 PostMapping
+    method: 'post',
+    data: data
+  })
+}
 export function getPermissions (parameter) {
   return request({
     url: api.permissionNoPager,
