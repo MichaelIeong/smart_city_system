@@ -13,6 +13,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleBranchRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -458,10 +459,13 @@ public class FusionRuleService {
         String opType = opNode.path("operator").asText();
         JsonNode valNode = opNode.get("value");
         boolean hasVal = valNode != null && !valNode.isNull();
-        boolean isTimeOp = opType.endsWith("_TIME");
 
         Object in1, in2;
-        if (hasVal) {
+        if (OperatorUtil.TIME_FILTER.equals(opType)) {
+            // 统一时间过滤器：把 value 原样交给 OperatorService；第二个入参传 nodeId
+            in1 = valNode;     // 可能是对象/JSON字符串，OperatorService 会自行解析
+            in2 = nodeId;      // 用作 COUNTDOWN 的 key
+        } else if (hasVal) {
             if (deps.size() != 1) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
                 return;
@@ -469,23 +473,8 @@ public class FusionRuleService {
             Map<String, Object> depData = globalState.get(deps.get(0));
             if (depData == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(depData.get("value"));
-                in2 = valNode.asDouble();
-            } else {
-                double diff = valNode.asDouble();
-                Map<String, Object> a = new HashMap<>(depData);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", diff);
-
-                Map<String, Object> b = new HashMap<>();
-                b.put("value", true);
-                b.put("timestamp", System.currentTimeMillis());
-                b.put("maxTimeDiff", diff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(depData.get("value"));
+            in2 = (valNode.isNumber() ? valNode.asDouble() : toDouble(valNode.asText()));
         } else {
             if (deps.size() != 2) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
@@ -495,22 +484,8 @@ public class FusionRuleService {
             Map<String, Object> d2 = globalState.get(deps.get(1));
             if (d1 == null || d2 == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(d1.get("value"));
-                in2 = toDouble(d2.get("value"));
-            } else {
-                double defDiff = 3000.0;
-                Map<String, Object> a = new HashMap<>(d1);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", defDiff);
-
-                Map<String, Object> b = new HashMap<>(d2);
-                b.put("value", toDouble(b.get("value")) != 0.0);
-                b.put("maxTimeDiff", defDiff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(d1.get("value"));
+            in2 = toDouble(d2.get("value"));
         }
 
         boolean res = operatorService.applyUtilOperator(opType, in1, in2);

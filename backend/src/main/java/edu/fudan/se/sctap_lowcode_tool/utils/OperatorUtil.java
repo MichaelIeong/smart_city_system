@@ -7,7 +7,7 @@ import java.util.List;
 
 public class OperatorUtil {
 
-    /* ================== 运算符常量（直接用符号） ================== */
+    /* ================== 运算符常量（统一用符号与简洁英文） ================== */
     public static final String GREATER_THAN = ">";
     public static final String LESS_THAN = "<";
     public static final String EQUAL_TO = "=";
@@ -17,12 +17,14 @@ public class OperatorUtil {
     public static final String AND = "And";
     public static final String OR = "Or";
 
-    public static final String AND_TIME = "And_TIME";
-    public static final String OR_TIME = "Or_TIME";
-    /* ========================================================== */
+    /**
+     * 新增：统一的时间过滤器（倒计时 / 区间 / 精确时刻）
+     */
+    public static final String TIME_FILTER = "Time_FILTER";
+    /* ===================================================================== */
 
     /**
-     * 判断第一个值是否大于第二个值
+     * 大于
      */
     public static boolean greaterThan(Double value1, Double value2) {
         if (value1 == null || value2 == null) {
@@ -32,7 +34,7 @@ public class OperatorUtil {
     }
 
     /**
-     * 判断第一个值是否小于第二个值
+     * 小于
      */
     public static boolean lessThan(Double value1, Double value2) {
         if (value1 == null || value2 == null) {
@@ -42,7 +44,7 @@ public class OperatorUtil {
     }
 
     /**
-     * 判断两个值是否相等
+     * 等于
      */
     public static boolean equalTo(Double value1, Double value2) {
         if (value1 == null || value2 == null) {
@@ -52,7 +54,7 @@ public class OperatorUtil {
     }
 
     /**
-     * 判断第一个值是否大于等于第二个值
+     * 大于等于
      */
     public static boolean greaterThanOrEqualTo(Double value1, Double value2) {
         if (value1 == null || value2 == null) {
@@ -62,7 +64,7 @@ public class OperatorUtil {
     }
 
     /**
-     * 判断第一个值是否小于等于第二个值
+     * 小于等于
      */
     public static boolean lessThanOrEqualTo(Double value1, Double value2) {
         if (value1 == null || value2 == null) {
@@ -72,7 +74,7 @@ public class OperatorUtil {
     }
 
     /**
-     * AND 逻辑
+     * And
      */
     public static boolean and(Boolean value1, Boolean value2) {
         if (value1 == null || value2 == null) {
@@ -82,7 +84,7 @@ public class OperatorUtil {
     }
 
     /**
-     * OR 逻辑
+     * Or
      */
     public static boolean or(Boolean value1, Boolean value2) {
         if (value1 == null || value2 == null) {
@@ -91,53 +93,26 @@ public class OperatorUtil {
         return value1 || value2;
     }
 
-    /*================== 新增：带时间戳的 AND_TIME / OR_TIME =================*/
-
-    public static boolean andTime(Boolean value1, Long timestamp1,
-                                  Boolean value2, Long timestamp2,
-                                  Long maxTimeDiff) {
-        if (value1 == null || value2 == null) {
-            throw new IllegalArgumentException("[AND_TIME] 输入布尔值不能为空");
-        }
-        if (timestamp1 == null || timestamp2 == null || maxTimeDiff == null) {
-            throw new IllegalArgumentException("[AND_TIME] 时间戳或最大时间差不能为空");
-        }
-        if (Math.abs(timestamp1 - timestamp2) > maxTimeDiff) {
-            return false;
-        }
-        return value1 && value2;
-    }
-
-    public static boolean orTime(Boolean value1, Long timestamp1,
-                                 Boolean value2, Long timestamp2,
-                                 Long maxTimeDiff) {
-        if (value1 == null || value2 == null) {
-            throw new IllegalArgumentException("[OR_TIME] 输入布尔值不能为空");
-        }
-        if (timestamp1 == null || timestamp2 == null || maxTimeDiff == null) {
-            throw new IllegalArgumentException("[OR_TIME] 时间戳或最大时间差不能为空");
-        }
-        if (Math.abs(timestamp1 - timestamp2) > maxTimeDiff) {
-            return false;
-        }
-        return value1 || value2;
-    }
-
     /**
-     * 获取所有工具类运算符并封装为 Operator 对象
+     * 工具运算符清单
+     * 这里仅声明有哪些工具运算符；Time_FILTER 的实际判定在 FusionRuleService 中完成
      */
     public static List<Operator> getAllUtilOperators() {
         List<Operator> operators = new ArrayList<>();
 
+        // 数值比较（符号）
         operators.add(createOperator(GREATER_THAN, null, "Boolean", true));
         operators.add(createOperator(LESS_THAN, null, "Boolean", true));
         operators.add(createOperator(EQUAL_TO, null, "Boolean", true));
         operators.add(createOperator(GREATER_THAN_OR_EQUAL_TO, null, "Boolean", true));
         operators.add(createOperator(LESS_THAN_OR_EQUAL_TO, null, "Boolean", true));
+
+        // 布尔
         operators.add(createOperator(AND, null, "Boolean", false));
         operators.add(createOperator(OR, null, "Boolean", false));
-        operators.add(createOperator(AND_TIME, null, "Boolean", true));
-        operators.add(createOperator(OR_TIME, null, "Boolean", true));
+
+        // 统一时间过滤器（需要输入一个配置对象）
+        operators.add(createOperator(TIME_FILTER, null, "Boolean", true));
 
         return operators;
     }
