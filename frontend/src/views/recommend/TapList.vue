@@ -1,6 +1,6 @@
 <template>
   <page-header-wrapper>
-    <a-card :bordered="false">
+    <a-card :bordered="false" :style="{ borderRadius: '8px', height: 'calc(100vh - 250px)' }">
       <div class="table-page-search-wrapper">
         <a-form layout="inline">
           <a-row :gutter="48">
@@ -53,11 +53,24 @@
           <ellipsis :length="15" tooltip>{{ text }}</ellipsis>
         </span>
 
+        <span slot="enabled" slot-scope="enabled">
+          <a-tag :color="enabled ? 'green' : 'red'">{{ enabled ? '启用中' : '已禁用' }}</a-tag>
+        </span>
+
         <span slot="action" slot-scope="text, record">
           <template>
             <a @click="handleEdit(record)">编辑</a>
             <a-divider type="vertical"/>
             <a @click="handleDelete(record)">删除</a>
+            <a-divider type="vertical"/>
+            <a-switch
+              size="small"
+              :checked="record.enabled"
+              :loading="toggleLoadingMap[record.id]"
+              @change="checked => onToggleEnabled(record, checked)"
+              checked-children="启用"
+              un-checked-children="禁用"
+            />
           </template>
         </span>
       </s-table>
@@ -118,7 +131,7 @@
 import { message, Modal } from 'ant-design-vue'
 import { ref, reactive } from 'vue'
 import dayjs from 'dayjs'
-import { listTapRule, deleteTap, createTapRule, getTapDetail, updateTapRule } from '@/api/manage'
+import { listTapRule, deleteTap, createTapRule, getTapDetail, updateTapRule, setTapEnabled } from '@/api/manage'
 import { STable, Ellipsis } from '@/components'
 
 // 如果是 Vite，请用 import.meta.env.VITE_NODE_RED_URL；如果是 Vue-CLI，保留原样
@@ -164,6 +177,12 @@ const columns = [
     scopedSlots: { customRender: 'description' }
   },
   {
+    title: '状态',
+    dataIndex: 'enabled',
+    width: '160px',
+    scopedSlots: { customRender: 'enabled' } // 声明使用名为 "enabled" 的插槽
+  },
+  {
     title: '更新时间',
     dataIndex: 'updateTime',
     sorter: (a, b) => new Date(a.updateTime) - new Date(b.updateTime)
@@ -171,7 +190,7 @@ const columns = [
   {
     title: '操作',
     dataIndex: 'action',
-    width: '150px',
+    width: '200px',
     scopedSlots: { customRender: 'action' }
   }
 ]
@@ -295,6 +314,31 @@ function handleDelete (record) {
         })
     }
   })
+}
+
+const toggleLoadingMap = reactive({})
+async function onToggleEnabled (record, checked) {
+  const id = record.id
+  const prev = record.enabled
+
+  // 乐观更新，失败再回滚
+  record.enabled = checked
+  toggleLoadingMap[id] = true
+  try {
+    const success = await setTapEnabled(id, checked)
+    if(success) {
+      message.success(`已${checked ? '启用' : '禁用'}（ID: ${id}）`)
+      tableRef.value?.refresh()
+    }
+    else {
+      message.error(`操作失败：${err?.message || '未知错误'}`)
+    }
+  } catch (err) {
+    record.enabled = prev // 回滚
+    message.error(`操作失败：${err?.message || '未知错误'}`)
+  } finally {
+    toggleLoadingMap[id] = false
+  }
 }
 
 // 保存应用： 弹窗和表单

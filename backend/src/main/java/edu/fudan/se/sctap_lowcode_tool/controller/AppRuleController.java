@@ -105,4 +105,16 @@ public class AppRuleController {
         }
         return ResponseEntity.badRequest().body("转换失败");
     }
+
+    /**
+     * 根据id启用或禁用规则
+     * @param id 规则id
+     * @param enabled 是否启用
+     */
+    @PostMapping("/{id}/enabled")
+    public boolean updateEnabledStatus(
+            @PathVariable Integer id,
+            @RequestParam boolean enabled) {
+        return appRuleService.updateEnabledStatus(id, enabled);
+    }
 }

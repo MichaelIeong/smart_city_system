@@ -10,6 +10,7 @@ const api = {
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
   tap: '/api/taps',
+  tapExector: '/api/tapExecutor',
   events: '/api/events',
   spaces: '/api/spaces',
   properties: '/api/properties',
@@ -446,5 +447,53 @@ export function updateTapRule (id, description, flowJson) {
       'Authorization': `Bearer ${token}`
     },
     timeout: 120000
+  })
+}
+
+// 修改应用状态
+export function setTapEnabled (id, enabled) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/${id}/enabled?enabled=${enabled}`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取运行中的事件
+export function getRunningEvents (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getRunningEvents`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取运行中的事件实例
+export function getWaitValueOfEvent (eventType) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getWaitValueOfEvent?eventType=${eventType}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取日志
+export function getLog (eventType, waitValue) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getLog?eventType=${eventType}&waitValue=${waitValue}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }

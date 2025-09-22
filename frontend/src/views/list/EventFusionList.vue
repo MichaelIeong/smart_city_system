@@ -1,7 +1,7 @@
 <template>
   <page-header-wrapper>
-    <div style="padding: 0 24px 24px 24px;">
-      <a-row :gutter="24" style="height: calc(100vh - 180px);">
+    <div class="page-content">
+      <a-row :gutter="24" style="height: calc(100vh - 250px);">
         <!-- 左侧：通用规则 -->
         <a-col :span="12">
           <a-card title="通用规则" bordered :style="{ borderRadius: '8px', height: '100%' }">

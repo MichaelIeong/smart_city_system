@@ -65,28 +65,20 @@ export const asyncRouterMap = [{
           }
         ]
 
-    }, // 事件融合
+    },
+    // 事件融合
     {
       path: '/event-fusion',
       name: 'event-fusion',
       component: () => import('@/views/list/EventFusionList'),
       meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'link', permission: ['table'] }
     },
-
     // 服务组合
     {
       path: '/service-group',
       name: 'service-group',
       component: () => import('@/views/list/ServiceCompositionList'),
       meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
-    },
-
-    // 应用构造
-    {
-      path: 'tap/list',
-      name: 'tap-list',
-      component: () => import('@/views/recommend/TapList'),
-      meta: { title: 'menu.tap', keepAlive: true, icon: 'table', permission: ['table'] }
     },
     // {
     //   path: '/tap',
@@ -110,12 +102,26 @@ export const asyncRouterMap = [{
     //     }
     //   ]
     // },
+    // 应用构造
+    {
+      path: 'tap/list',
+      name: 'tap-list',
+      component: () => import('@/views/recommend/TapList'),
+      meta: { title: 'menu.tap.construct', keepAlive: true, icon: 'tool', permission: ['table'] }
+    },
     // 应用推荐
     {
       path: '/tap/recommend',
       name: 'tap-recommend',
       component: () => import('@/views/recommend/TapRecommend'),
-      meta: { title: 'menu.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
+      meta: { title: 'menu.tap.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
+    },
+    // 应用看板
+    {
+      path: '/tap/board',
+      name: 'tap-board',
+      component: () => import('@/views/recommend/TapBoard'),
+      meta: { title: 'menu.tap.board', keepAlive: true, icon: 'dashboard', permission: ['dashboard'] }
     },
     // result
     {

@@ -2,8 +2,8 @@
   <page-header-wrapper>
     <!-- 导航栏区域 - 参考信息资源页面的格式 -->
     <!-- 主要内容区域 - 两个表格并排显示 -->
-    <div style="padding: 0 24px 24px 24px;">
-      <a-row :gutter="24" style="height: calc(100vh - 180px);">
+    <div class="page-content">
+      <a-row :gutter="24" style="height: calc(100vh - 250px);">
         <!-- 左侧：设备类型表格 -->
         <a-col :span="12">
           <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '600px' }">

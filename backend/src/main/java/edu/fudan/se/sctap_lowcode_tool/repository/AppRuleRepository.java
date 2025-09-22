@@ -17,11 +17,14 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     Optional<AppRuleInfo> findById(int id);
 
     @Query("""
-        SELECT a FROM AppRuleInfo a WHERE a.eventType = :eventType AND a.project.projectId = :projectId
+        SELECT a FROM AppRuleInfo a WHERE a.eventType = :eventType
+            AND a.project.projectId = :projectId
+            ANd a.enabled = :enabled
     """)
     List<AppRuleInfo> findByEventTypeAndProjectId(
             @Param("eventType") String eventType,
-            @Param("projectId") Integer projectId);
+            @Param("projectId") Integer projectId,
+            @Param("enabled") Boolean enabled);
 
 
     @Query("""

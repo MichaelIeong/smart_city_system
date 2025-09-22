@@ -106,6 +106,7 @@ public class AppRuleService {
                 var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
                 // 设置事件类型
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+                appRuleInfo.setEnabled(true);
                 // 插入数据库
                 appRuleInfo = appRuleRepository.save(appRuleInfo);
                 // 插入向量数据库
@@ -132,6 +133,7 @@ public class AppRuleService {
             appRuleInfo.setRuleJson(jsonRule);
             var appRule = parseJsonRule(jsonRule);
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+            appRuleInfo.setEnabled(true);
             // 插入数据库
             appRuleInfo = appRuleRepository.save(appRuleInfo);
             // 插入向量数据库
@@ -215,6 +217,16 @@ public class AppRuleService {
                 repoResult.getTotalElements(), repoResult.getTotalPages(),
                 repoResult.getContent()
         );
+    }
+
+    public boolean updateEnabledStatus(Integer id, Boolean enabled) {
+        AppRuleInfo appRuleInfo = appRuleRepository.findById(id).orElse(null);
+        if(appRuleInfo==null) {
+            return false;
+        }
+        appRuleInfo.setEnabled(enabled);
+        appRuleRepository.save(appRuleInfo);
+        return true;
     }
 
     public ResponseEntity<String> generateNaturalRule(RuleGenerateRequest ruleGenerateRequest) {

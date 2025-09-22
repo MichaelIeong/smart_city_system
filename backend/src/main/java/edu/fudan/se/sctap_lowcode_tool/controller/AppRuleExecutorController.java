@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/executor")
+@RequestMapping("/api/tapExecutor")
 public class AppRuleExecutorController {
     @Resource
     private AppRuleExecutorService appRuleExecutorService;
@@ -44,9 +44,9 @@ public class AppRuleExecutorController {
     /**
      * 获取正在运行的事件
      * */
-    @GetMapping("/getRunningEvent")
-    public ResponseEntity<List<String>> getRunningEvent() {
-        List<String> eventData = appRuleExecutorService.getRunningEvent();
+    @GetMapping("/getRunningEvents")
+    public ResponseEntity<List<Map<String, Object>>> getRunningEvents() {
+        List<Map<String, Object>> eventData = appRuleExecutorService.getRunningEvents();
         return ResponseEntity.ok(eventData);
     }
 

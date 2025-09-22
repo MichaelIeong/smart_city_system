@@ -87,7 +87,7 @@ public class AppRuleExecutorService {
         // 获取全部该事件类型的应用规则
         Integer projectId = eventTriggerRequest.getProjectId();
         String eventType = eventTriggerRequest.getEventType();
-        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndProjectId(eventType, projectId);
+        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndProjectId(eventType, projectId, true);
         // 提交线程池执行
         for (AppRuleInfo appRuleInfo : appRules) {
             appRuleExecutor.execute(() -> executeAppRule(eventTriggerRequest, appRuleInfo));
@@ -720,8 +720,15 @@ public class AppRuleExecutorService {
     /**
      * 获取正在运行的事件
      * */
-    public List<String> getRunningEvent() {
-        return appRuleLogMap.keySet().stream().toList();
+    public List<Map<String, Object>> getRunningEvents() {
+        List<Map<String, Object>> runningEvents = new ArrayList<>();
+        for(String eventType : appRuleLogMap.keySet()) {
+            Map<String, Object> runningEvent = new HashMap<>();
+            runningEvent.put("eventType", eventType);
+            runningEvent.put("instanceNum", appRuleLogMap.get(eventType).size());
+            runningEvents.add(runningEvent);
+        }
+        return runningEvents;
     }
 
     /**
