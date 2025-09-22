@@ -348,13 +348,23 @@ export default {
         if (this.data.length > 0) this.onPickRule(this.data[0])
       })
     },
-    handleAdd () {
+    async handleAdd () {
       if (!NODE_RED_URL) {
         message.error('未配置 NODE_RED_URL')
         return
       }
-      const params = new URLSearchParams({ source: 'frontend', action: 'create' })
-      window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
+      try {
+        const hide = message.loading('正在清空 Node-RED...', 0)
+        await this.clearNodeRed()
+        hide()
+        message.success('Node-RED 已清空')
+
+        const params = new URLSearchParams({ source: 'frontend', action: 'create' })
+        window.open(`${NODE_RED_URL}?${params.toString()}`, '_blank')
+      } catch (e) {
+        console.error(e)
+        message.error(e?.message || '清空 Node-RED 失败')
+      }
     },
 
     handleEdit (record) {
@@ -528,6 +538,21 @@ export default {
             .catch(() => message.error('删除失败'))
         }
       })
+    },
+    async clearNodeRed () {
+      const base = this._nrBase()
+      const resp = await fetch(`${base}/flows`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Node-RED-Deployment-Type': 'full' // 更彻底
+        },
+        body: '[]'
+      })
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(`清空 Node-RED 失败：HTTP ${resp.status} ${text}`)
+      }
     },
     onSelectChange (keys, rows) {
       this.selectedRowKeys = keys

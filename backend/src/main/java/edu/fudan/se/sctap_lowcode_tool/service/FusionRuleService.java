@@ -2,6 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
@@ -11,6 +13,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleBranchRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -127,36 +130,121 @@ public class FusionRuleService {
         List<Map<String, Object>> created = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>();
 
+        // 1) 主干 & 模板分支（优先 active，否则按 branchId 最小）
         FusionRule rule = fusionRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException("规则未找到: " + ruleId));
 
+        FusionRuleBranch template = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可用于拷贝的分支（缺少 ruleJson/flowJson）"));
+
+        final String baseFusionTarget = template.getFusionTarget();
+        final String baseRuleJson = template.getRuleJson();
+        final String baseFlowJson = template.getFlowJson();
+
+        final ObjectMapper mapper = new ObjectMapper();
+
+        // 2) 逐空间创建
         for (Integer sid : spaceIds) {
             try {
                 SpaceInfo space = spaceRepository.findById(sid)
                         .orElseThrow(() -> new IllegalArgumentException("空间不存在: " + sid));
 
+                String spaceName = Optional.ofNullable(space.getSpaceName()).orElse("").trim();
+                if (spaceName.isEmpty()) spaceName = "空间#" + sid;
+
+                // —— 就地替换：把所有键名为 "location" 的文本值替换为当前 spaceName —— //
+                String ruleJsonForSpace = baseRuleJson;
+                String flowJsonForSpace = baseFlowJson;
+
+                if (ruleJsonForSpace != null && !ruleJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(ruleJsonForSpace);
+                        // 用一个栈做深度遍历，避免额外方法
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        ruleJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                if (flowJsonForSpace != null && !flowJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(flowJsonForSpace);
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        flowJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                // 3) 组装并保存新分支
                 FusionRuleBranch branch = new FusionRuleBranch();
                 branch.setRule(rule);
                 branch.setSpace(space);
-
-                // 不使用 index（确保表结构允许 NULL 或有默认值）
-                // branch.setBranchIndex(null);
-
-                // 分支名 = 可达空间返回的 name（此处即 SpaceInfo.spaceName）
-                String sname = Optional.ofNullable(space.getSpaceName()).orElse("").trim();
-                branch.setBranchName(sname.isEmpty() ? ("空间#" + sid) : sname);
-
+                branch.setBranchName(spaceName);                       // 名称=location=空间名
+                branch.setFusionTarget(baseFusionTarget);              // 复制模板
                 branch.setStatus(activateNewBranches ? "active" : "inactive");
-                // 如需：branch.setFusionTarget(...) / setRuleJson(...) / setFlowJson(...)
+                branch.setRuleJson(ruleJsonForSpace);
+                branch.setFlowJson(flowJsonForSpace);
 
                 branchRepo.saveAndFlush(branch);
 
                 created.add(Map.of(
                         "branchId", branch.getBranchId(),
                         "spaceId", sid,
-                        "spaceName", branch.getBranchName()
+                        "spaceName", spaceName
                 ));
             } catch (Exception ex) {
+                // 唯一约束冲突/其他异常直接记录为错误项（executableSpaces 已过滤过已存在）
                 errors.add(Map.of(
                         "spaceId", sid,
                         "error", ex.getClass().getSimpleName() + ": " + ex.getMessage()
@@ -371,10 +459,13 @@ public class FusionRuleService {
         String opType = opNode.path("operator").asText();
         JsonNode valNode = opNode.get("value");
         boolean hasVal = valNode != null && !valNode.isNull();
-        boolean isTimeOp = opType.endsWith("_TIME");
 
         Object in1, in2;
-        if (hasVal) {
+        if (OperatorUtil.TIME_FILTER.equals(opType)) {
+            // 统一时间过滤器：把 value 原样交给 OperatorService；第二个入参传 nodeId
+            in1 = valNode;     // 可能是对象/JSON字符串，OperatorService 会自行解析
+            in2 = nodeId;      // 用作 COUNTDOWN 的 key
+        } else if (hasVal) {
             if (deps.size() != 1) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
                 return;
@@ -382,23 +473,8 @@ public class FusionRuleService {
             Map<String, Object> depData = globalState.get(deps.get(0));
             if (depData == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(depData.get("value"));
-                in2 = valNode.asDouble();
-            } else {
-                double diff = valNode.asDouble();
-                Map<String, Object> a = new HashMap<>(depData);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", diff);
-
-                Map<String, Object> b = new HashMap<>();
-                b.put("value", true);
-                b.put("timestamp", System.currentTimeMillis());
-                b.put("maxTimeDiff", diff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(depData.get("value"));
+            in2 = (valNode.isNumber() ? valNode.asDouble() : toDouble(valNode.asText()));
         } else {
             if (deps.size() != 2) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
@@ -408,22 +484,8 @@ public class FusionRuleService {
             Map<String, Object> d2 = globalState.get(deps.get(1));
             if (d1 == null || d2 == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(d1.get("value"));
-                in2 = toDouble(d2.get("value"));
-            } else {
-                double defDiff = 3000.0;
-                Map<String, Object> a = new HashMap<>(d1);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", defDiff);
-
-                Map<String, Object> b = new HashMap<>(d2);
-                b.put("value", toDouble(b.get("value")) != 0.0);
-                b.put("maxTimeDiff", defDiff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(d1.get("value"));
+            in2 = toDouble(d2.get("value"));
         }
 
         boolean res = operatorService.applyUtilOperator(opType, in1, in2);
