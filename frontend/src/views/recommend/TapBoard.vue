@@ -41,12 +41,22 @@
         </a-col>
       </a-row>
     </div>
+    <a-modal
+      :visible="showLogModal"
+      title="应用实例日志"
+      width="80%"
+      @cancel="handleCancel">
+      <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ currentLog.join('\n') }}</pre>
+      <template slot="footer">
+        <a-button key="submit" type="primary" @click="handleOk">关闭</a-button>
+      </template>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
 <script setup>
 /* eslint-disable */
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getRunningEvents, getWaitValueOfEvent, getLog } from '@/api/manage'
 
@@ -71,6 +81,9 @@ const selectedEventType = ref('')
 
 const instancesLoading = ref(false)
 const instances = ref([])  
+
+const showLogModal = ref(false)
+const currentLog = ref([])
 
 const eventTypeColumns = [
   { title: '事件类型', dataIndex: 'eventTypeLabel', key: 'eventTypeLabel' },
@@ -134,8 +147,23 @@ onMounted(() => {
 })
 
 async function showLog(record) {
-  const res = await getLog(selectedEventType.value, record.instanceValue)
-  console.log(res)
+  try {
+    const res = await getLog(selectedEventType.value, record.instanceValue)
+    currentLog.value = res
+    showLogModal.value = true
+  } catch (e) {
+    message.error('获取日志失败')
+  }
+}
+
+const handleCancel = () => {
+  showLogModal.value = false
+  currentLog.value = [] // 可选：清空日志内容
+}
+
+const handleOk = () => {
+  showLogModal.value = false
+  currentLog.value = [] // 可选：清空日志内容
 }
 </script>
 
