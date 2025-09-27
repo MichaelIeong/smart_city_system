@@ -69,7 +69,12 @@ public class TaskScheduler {
             case "Device Service":
                 handleDeviceServiceNode(node);
                 break;
-
+            case "Social Service":
+                handleSocialServiceNode(node);
+                break;
+            case "Information Service":
+                handleInformationServiceNode(node);
+                break;
             // TODO: 未来扩展其他节点类型，比如 Social Service / Information Service
             default:
                 System.out.println("未知类型节点: " + type);
@@ -112,6 +117,45 @@ public class TaskScheduler {
         }
     }
 
+    /**
+     * Social Service 节点：执行社会化资源调用（保安、物业等）
+     */
+    private void handleSocialServiceNode(JsonNode node) {
+        Integer spaceId = (Integer) context.get("spaceId");
+        if (spaceId == null) {
+            throw new RuntimeException("执行 Social Service 节点时，未找到 Composition 的 spaceId");
+        }
+
+        Future<?> future = executorService.submit(() -> {
+            serviceTaskExecutor.executeSocialServiceTask(node, spaceId);
+        });
+
+        try {
+            future.get();
+        } catch (Exception e) {
+            throw new RuntimeException("执行 Social Service 节点失败", e);
+        }
+    }
+
+    /**
+     * Information Service 节点：执行信息系统调用（会议室预约系统等）
+     */
+    private void handleInformationServiceNode(JsonNode node) {
+        Integer spaceId = (Integer) context.get("spaceId");
+        if (spaceId == null) {
+            throw new RuntimeException("执行 Information Service 节点时，未找到 Composition 的 spaceId");
+        }
+
+        Future<?> future = executorService.submit(() -> {
+            serviceTaskExecutor.executeInformationServiceTask(node, spaceId);
+        });
+
+        try {
+            future.get();
+        } catch (Exception e) {
+            throw new RuntimeException("执行 Information Service 节点失败", e);
+        }
+    }
     /**
      * 停止调度器，关闭线程池
      */
