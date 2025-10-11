@@ -1,18 +1,20 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionDevice;
 import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
-import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
-import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
+import edu.fudan.se.sctap_lowcode_tool.neo4jModel.*;
+import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.ActuatingFunctionNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -35,6 +37,9 @@ public class DeviceService {
 
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;   // Neo4j
+
+    @Autowired
+    private ActuatingFunctionNodeRepository actuatingFunctionNodeRepository;   // Neo4j
 
     // === Neo4j 查询 ===
     public Optional<DeviceNode> findByDeviceId(String deviceId) {
@@ -75,9 +80,9 @@ public class DeviceService {
         // === MySQL 儲存 ===
         DeviceInfo saved = deviceRepository.save(device);
 
-        // === Neo4j 同步儲存 ===
+        // Neo4j 同步保存
         DeviceNode node = new DeviceNode();
-        node.setDeviceId(saved.getDeviceId());
+        node.setDeviceId(saved.getDeviceId()); // string 类型
         node.setDeviceName(saved.getDeviceName());
         node.setFixedProperties(saved.getFixedProperties());
         node.setCoordinateX(saved.getCoordinateX());
@@ -87,12 +92,13 @@ public class DeviceService {
 
         if (saved.getSpace() != null) {
             spaceNodeRepository.findBySpaceId(saved.getSpace().getSpaceId())
-                    .ifPresent(node::setSpace); // Neo4j 關聯 space
+                    .ifPresent(node::setSpace); // neo4j
         }
 
-        node.setDeviceType(null); // 如有需要可後續補充對應類型
-        deviceNodeRepository.save(node); // 儲存進 Neo4j
-
+        node.setDeviceType(null); // 可按需处理
+        deviceNodeRepository.save(node); // neo4j
+//        DeviceCreateRequest req = convertToRequest(saved);
+//        create(req);
         return saved;
     }
 
@@ -165,6 +171,72 @@ public class DeviceService {
             deviceRepository.deleteById(id);                             // mysql
         });
     }
+
+
+    private DeviceCreateRequest convertToRequest(DeviceInfo info) {
+        DeviceCreateRequest req = new DeviceCreateRequest();
+        req.setDeviceId(info.getId()); // 注意：这里是 MySQL 自增的 PK？还是 deviceId？
+        req.setDeviceName(info.getDeviceName());
+        req.setDescription(info.getFixedProperties()); // 或者另建字段映射
+
+        if (info.getSpace() != null) {
+            req.setSpaceId(info.getSpace().getSpaceId());
+        }
+        if (info.getDeviceType() != null) {
+            req.setDeviceTypeId(info.getDeviceType().getId());
+        }
+
+        // 如果 DeviceInfo.states / actuatingFunctions 有对应关系，可以转成 FunctionBinding
+        // 这里暂时跳过，后面再细化
+        return req;
+    }
+    /**
+     * 创建设备（推荐：只用主键构建 stub，另做存在性校验）
+     */
+//    @Transactional
+//    public DeviceNode create(DeviceCreateRequest req) {
+//        DeviceNode d = new DeviceNode();
+//        d.setDeviceId(req.getDeviceId());
+//        d.setDeviceName(req.getDeviceName());
+//        d.setDescription(req.getDescription());
+//
+//        // --- 方式 A：仅用 id 构建 stub，避免额外查询 ---
+//        // 可选：在生产里建议加 existsById 校验（避免“悬挂关系”）
+//        if (!spaceNodeRepository.existsById(req.getSpaceId())) {
+//            throw new IllegalArgumentException("Space not found: " + req.getSpaceId());
+//        }
+//        if (!deviceNodeRepository.existsById(req.getDeviceTypeId())) {
+//            throw new IllegalArgumentException("DeviceType not found: " + req.getDeviceTypeId());
+//        }
+//        SpaceNode spaceStub = new SpaceNode();
+//        spaceStub.setSpaceId(req.getSpaceId());
+//        d.setLocatedIn(spaceStub);
+//
+//        DeviceTypeNode typeStub = new DeviceTypeNode();
+//        typeStub.setDeviceTypeId(req.getDeviceTypeId());
+//        d.setDeviceType(typeStub);
+//
+//        // 设备-功能 带属性关系
+//        if (req.getFunctions() != null && !req.getFunctions().isEmpty()) {
+//            d.setActuatingFunctions(new HashSet<>());
+//            for (DeviceCreateRequest.FunctionBinding fb : req.getFunctions()) {
+//                if (!actuatingFunctionNodeRepository.existsById(fb.getActuatingFunctionId())) {
+//                    throw new IllegalArgumentException("ActuatingFunction not found: " + fb.getActuatingFunctionId());
+//                }
+//                ActuatingFunctionNode afStub = new ActuatingFunctionNode();
+//                afStub.setActuatingFunctionId(fb.getActuatingFunctionId());
+//
+//                ActuatingFunctionDeviceRelation rel = new ActuatingFunctionDeviceRelation();
+//                rel.setActuatingFunction(afStub);
+//                rel.setUrl(fb.getUrl());
+//                rel.setDescription(fb.getDescription());
+//
+//                d.getActuatingFunctions().add(rel);
+//            }
+//        }
+//
+//        return deviceNodeRepository.save(d);
+//    }
 
     public Set<String> getActuatingFunctionNamesBySpace(Integer spaceId) {
         // 取得該空間內所有 device

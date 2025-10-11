@@ -1,5 +1,7 @@
 // eslint-disable-next-line
 import { UserLayout, BasicLayout } from '@/layouts'
+// import { name } from 'file-loader'
+// import { component } from 'node_modules/vue/types/umd'
 
 const RouteView = {
   name: 'RouteView', render: h => h('router-view')
@@ -63,14 +65,14 @@ export const asyncRouterMap = [{
           }
         ]
 
-    }, // 事件融合
+    },
+    // 事件融合
     {
       path: '/event-fusion',
       name: 'event-fusion',
       component: () => import('@/views/list/EventFusionList'),
       meta: { title: 'menu.event-fusion', keepAlive: true, icon: 'link', permission: ['table'] }
     },
-
     // 服务组合
     {
       path: '/service-group',
@@ -78,36 +80,55 @@ export const asyncRouterMap = [{
       component: () => import('@/views/list/ServiceCompositionList'),
       meta: { title: 'menu.service-group', keepAlive: true, icon: 'fork', permission: ['table'] }
     },
-
+    // {
+    //   path: '/tap',
+    //   name: 'tap',
+    //   component: RouteView,
+    //   hideChildrenInMenu: true, // 隐藏子目录
+    //   redirect: '/tap/tap-list',
+    //   meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
+    //   children: [
+    //     {
+    //       path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
+    //       name: 'TapListWrapper',
+    //       component: () => import('@/views/tap/TapList'),
+    //       meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
+    //     },
+    //     {
+    //       path: '/tap/tap-detail/:id',
+    //       name: 'TapDetail',
+    //       component: () => import('@/views/tap/TapDetail'),
+    //       meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
+    //     }
+    //   ]
+    // },
     // 应用构造
     {
-      path: '/tap',
-      name: 'tap',
-      component: RouteView,
-      hideChildrenInMenu: true, // 隐藏子目录
-      redirect: '/tap/tap-list',
-      meta: { title: 'menu.tap', icon: 'table', permission: ['table'] },
-      children: [
-        {
-          path: '/tap/tap-list/:pageNo([1-9]\\d*)?',
-          name: 'TapListWrapper',
-          component: () => import('@/views/tap/TapList'),
-          meta: { title: 'menu.tap.list', keepAlive: true, permission: ['table'] }
-        },
-        {
-          path: '/tap/tap-detail/:id',
-          name: 'TapDetail',
-          component: () => import('@/views/tap/TapDetail'),
-          meta: { title: 'menu.tap.detail', keepAlive: true, permission: ['table'] }
-        }
-      ]
+      path: 'tap/list',
+      name: 'tap-list',
+      component: () => import('@/views/recommend/TapList'),
+      meta: { title: 'menu.tap.construct', keepAlive: true, icon: 'tool', permission: ['table'] }
     },
     // 应用推荐
     {
-      path: '/recommend',
-      name: 'RecommendDetail',
-      component: () => import('@/views/recommend/RecommendDetail'),
-      meta: { title: 'menu.recommend', keepAlive: true, icon: 'star' }
+      path: '/tap/recommend',
+      name: 'tap-recommend',
+      component: () => import('@/views/recommend/TapRecommend'),
+      meta: { title: 'menu.tap.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
+    },
+    // 应用看板
+    {
+      path: '/tap/board',
+      name: 'tap-board',
+      component: () => import('@/views/recommend/TapBoard'),
+      meta: { title: 'menu.tap.board', keepAlive: true, icon: 'dashboard', permission: ['dashboard'] }
+    },
+    // 城市网格
+    {
+      path: '/center-panel',
+      name: 'center-panel',
+      component: () => import('@/views/panel/CenterPanel.vue'),
+      meta: { title: 'menu.panel', keepAlive: true, icon: 'cluster', permission: ['dashboard'] }
     },
     // result
     {

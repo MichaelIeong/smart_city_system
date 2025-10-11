@@ -2,11 +2,15 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
+import edu.fudan.se.sctap_lowcode_tool.service.AppRuleExecutorService;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
+import edu.fudan.se.sctap_lowcode_tool.service.EventHistoryService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -26,21 +30,25 @@ public class AppRuleController {
     @GetMapping("/{id}")
     public ResponseEntity<AppRuleInfo> queryById(
             @PathVariable("id") Integer id) {
-        return ResponseEntity.of(appRuleService.getRuleById(id));
+        return ResponseEntity.ok(appRuleService.getAppRuleById(id));
     }
 
-    @PostMapping
-    public void create(@RequestBody AppRuleRequest rule) {
-        appRuleService.createRule(rule);
+    /**
+     * 保存应用
+     * */
+    @PostMapping("/create")
+    public boolean create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
+        return appRuleService.createRule(appRuleSaveRequest);
     }
 
-    @PutMapping("/{id}")
-    public void update(
-            @PathVariable("id") Integer id,
-            @RequestBody AppRuleRequest rule) {
-        appRuleService.updateRule(id, rule);
+    @PostMapping("/update")
+    public boolean update(@RequestBody AppRuleUpdateRequest appRuleUpdateRequest) {
+        return appRuleService.updateRule(appRuleUpdateRequest);
     }
 
+    /**
+     * 删除应用
+     * */
     @DeleteMapping("/{id}")
     public void delete(@PathVariable("id") Integer id) {
         appRuleService.deleteRulesByIds(List.of(id));
@@ -49,6 +57,17 @@ public class AppRuleController {
     @DeleteMapping
     public void deleteAll(@RequestParam("id") List<Integer> ids) {
         appRuleService.deleteRulesByIds(ids);
+    }
+
+    /**
+     * 分页查询
+     * */
+    @PostMapping("/list/{projectId}")
+    public PageDTO<AppRuleInfo> list(
+            @PathVariable Integer projectId,
+            @RequestBody AppRuleQueryRequest appRuleQueryRequest
+    ) {
+        return appRuleService.list(projectId, appRuleQueryRequest);
     }
 
     /**
@@ -75,30 +94,27 @@ public class AppRuleController {
         return appRuleService.findSimilarRules(ruleGenerateRequest);
     }
 
-//
-//    /**
-//     * 复杂应用json规则node red转换
-//     * */
-//    @PostMapping("/recommend/convertComplexJsonRule")
-//    public ResponseEntity<String> convertComplexJsonRule(@RequestBody AppRuleRequest appRuleRequest) {
-//        return appRuleService.convertComplexJsonRule(appRuleRequest);
-//    }
+    /**
+     * 复杂应用json规则node red转换
+     * */
+    @PostMapping("/recommend/convertJsonRule")
+    public ResponseEntity<String> convertJsonRule(@RequestBody String jsonRule) {
+        String flowJson = appRuleService.convertAppRuleJsonToNodeRedFlowJson(jsonRule);
+        if(flowJson != null) {
+            return ResponseEntity.ok(flowJson);
+        }
+        return ResponseEntity.badRequest().body("转换失败");
+    }
 
-
-//    /**
-//     * 触发应用规则
-//     * */
-//    @PostMapping("/trigger")
-//    public void triggerAppRule(@RequestBody EventTriggerDTO eventTriggerDTO) {
-//        appRuleService.triggerAppRule(eventTriggerDTO);
-//    }
-//
-//    /**
-//     * 动作完成上报
-//     * */
-//    @PostMapping("/action/complete")
-//    public void actionComplete(@RequestBody ActionCompleteDTO actionCompleteDTO) {
-//        appRuleService.actionComplete(actionCompleteDTO);
-//    }
-
+    /**
+     * 根据id启用或禁用规则
+     * @param id 规则id
+     * @param enabled 是否启用
+     */
+    @PostMapping("/{id}/enabled")
+    public boolean updateEnabledStatus(
+            @PathVariable Integer id,
+            @RequestParam boolean enabled) {
+        return appRuleService.updateEnabledStatus(id, enabled);
+    }
 }

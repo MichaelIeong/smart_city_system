@@ -1,5 +1,5 @@
 # 使用官方的Maven镜像作为构建阶段
-FROM maven AS build
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 
 # 设置工作目录
 WORKDIR /app
@@ -17,7 +17,11 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # 使用来自Docker Hub的官方OpenJDK镜像作为运行阶段
-FROM openjdk:22
+FROM openjdk:17
+
+# 设置时区为上海
+ENV TIME_ZONE=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
 
 # 添加一个指向/tmp的卷
 VOLUME /tmp

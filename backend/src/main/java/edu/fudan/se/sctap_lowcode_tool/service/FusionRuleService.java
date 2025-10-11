@@ -2,19 +2,20 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
+import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
+import edu.fudan.se.sctap_lowcode_tool.model.FusionRuleBranch;
 import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleBranchRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
-
-import jakarta.annotation.PostConstruct;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,94 +29,315 @@ public class FusionRuleService {
 
     @Autowired
     private FusionRuleRepository fusionRuleRepository;
+    @Autowired
+    private FusionRuleBranchRepository branchRepo;
 
     @Autowired
     private OperatorService operatorService;
-
     @Autowired
     private KafkaConsumerUtil kafkaConsumerUtil;
-
     @Autowired
     private DeviceService deviceService;
-
     @Autowired
     private NodeRedService nodeRedService;
-
     @Autowired
     private SpaceService spaceService;
 
-    // 事务管理器，用于在后台线程里显式开启事务
     @Autowired
-    private PlatformTransactionManager txManager;
-    private TransactionTemplate txTemplate;
+    private SpaceRepository spaceRepository;
 
-    // 全局状态 & 空间 ID
+    // 每次执行过程中的全局节点状态（同一规则执行上下文内使用）
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
-    private Integer spaceId = null;
 
-    // 每条规则的执行旗标：ruleId -> 是否继续执行
+    // 每条主干规则的执行旗标：ruleId -> 是否继续执行
     private final Map<Integer, AtomicBoolean> runningFlags = new ConcurrentHashMap<>();
 
-    // 线程池，用于后台不断循环执行
+    // 后台执行线程池
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    /**
-     * 构造 TransactionTemplate，在后台线程中手动开启事务
-     */
-    @PostConstruct
-    public void init() {
-        this.txTemplate = new TransactionTemplate(txManager);
-        // 每次都新开事务，确保读写都在有效 Session 中
-        this.txTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    }
+    /* =========================
+     * 主干规则相关
+     * ========================= */
 
     /**
-     * 获取所有规则
+     * 返回主干规则列表（主表仅保留 id/project/name）
      */
     public List<FusionRule> getRuleList() {
         return fusionRuleRepository.findAll();
     }
 
     /**
-     * 删除规则
+     * 删除主干规则：先查出并逐条删除其分支，再删除主干本身。
+     * 全程不走批量 JPQL，避免 “Executing an update/delete query” 异常。
      */
     public boolean deleteRuleById(int ruleId) {
-        if (fusionRuleRepository.existsById(ruleId)) {
-            fusionRuleRepository.deleteById(ruleId);
-            return true;
+        if (!fusionRuleRepository.existsById(ruleId)) {
+            return false;
         }
-        return false;
+        // 1) 先删子：逐条删分支（避免 @Modifying 批量更新需要事务）
+        List<FusionRuleBranch> branches = branchRepo.findByRule_RuleId(ruleId);
+        if (branches != null && !branches.isEmpty()) {
+            for (FusionRuleBranch b : branches) {
+                // 用 deleteById 最稳妥（走实体删除）
+                branchRepo.deleteById(b.getBranchId());
+            }
+        }
+        // 2) 再删父：删除主干
+        fusionRuleRepository.deleteById(ruleId);
+        return true;
     }
 
     /**
-     * 点“执行”→ 标记 active 并启动后台循环直到暂停
+     * 主干改名
      */
-    public boolean executeRuleById(int ruleId) {
-        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
-        if (ruleOpt.isEmpty()) return false;
+    public boolean updateRuleName(int ruleId, String newName) {
+        return fusionRuleRepository.findById(ruleId).map(r -> {
+            r.setRuleName(newName);
+            fusionRuleRepository.save(r);
+            return true;
+        }).orElse(false);
+    }
 
-        FusionRule rule = ruleOpt.get();
-        rule.setStatus("active");
-        fusionRuleRepository.save(rule);
+    /* =========================
+     * 分支 CRUD / 执行
+     * ========================= */
 
-        // 如果还没在跑，就启动
+    /**
+     * 根据主干列出分支
+     */
+    public List<FusionRuleBranch> listBranchesByRule(Integer ruleId) {
+        return branchRepo.findByRule_RuleId(ruleId);
+    }
+
+    /**
+     * 统计某主干下分支数量（供控制器展示用）
+     */
+    public long countBranchesOfRule(Integer ruleId) {
+        return branchRepo.findByRule_RuleId(ruleId).size();
+    }
+
+    /**
+     * 按可执行空间创建分支；spaceIds == null 表示对全部可执行空间处理；
+     */
+    public Map<String, Object> applyRuleToExecutableSpaces(int ruleId,
+                                                           boolean activateNewBranches,
+                                                           List<Integer> spaceIds) {
+        if (spaceIds == null || spaceIds.isEmpty()) {
+            throw new IllegalArgumentException("spaceIds 不能为空");
+        }
+
+        Map<String, Object> out = new HashMap<>();
+        List<Map<String, Object>> created = new ArrayList<>();
+        List<Map<String, Object>> errors = new ArrayList<>();
+
+        // 1) 主干 & 模板分支（优先 active，否则按 branchId 最小）
+        FusionRule rule = fusionRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException("规则未找到: " + ruleId));
+
+        FusionRuleBranch template = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可用于拷贝的分支（缺少 ruleJson/flowJson）"));
+
+        final String baseFusionTarget = template.getFusionTarget();
+        final String baseRuleJson = template.getRuleJson();
+        final String baseFlowJson = template.getFlowJson();
+
+        final ObjectMapper mapper = new ObjectMapper();
+
+        // 2) 逐空间创建
+        for (Integer sid : spaceIds) {
+            try {
+                SpaceInfo space = spaceRepository.findById(sid)
+                        .orElseThrow(() -> new IllegalArgumentException("空间不存在: " + sid));
+
+                String spaceName = Optional.ofNullable(space.getSpaceName()).orElse("").trim();
+                if (spaceName.isEmpty()) spaceName = "空间#" + sid;
+
+                // —— 就地替换：把所有键名为 "location" 的文本值替换为当前 spaceName —— //
+                String ruleJsonForSpace = baseRuleJson;
+                String flowJsonForSpace = baseFlowJson;
+
+                if (ruleJsonForSpace != null && !ruleJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(ruleJsonForSpace);
+                        // 用一个栈做深度遍历，避免额外方法
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        ruleJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                if (flowJsonForSpace != null && !flowJsonForSpace.isBlank()) {
+                    try {
+                        JsonNode root = mapper.readTree(flowJsonForSpace);
+                        Deque<JsonNode> stack = new ArrayDeque<>();
+                        stack.push(root);
+                        while (!stack.isEmpty()) {
+                            JsonNode cur = stack.pop();
+                            if (cur.isObject()) {
+                                ObjectNode obj = (ObjectNode) cur;
+                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                                it.forEachRemaining(snapshot::add);
+                                for (Map.Entry<String, JsonNode> e : snapshot) {
+                                    String key = e.getKey();
+                                    JsonNode val = e.getValue();
+                                    if ("location".equals(key) && val != null && val.isTextual()) {
+                                        obj.put(key, spaceName);
+                                    } else {
+                                        stack.push(val);
+                                    }
+                                }
+                            } else if (cur.isArray()) {
+                                ArrayNode arr = (ArrayNode) cur;
+                                for (int i = 0; i < arr.size(); i++) {
+                                    stack.push(arr.get(i));
+                                }
+                            }
+                        }
+                        flowJsonForSpace = mapper.writeValueAsString(root);
+                    } catch (Exception ignore) {
+                        // 解析失败则保持原样
+                    }
+                }
+
+                // 3) 组装并保存新分支
+                FusionRuleBranch branch = new FusionRuleBranch();
+                branch.setRule(rule);
+                branch.setSpace(space);
+                branch.setBranchName(spaceName);                       // 名称=location=空间名
+                branch.setFusionTarget(baseFusionTarget);              // 复制模板
+                branch.setStatus(activateNewBranches ? "active" : "inactive");
+                branch.setRuleJson(ruleJsonForSpace);
+                branch.setFlowJson(flowJsonForSpace);
+
+                branchRepo.saveAndFlush(branch);
+
+                created.add(Map.of(
+                        "branchId", branch.getBranchId(),
+                        "spaceId", sid,
+                        "spaceName", spaceName
+                ));
+            } catch (Exception ex) {
+                // 唯一约束冲突/其他异常直接记录为错误项（executableSpaces 已过滤过已存在）
+                errors.add(Map.of(
+                        "spaceId", sid,
+                        "error", ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                ));
+            }
+        }
+
+        out.put("createdBranches", created.size());
+        out.put("created", created);
+        out.put("errors", errors);
+        return out;
+    }
+
+    /* =========================
+     * 分支规则相关
+     * ========================= */
+
+    /**
+     * 显式执行某个分支（与 /executeBranch/{branchId} 对应）
+     */
+    public boolean executeBranch(int branchId) {
+        FusionRuleBranch branch = branchRepo.findById(branchId)
+                .orElseThrow(() -> new IllegalArgumentException("Branch not found: " + branchId));
+        int ruleId = branch.getRule().getRuleId();
+
         runningFlags.compute(ruleId, (id, flag) -> {
             if (flag == null || !flag.get()) {
                 AtomicBoolean newFlag = new AtomicBoolean(true);
-                startRuleLoop(ruleId, rule.getRuleJson(), newFlag);
+                startRuleLoop(ruleId, branch.getRuleJson(), newFlag, branch.getFusionTarget());
                 return newFlag;
             }
             return flag;
         });
 
-        System.out.println("已启动规则持续执行，ruleId=" + ruleId);
+        System.out.println("已启动分支执行，ruleId=" + ruleId + ", branchId=" + branchId);
         return true;
     }
 
     /**
-     * 真正的后台循环：每次都通过 txTemplate 开新事务
+     * 暂停某个分支（由于按 ruleId 控制执行，暂停等价于暂停该主干）
      */
-    private void startRuleLoop(int ruleId, String ruleJsonStr, AtomicBoolean runningFlag) {
+    public boolean pauseBranch(int branchId) {
+        FusionRuleBranch branch = branchRepo.findById(branchId).orElse(null);
+        if (branch == null) return false;
+        int ruleId = branch.getRule().getRuleId();
+        AtomicBoolean flag = runningFlags.get(ruleId);
+        if (flag != null) flag.set(false);
+        System.out.println("已暂停分支，branchId=" + branchId + ", ruleId=" + ruleId);
+        return true;
+    }
+
+    /**
+     * 删除分支
+     */
+    public boolean deleteBranch(int branchId) {
+        if (!branchRepo.existsById(branchId)) return false;
+        branchRepo.deleteById(branchId);
+        return true;
+    }
+
+    /**
+     * 计算规则可执行的空间列表：
+     * 选一个分支（优先 active，否则最小 index），用其 ruleJson 做能力匹配。
+     */
+    public List<Map<String, Object>> getExecutableSpaces(int ruleId) {
+        FusionRuleBranch probe = branchRepo.pickOneForExecution(ruleId, null)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("该规则没有可用于分析的分支或分支缺少 ruleJson"));
+
+        JsonNode ruleJson;
+        try {
+            ruleJson = new ObjectMapper().readTree(probe.getRuleJson());
+        } catch (Exception e) {
+            throw new RuntimeException("解析分支规则 JSON 失败", e);
+        }
+
+        List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
+        return allSpaces.stream()
+                .filter(sp -> sp.getSpaceId() != null)
+                .filter(sp -> canRuleRunInLocation(ruleJson, sp.getSpaceId()))                  // 能力匹配
+                .filter(sp -> !branchRepo.existsByRuleAndSpace(ruleId, sp.getSpaceId()))       // 仅此处过滤“已存在”
+                .map(sp -> Map.<String, Object>of("id", sp.getSpaceId(), "name", sp.getSpaceName()))
+                .collect(Collectors.toList());
+    }
+
+    /* =========================
+     * 后台执行主循环 & 规则节点处理
+     * ========================= */
+
+    /**
+     * 后台循环：每次在新事务里跑一遍流程；命中 operatorFlag 则更新 fusion table
+     */
+    private void startRuleLoop(int ruleId, String ruleJsonStr, AtomicBoolean runningFlag, String effectiveFusionTarget) {
         executorService.submit(() -> {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode ruleJson;
@@ -129,25 +351,12 @@ public class FusionRuleService {
 
             while (runningFlag.get()) {
                 try {
-                    // 在新事务里执行一次完整流程
-                    txTemplate.execute(status -> {
-                        processNodeRedJson(ruleJson, operatorFlag);
-
-                        // 若 operator 触发，则更新 fusion table
-                        if (operatorFlag.getAndSet(false)) {
-                            fusionRuleRepository.findById(ruleId).ifPresent(freshRule -> {
-                                PersonUpdateRequest req = new PersonUpdateRequest();
-                                req.setPersonName("mmhu");
-                                if (spaceId != null) {
-                                    req.setSpaceId(spaceId);
-                                }
-                                nodeRedService.updateFusionTable(freshRule.getFusionTarget(), req);
-                            });
-                        }
-                        return null;  // 必须 return
-                    });
-
-                    // 轮询间隔（可按需调整）
+                    processNodeRedJson(ruleJson, operatorFlag);
+                    if (operatorFlag.getAndSet(false)) {
+                        PersonUpdateRequest req = new PersonUpdateRequest();
+                        req.setPersonName("mmhu");
+                        nodeRedService.updateFusionTable(effectiveFusionTarget, req);
+                    }
                     Thread.sleep(1000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -161,28 +370,7 @@ public class FusionRuleService {
     }
 
     /**
-     * 点“暂停”→ 标记 inactive 并让后台循环自然退出
-     */
-    public boolean pauseRuleById(int ruleId) {
-        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
-        if (ruleOpt.isEmpty()) return false;
-
-        FusionRule rule = ruleOpt.get();
-        rule.setStatus("inactive");
-        fusionRuleRepository.save(rule);
-
-        // 置 false 让循环结束
-        AtomicBoolean flag = runningFlags.get(ruleId);
-        if (flag != null) {
-            flag.set(false);
-        }
-
-        System.out.println("已暂停规则，ruleId=" + ruleId);
-        return true;
-    }
-
-    /**
-     * 解析并执行 Node-RED 规则
+     * 解析并执行 Node-RED 风格规则
      */
     public void processNodeRedJson(JsonNode ruleJson, AtomicBoolean operatorFlag) {
         if (!ruleJson.has("steps")) {
@@ -205,49 +393,10 @@ public class FusionRuleService {
         }
     }
 
-    public List<Integer> getExecutableLocationsForRuleId(int ruleId) {
-        Optional<FusionRule> ruleOpt = fusionRuleRepository.findById(ruleId);
-        if (ruleOpt.isEmpty()) {
-            throw new IllegalArgumentException("规则 ID 不存在: " + ruleId);
-        }
-
-        FusionRule rule = ruleOpt.get();
-
-        String ruleJsonStr = rule.getRuleJson();
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode ruleJson;
-        try {
-            ruleJson = mapper.readTree(ruleJsonStr);
-        } catch (Exception e) {
-            throw new RuntimeException("解析规则 JSON 失败", e);
-        }
-
-        // ✅ 這裡不再過濾 projectId，直接取所有空間
-        List<SpaceInfo> allSpaces = spaceService.findAllSpaces();
-        List<Integer> executableLocations = new ArrayList<>();
-
-        System.out.println("开始检查规则 ruleId=" + ruleId + " 可执行空间（不限制 projectId）...");
-        System.out.println("ruleJson 内容如下：");
-        System.out.println(ruleJson.toPrettyString());
-
-        for (SpaceInfo space : allSpaces) {
-            Integer spaceId = space.getSpaceId();
-            boolean canRun = canRuleRunInLocation(ruleJson, spaceId);
-            System.out.println("空间 spaceId=" + spaceId + " 是否可执行规则？" + (canRun ? "是 ✅" : "否 ❌"));
-            if (canRun) {
-                executableLocations.add(spaceId);
-            }
-        }
-
-        System.out.println("检查完成。可执行空间ID列表: " + executableLocations);
-        return executableLocations;
-    }
-
     private boolean canRuleRunInLocation(JsonNode ruleJson, Integer spaceId) {
         Set<String> requiredActuatingFunctions = new HashSet<>();
         Set<String> requiredSensingFunctions = new HashSet<>();
 
-        // 收集规则中 Sensor / Actuator 节点使用的 function 名称
         ruleJson.fields().forEachRemaining(entry -> {
             JsonNode node = entry.getValue();
             if (!node.has("type")) return;
@@ -266,21 +415,10 @@ public class FusionRuleService {
             }
         });
 
-        System.out.println("空间 spaceId=" + spaceId + "：规则需要 Actuator 功能 = " + requiredActuatingFunctions);
-        System.out.println("空间 spaceId=" + spaceId + "：规则需要 Sensor 功能 = " + requiredSensingFunctions);
-
-        // 获取空间中具备的功能
         Set<String> availableFunctions = deviceService.getActuatingFunctionNamesBySpace(spaceId);
-
-        System.out.println("空间 spaceId=" + spaceId + " 拥有功能 = " + availableFunctions);
-
         boolean hasAllActuating = availableFunctions.containsAll(requiredActuatingFunctions);
         boolean hasAllSensing = availableFunctions.containsAll(requiredSensingFunctions);
-
-        boolean result = hasAllActuating && hasAllSensing;
-
-        System.out.println("空间 spaceId=" + spaceId + " 满足规则功能要求？" + (result ? "是 ✅" : "否 ❌"));
-        return result;
+        return hasAllActuating && hasAllSensing;
     }
 
     private List<Map.Entry<String, JsonNode>> findNodesByStep(JsonNode ruleJson, int step) {
@@ -297,7 +435,6 @@ public class FusionRuleService {
 
     private void processSensorNode(String nodeId, JsonNode sensorNode) {
         int sensorId = sensorNode.path("sensorId").asInt();
-        // 在事务上下文内安全地取到 DTO，且不再泄露任何懒加载代理
         DeviceResponse dr = deviceService.findByDeviceIdFromMySQL(String.valueOf(sensorId))
                 .orElseThrow(() -> new RuntimeException("Device not found"));
 
@@ -322,10 +459,13 @@ public class FusionRuleService {
         String opType = opNode.path("operator").asText();
         JsonNode valNode = opNode.get("value");
         boolean hasVal = valNode != null && !valNode.isNull();
-        boolean isTimeOp = opType.endsWith("_TIME");
 
         Object in1, in2;
-        if (hasVal) {
+        if (OperatorUtil.TIME_FILTER.equals(opType)) {
+            // 统一时间过滤器：把 value 原样交给 OperatorService；第二个入参传 nodeId
+            in1 = valNode;     // 可能是对象/JSON字符串，OperatorService 会自行解析
+            in2 = nodeId;      // 用作 COUNTDOWN 的 key
+        } else if (hasVal) {
             if (deps.size() != 1) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
                 return;
@@ -333,23 +473,8 @@ public class FusionRuleService {
             Map<String, Object> depData = globalState.get(deps.get(0));
             if (depData == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(depData.get("value"));
-                in2 = valNode.asDouble();
-            } else {
-                double diff = valNode.asDouble();
-                Map<String, Object> a = new HashMap<>(depData);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", diff);
-
-                Map<String, Object> b = new HashMap<>();
-                b.put("value", true);
-                b.put("timestamp", System.currentTimeMillis());
-                b.put("maxTimeDiff", diff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(depData.get("value"));
+            in2 = (valNode.isNumber() ? valNode.asDouble() : toDouble(valNode.asText()));
         } else {
             if (deps.size() != 2) {
                 System.out.println("Operator " + nodeId + " 依赖数不符");
@@ -359,22 +484,8 @@ public class FusionRuleService {
             Map<String, Object> d2 = globalState.get(deps.get(1));
             if (d1 == null || d2 == null) return;
 
-            if (!isTimeOp) {
-                in1 = toDouble(d1.get("value"));
-                in2 = toDouble(d2.get("value"));
-            } else {
-                double defDiff = 3000.0;
-                Map<String, Object> a = new HashMap<>(d1);
-                a.put("value", toDouble(a.get("value")) != 0.0);
-                a.put("maxTimeDiff", defDiff);
-
-                Map<String, Object> b = new HashMap<>(d2);
-                b.put("value", toDouble(b.get("value")) != 0.0);
-                b.put("maxTimeDiff", defDiff);
-
-                in1 = a;
-                in2 = b;
-            }
+            in1 = toDouble(d1.get("value"));
+            in2 = toDouble(d2.get("value"));
         }
 
         boolean res = operatorService.applyUtilOperator(opType, in1, in2);
@@ -404,9 +515,7 @@ public class FusionRuleService {
     }
 
     private Double toDouble(Object input) {
-        if (input instanceof Number) {
-            return ((Number) input).doubleValue();
-        }
+        if (input instanceof Number) return ((Number) input).doubleValue();
         try {
             return Double.parseDouble(String.valueOf(input));
         } catch (Exception e) {

@@ -3,52 +3,80 @@ package edu.fudan.se.sctap_lowcode_tool.execution;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+
 import java.util.*;
 
-@Component  // 让 Spring 负责管理 WorkflowParser
+/**
+ * WorkflowParser
+ * 负责解析 Node-RED 导出的 JSON，生成 DAG 的数据结构
+ */
+@Component
 public class WorkflowParser {
 
+    // 节点 id -> 节点 JSON
     private final Map<String, JsonNode> nodeMap = new HashMap<>();
+
+    // 节点 id -> 后继节点 id 列表
     private final Map<String, List<String>> dependencies = new HashMap<>();
-    private final Map<String, Integer> pendingDependencies = new HashMap<>();
+
+    // 起始节点 id
     private String startNodeId;
 
-    // 无参构造方法（Spring 需要）
-    public WorkflowParser() {
-    }
-
-    // 解析 JSON 并初始化数据
     public void initParser(String json) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(json);
+
+        if (!root.isArray()) {
+            throw new IllegalArgumentException("传入的工作流 JSON 必须是数组");
+        }
+
         nodeMap.clear();
         dependencies.clear();
-        pendingDependencies.clear();
+        startNodeId = null;
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode rootNode = objectMapper.readTree(json);
+        // 第一步：收集所有节点
+        for (JsonNode node : root) {
+            if (!node.has("id") || !node.has("type")) continue;
 
-        for (JsonNode node : rootNode) {
             String nodeId = node.get("id").asText();
+            String type = node.get("type").asText();
+
             nodeMap.put(nodeId, node);
 
-            if ("start".equals(node.get("type").asText())) {
+            // 找起始节点（Start 或 Composition）
+            if (("start".equalsIgnoreCase(type) || "Composition".equals(type)) && startNodeId == null) {
                 startNodeId = nodeId;
             }
+        }
 
-            JsonNode wiresNode = node.get("wires");
-            if (wiresNode != null && wiresNode.isArray()) {
-                for (JsonNode wireArray : wiresNode) {
-                    for (JsonNode targetNode : wireArray) {
-                        String targetId = targetNode.asText();
-                        dependencies.computeIfAbsent(nodeId, k -> new ArrayList<>()).add(targetId);
-                        pendingDependencies.put(targetId, pendingDependencies.getOrDefault(targetId, 0) + 1);
+        // 第二步：建立依赖关系
+        for (JsonNode node : root) {
+            if (!node.has("id") || !node.has("wires")) continue;
+
+            String nodeId = node.get("id").asText();
+            JsonNode wires = node.get("wires");
+
+            if (wires.isArray()) {
+                for (JsonNode wireGroup : wires) {
+                    if (wireGroup.isArray()) {
+                        for (JsonNode targetNode : wireGroup) {
+                            String targetId = targetNode.asText();
+                            dependencies
+                                    .computeIfAbsent(nodeId, k -> new ArrayList<>())
+                                    .add(targetId);
+                        }
                     }
                 }
             }
         }
-    }
 
-    public String getStartNodeId() {
-        return startNodeId;
+        if (startNodeId == null) {
+            throw new RuntimeException("未找到起始节点（需要 type = start 或 Composition）");
+        }
+
+        System.out.println("WorkflowParser 初始化完成");
+        System.out.println("起始节点: " + startNodeId);
+        System.out.println("节点数: " + nodeMap.size());
     }
 
     public Map<String, JsonNode> getNodeMap() {
@@ -59,7 +87,7 @@ public class WorkflowParser {
         return dependencies;
     }
 
-    public Map<String, Integer> getPendingDependencies() {
-        return pendingDependencies;
+    public String getStartNodeId() {
+        return startNodeId;
     }
 }

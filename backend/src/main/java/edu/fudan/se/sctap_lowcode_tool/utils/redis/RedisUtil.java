@@ -2,7 +2,6 @@ package edu.fudan.se.sctap_lowcode_tool.utils.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.fudan.se.sctap_lowcode_tool.DTO.app.ChainStep;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
@@ -34,13 +33,13 @@ public class RedisUtil {
     }
 
     /**
-     * 存储Chain
+     * 存储wait
      * */
     public void setWait(String key, Map<String, Object> data) throws JsonProcessingException {
         // 序列化 Map<String, Object> 为 JSON 字符串
-        String json = objectMapper.writeValueAsString(data);
+        String jsonData = objectMapper.writeValueAsString(data);
         // 写入 Redis
-        stringRedisTemplate.opsForValue().set(key, json);
+        stringRedisTemplate.opsForValue().set(key, jsonData);
     }
 
     /**

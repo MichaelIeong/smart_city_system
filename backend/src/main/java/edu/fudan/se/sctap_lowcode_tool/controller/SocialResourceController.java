@@ -20,6 +20,7 @@ public class SocialResourceController {
 
     @GetMapping("/project/{projectId}")
     public ResponseEntity<List<SocialResourceInfo>> getSocialResourcesByProjectId(@PathVariable Integer projectId) {
+        System.out.println(socialResourceService.getSocialResourceByProjectId(projectId));
         return ResponseEntity.ok(socialResourceService.getSocialResourceByProjectId(projectId));
     }
 }

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PersonUpdateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorData;
 import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleBranchRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.OperatorRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,12 @@ public class NodeRedService {
 
     @Autowired
     private FusionRuleRepository fusionRuleRepository;
+
+    @Autowired
+    private FusionRuleBranchRepository branchRepo;
+
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     @Autowired
     private OperatorRepository operatorRepository;
@@ -34,30 +42,71 @@ public class NodeRedService {
     @Autowired
     private PersonService personService;
 
-    /**
-     * 保存上传的规则
-     *
-     * @param msg 包含 ruleJson 和 flowJson 的 Map
-     */
+    /*** 保存上传的规则 */
     public void handleUploadRule(Map<String, JsonNode> msg) {
-        JsonNode ruleJson = msg.get("ruleJson");
-        JsonNode flowJson = msg.get("flowJson");
-        String fusionTarget = msg.get("fusionTarget").asText();
-        System.out.println("fusionTarget: " + fusionTarget);
+        JsonNode ruleJsonNode = msg.get("ruleJson");
+        JsonNode flowJsonNode = msg.get("flowJson");
+        JsonNode fusionTargetNode = msg.get("fusionTarget");
 
-        FusionRule fusionRule = new FusionRule();
-        fusionRule.setFlowJson(flowJson.toString());
-        fusionRule.setRuleJson(ruleJson.toString());
-        fusionRule.setRuleName(ruleJson.get("rulename").asText());
-        fusionRule.setFusionTarget(fusionTarget);
-        addNewRule(fusionRule);
+        if (ruleJsonNode == null || flowJsonNode == null || fusionTargetNode == null) {
+            throw new IllegalArgumentException("缺少必要字段：ruleJson/flowJson/fusionTarget");
+        }
+
+        String ruleName = ruleJsonNode.path("rulename").asText(null);
+        if (ruleName == null || ruleName.isBlank()) {
+            throw new IllegalArgumentException("ruleJson.rulename 不能为空");
+        }
+        String fusionTarget = fusionTargetNode.asText();
+
+        Integer projectId = msg.get("projectId") != null ? msg.get("projectId").asInt() : null;
+        Integer spaceId = msg.get("spaceId") != null ? msg.get("spaceId").asInt() : null;
+        String branchNameReq = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
+        String statusReq = msg.get("status") != null ? msg.get("status").asText() : "inactive";
+
+        // 先建主干
+        FusionRule rule = new FusionRule();
+        rule.setRuleName(ruleName);
+        if (projectId != null) {
+            projectService.findById(projectId).ifPresent(rule::setProjectID);
+        }
+        fusionRuleRepository.save(rule);
+
+        // 取空间（可为空）
+        SpaceInfo space = null;
+        if (spaceId != null) {
+            space = spaceRepository.findById(spaceId)
+                    .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
+        }
+
+        // 分支名策略：优先用前端传入 -> 其次用空间名 -> 否则回退 ruleName
+        String finalBranchName;
+        if (branchNameReq != null && !branchNameReq.isBlank()) {
+            finalBranchName = branchNameReq.trim();
+        } else if (space != null && space.getSpaceName() != null && !space.getSpaceName().isBlank()) {
+            finalBranchName = space.getSpaceName().trim();
+        } else {
+            finalBranchName = ruleName;
+        }
+
+        // 创建分支（承载可运行内容）
+        FusionRuleBranch branch = new FusionRuleBranch();
+        branch.setRule(rule);
+        branch.setSpace(space);
+        branch.setBranchName(finalBranchName);
+        branch.setFusionTarget(fusionTarget);
+        branch.setStatus((statusReq == null || statusReq.isBlank()) ? "inactive" : statusReq.trim());
+        branch.setRuleJson(ruleJsonNode.toString());
+        branch.setFlowJson(flowJsonNode.toString());
+
+        branchRepo.save(branch);
+
+        System.out.println("已创建主干 ruleId=" + rule.getRuleId()
+                + " 与分支 branchId=" + branch.getBranchId()
+                + "（branch_index 已移除，不再使用）");
     }
 
     /**
      * 根据项目 ID 获取传感器数据
-     *
-     * @param projectId 项目 ID
-     * @return 包含传感器数据的 ResponseEntity
      */
     public ResponseEntity<?> getSensorDataByProjectId(int projectId) {
         Optional<ProjectInfo> projectInfo = projectService.findById(projectId);
@@ -103,18 +152,7 @@ public class NodeRedService {
     }
 
     /**
-     * 添加新的融合规则
-     *
-     * @param fusionRule 规则对象
-     */
-    public void addNewRule(FusionRule fusionRule) {
-        fusionRuleRepository.save(fusionRule);
-    }
-
-    /**
      * 获取所有事件融合算子
-     *
-     * @return 所有 Operator 列表
      */
     public List<Operator> getAllOperators() {
         List<Operator> operators = new ArrayList<>();
@@ -125,23 +163,18 @@ public class NodeRedService {
 
     /**
      * 获取与 Space 表有关联的所有表名（静态定义）
-     *
-     * @return 相关联表的表名列表
      */
     public List<String> getAllFusionTable() {
-        return List.of(
-                "person"            // 人员表
-        );
+        return List.of("person", "null");
     }
 
     /**
      * 根据表名修改数据
-     *
-     * @return 相关联表的表名列表
      */
     public void updateFusionTable(String fusionTarget, Object updateRequest) {
-        // 默认mmhu
+        // 默认示例：person 表
         if ("person".equals(fusionTarget) && updateRequest instanceof PersonUpdateRequest) {
+            // 示例：固定 id=4 的人员更新
             personService.updatePerson(4, (PersonUpdateRequest) updateRequest);
         }
     }

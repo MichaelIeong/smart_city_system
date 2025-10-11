@@ -43,6 +43,9 @@
 
       <div class="table-operator">
         <a-button type="primary" icon="plus" @click="handleAdd">新建</a-button>
+        <a-button type="dashed" style="margin-left: 8px" @click="openEnvServiceModal">
+          新增预定服务
+        </a-button>
         <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
           <a-menu slot="overlay">
             <a-menu-item key="1">
@@ -157,6 +160,20 @@
           <a-button @click="targetVisible = false">取消</a-button>
         </template>
       </a-modal>
+      <!-- 新增预定服务 Modal -->
+      <a-modal
+        v-model="envServiceModalVisible"
+        title="新增预定服务"
+        @ok="submitEnvService"
+        @cancel="envServiceModalVisible = false"
+      >
+        <a-form :form="envServiceForm">
+          <a-form-item label="服务名称" :labelCol="{ span: 5 }" :wrapperCol="{ span: 16 }">
+            <a-input v-decorator="['envServiceName', { rules: [{ required: true, message: '请输入服务名称' }] }]" />
+          </a-form-item>
+          <!-- 隐藏 projectId，不展示 -->
+        </a-form>
+      </a-modal>
     </a-card>
   </page-header-wrapper>
 </template>
@@ -167,7 +184,7 @@ import { STable, Ellipsis } from '@/components'
 
 import StepByStepModal from './modules/StepByStepModal'
 import CreateForm from './modules/CreateForm'
-import { saveCsp, getCSP, getServiceList } from '@/api/manage'
+import { saveCsp, getCSP, getServiceList, addEnvService } from '@/api/manage'
 
 const columns = [
   {
@@ -180,22 +197,15 @@ const columns = [
     dataIndex: 'serviceId'
   },
   {
+    title: '服务描述',
+    dataIndex: 'description',
+    ellipsis: true
+  },
+  {
     title: '操作',
     dataIndex: 'action',
     width: '150px',
     scopedSlots: { customRender: 'action' }
-  },
-  {
-    title: 'CSP',
-    dataIndex: 'csp',
-    width: '150px',
-    scopedSlots: { customRender: 'csp' }
-  },
-  {
-    title: '目标',
-    dataIndex: 'target',
-    width: '150px',
-    scopedSlots: { customRender: 'target' }
   }
 ]
 
@@ -242,7 +252,9 @@ export default {
         current: 1,
         pageSize: 10,
         total: 0
-      }
+      },
+      envServiceModalVisible: false, // 控制“新增预定服务”Modal
+      envServiceForm: this.$form.createForm(this) // Antd form
     }
   },
   filters: {
@@ -436,6 +448,30 @@ export default {
       const form = this.$refs.createModal.form
       form.resetFields()
     },
+    // 打开新增预定服务弹窗
+    openEnvServiceModal () {
+      this.envServiceForm.resetFields()
+      this.envServiceModalVisible = true
+    },
+    // 提交新增预定服务
+    submitEnvService () {
+      this.envServiceForm.validateFields((err, values) => {
+        if (!err) {
+          const projectId = localStorage.getItem('project_id') // 隐藏字段
+          const payload = {
+            envServiceName: values.envServiceName,
+            projectId: projectId
+          }
+          addEnvService(payload).then(() => {
+            this.$message.success('新增预定服务成功')
+            this.envServiceModalVisible = false
+            this.refreshTable()
+          }).catch(() => {
+            this.$message.error('新增失败，请重试')
+          })
+        }
+      })
+    },
     handleSub (record) {
       if (record.ruleStatus !== 0) {
         this.$message.info(`${record.serviceId} 订阅成功`)
@@ -481,9 +517,9 @@ export default {
       //     projectName: '2024-05-10'
       //   }
       // ]
-      const project = localStorage.getItem('project_id')
-      console.log(project)
-      return getServiceList(project)
+      const projectId = localStorage.getItem('project_id')
+      console.log(projectId + projectId)
+      return getServiceList(projectId)
         .then(res => {
           console.log('Data received:', res)
           return res // 确保数据格式是数组

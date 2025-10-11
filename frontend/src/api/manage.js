@@ -10,6 +10,7 @@ const api = {
   permissionNoPager: '/permission/no-pager',
   orgTree: '/org/tree',
   tap: '/api/taps',
+  tapExector: '/api/tapExecutor',
   events: '/api/events',
   spaces: '/api/spaces',
   properties: '/api/properties',
@@ -64,18 +65,25 @@ export function getRuleList () {
   })
 }
 
-export function getServiceList (project) {
+export function getServiceList (projectId) {
   const token = store.state.token
   return request({
-    url: api.services,
+    url: api.services + '/getServiceListByProject',
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    params: { project }
+    params: { projectId }
   })
 }
 
+export function addEnvService (data) {
+  return request({
+    url: '/api/env-services', // 这里对应你后端 EnvServiceInfoController 的 PostMapping
+    method: 'post',
+    data: data
+  })
+}
 export function getPermissions (parameter) {
   return request({
     url: api.permissionNoPager,
@@ -118,9 +126,14 @@ export function getTapList (parameter) {
 }
 
 export function getTapDetail (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'get'
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 60000
   })
 }
 
@@ -133,9 +146,13 @@ export function saveTap (parameter) {
 }
 
 export function deleteTap (parameter) {
+  const token = store.state.token
   return request({
     url: api.tap + `/${parameter.id}`,
-    method: 'delete'
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
 
@@ -314,6 +331,23 @@ export function getSensors (projectId) {
   })
 }
 
+export function listTapRule ({ projectId, eventType, description, pageNo, pageSize }) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/list/${projectId}`,
+    method: 'post',
+    data: {
+      eventType,
+      description,
+      pageNo,
+      pageSize
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
 // 生成自然语言描述 tap 规则
 export function generateNaturalRule (uuid, message) {
   const token = store.state.token
@@ -327,7 +361,7 @@ export function generateNaturalRule (uuid, message) {
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    timeout: 15000
+    timeout: 30000
   })
 }
 
@@ -359,49 +393,15 @@ export function generateJsonRule (uuid, message) {
     headers: {
       'Authorization': `Bearer ${token}`
     },
-    timeout: 15000
-  })
-}
-
-// 生成复杂应用自然语言描述规则
-export function generateComplexNaturalRule (uuid, message) {
-  const token = store.state.token
-  return request({
-    url: `${api.tap}/recommend/generateComplexNaturalRule`,
-    method: 'post',
-    data: {
-      uuid,
-      message
-    },
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
     timeout: 30000
   })
 }
 
-// 生成复杂应用 json 形式规则
-export function generateComplexJsonRule (uuid, message) {
+// 应用 json 转换
+export function convertJsonRule (ruleJson) {
   const token = store.state.token
   return request({
-    url: `${api.tap}/recommend/generateComplexJsonRule`,
-    method: 'post',
-    data: {
-      uuid,
-      message
-    },
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
-    timeout: 60000
-  })
-}
-
-// 复杂应用 json 转换
-export function convertComplexJsonRule (ruleJson) {
-  const token = store.state.token
-  return request({
-    url: `${api.tap}/recommend/convertComplexJsonRule`,
+    url: `${api.tap}/recommend/convertJsonRule`,
     method: 'post',
     data: {
       ruleJson
@@ -414,16 +414,84 @@ export function convertComplexJsonRule (ruleJson) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, description, ruleJson) {
+export function createTapRule (projectId, description, ruleJson, flowJson) {
   const token = store.state.token
   return request({
-    url: `${api.tap}`,
+    url: `${api.tap}/create`,
     method: 'post',
     data: {
+      projectId,
       description,
       ruleJson,
-      projectId
+      flowJson
     },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 120000
+  })
+}
+
+// 更新tap规则
+export function updateTapRule (id, description, flowJson) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/update`,
+    method: 'post',
+    data: {
+      id,
+      description,
+      flowJson
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 120000
+  })
+}
+
+// 修改应用状态
+export function setTapEnabled (id, enabled) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/${id}/enabled?enabled=${enabled}`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取运行中的事件
+export function getRunningEvents (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getRunningEvents`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取运行中的事件实例
+export function getWaitValueOfEvent (eventType) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getWaitValueOfEvent?eventType=${eventType}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取日志
+export function getLog (eventType, waitValue) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/getLog?eventType=${eventType}&waitValue=${waitValue}`,
+    method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
     }
