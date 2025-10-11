@@ -123,6 +123,13 @@ export const asyncRouterMap = [{
       component: () => import('@/views/recommend/TapBoard'),
       meta: { title: 'menu.tap.board', keepAlive: true, icon: 'dashboard', permission: ['dashboard'] }
     },
+    // 城市网格
+    {
+      path: '/center-panel',
+      name: 'center-panel',
+      component: () => import('@/views/panel/CenterPanel.vue'),
+      meta: { title: 'menu.panel', keepAlive: true, icon: 'cluster', permission: ['dashboard'] }
+    },
     // result
     {
       path: '/result',

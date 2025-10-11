@@ -48,5 +48,6 @@ export default {
     'menu.service-group': 'Service Group',
     'menu.tap.recommend': 'App Recommendation',
     'menu.tap.construct': 'Application Construction',
-    'menu.tap.board': 'Application Dashboard'
+    'menu.tap.board': 'Application Dashboard',
+    'menu.panel': 'City Panel'
 }
