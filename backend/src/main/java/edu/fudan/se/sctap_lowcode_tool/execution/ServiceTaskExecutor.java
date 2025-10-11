@@ -65,4 +65,46 @@ public class ServiceTaskExecutor {
             throw new RuntimeException("调用设备 API 失败: " + url, e);
         }
     }
+
+    public void executeSocialServiceTask(JsonNode node, Integer spaceId) {
+        String resourceType = node.get("resourceType").asText();
+        String resourceId = node.get("socialResource").asText();
+        String label = node.get("socialResourceLabel").asText();
+        String func = node.get("func").asText();
+
+        System.out.println("执行 Social Service: " + label +
+                " (资源类型: " + resourceType + ", 资源ID: " + resourceId +
+                ", API: " + func + ", spaceId: " + spaceId + ")");
+        // 拼接 url，如果 func 不是完整路径，可以加上 baseUrl
+        String baseUrl = "http://localhost:8080/"; // TODO: 改成实际 API 网关
+        String url = func.startsWith("http") ? func : baseUrl + func;
+
+        try {
+            String result = restTemplate.getForObject(url, String.class);
+            System.out.println("执行 Information Service 调用成功: " + url + " -> " + result);
+        } catch (Exception e) {
+            throw new RuntimeException("执行 Information Service 调用失败: " + url, e);
+        }
+    }
+
+    public void executeInformationServiceTask(JsonNode node, Integer spaceId) {
+        String resourceType = node.get("resourceType").asText();
+        String resourceId = node.get("informationResource").asText();
+        String label = node.get("informationResourceLabel").asText();
+        String func = node.get("func").asText();
+
+        System.out.println("执行 Information Service: " + label +
+                " (资源类型: " + resourceType + ", 资源ID: " + resourceId +
+                ", API: " + func + ", spaceId: " + spaceId + ")");
+        // 拼接 url，如果 func 不是完整路径，可以加上 baseUrl
+        String baseUrl = "http://localhost:8080/"; // TODO: 改成实际 API 网关
+        String url = func.startsWith("http") ? func : baseUrl + func;
+
+        try {
+            String result = restTemplate.getForObject(url, String.class);
+            System.out.println("执行 Information Service 调用成功: " + url + " -> " + result);
+        } catch (Exception e) {
+            throw new RuntimeException("执行 Information Service 调用失败: " + url, e);
+        }
+    }
 }
