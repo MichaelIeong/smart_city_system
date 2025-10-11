@@ -1,5 +1,5 @@
 # 使用官方的Maven镜像作为构建阶段
-FROM maven AS build
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 
 # 设置工作目录
 WORKDIR /app

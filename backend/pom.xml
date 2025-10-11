@@ -160,7 +160,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.10.1</version>
                 <configuration>
-                    <release>17</release>
+                    <source>17</source>
+                    <target>17</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
