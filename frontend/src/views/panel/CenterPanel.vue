@@ -69,10 +69,10 @@ export default {
         .append('polygon')
         .attr('points', (d) => d.coords.map((p) => `${p[0]},${p[1]}`).join(' '))
         .attr('fill', (d) => {
-          if (d.is_mainroad) return '#F39C12'
-          if (d.is_residential) return '#3498DB'
-          if (d.is_businessdistrict) return '#9B59B6'
-          return '#7F8C8D'
+          if (d.is_mainroad) return '#ff9f1c'
+          if (d.is_residential) return '#cbf3f0'
+          if (d.is_businessdistrict) return '#2ec4b6'
+          return '#1a659e'
         })
         .attr('stroke', '#ffffff')
         .attr('stroke-width', 1.5)
@@ -90,10 +90,10 @@ export default {
             .duration(200)
             .attr('stroke-width', 1.5)
             .attr('fill', () => {
-              if (d.is_mainroad) return '#F39C12'
-              if (d.is_residential) return '#3498DB'
-              if (d.is_businessdistrict) return '#9B59B6'
-              return '#7F8C8D'
+              if (d.is_mainroad) return '#ff9f1c'
+              if (d.is_residential) return '#cbf3f0'
+              if (d.is_businessdistrict) return '#2ec4b6'
+              return '#1a659e'
             })
         })
         // ✅ 点击事件（显示网格ID）
