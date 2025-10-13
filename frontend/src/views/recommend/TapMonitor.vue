@@ -7,7 +7,6 @@
     >
       <div class="mesh-container">
         <svg ref="svg" class="svg-container"></svg>
-        <button class="add-bubble-btn" @click="showBubble">显示冒泡</button>
       </div>
     </a-card>
   </page-header-wrapper>
@@ -18,15 +17,26 @@
 import * as d3 from 'd3'
 import meshData from './meshData.json'
 import { message } from 'ant-design-vue'
+import SockJS from 'sockjs-client'
+import { Client } from '@stomp/stompjs'
 
 export default {
   name: 'CenterPanel',
   data() {
-    return { polygons: [] }
+    return { 
+        polygons: [],
+        stompClient: null, // WebSocket客户端
+        bubbleMap: new Map(), // 存储 meshId -> bubble 元素
+        logMap: new Map(), // 存储 meshId -> 日志数组
+    }
   },
   mounted() {
     this.handleData()
     this.drawSvg()
+    this.connectWebSocket() // 连接 WebSocket
+  },
+  beforeDestroy() {
+    this.disconnectWebSocket() // 销毁 WebSocket
   },
   methods: {
     handleData() {
@@ -103,47 +113,7 @@ export default {
         // 冒泡层，位于最上方
         const bubbleLayer = zoomG.append('g').attr('class', 'bubble-layer')
 
-        // 点击事件
-        groups.on('click', function (event, d) {
-            // message.info(`网格ID：${d.id}`)
-            // 获取网格中心点
-            const [cx, cy] = d3.polygonCentroid(d.coords)
-
-            // 添加冒泡分组（仍放在 bubbleLayer 里）
-            const bubble = bubbleLayer.append('g').attr('class', 'bubble-label')
-
-            const offsetX = 60 // 往右偏移
-            const offsetY = -60 // 向上偏移
-
-            // 背景框
-            bubble
-                .append('rect')
-                .attr('x', cx - 60 + offsetX)
-                .attr('y', cy + offsetY)
-                .attr('rx', 6)
-                .attr('ry', 6)
-                .attr('width', 120)
-                .attr('height', 40)
-                .attr('fill', 'rgba(255,255,255,0.85)')
-                .attr('stroke', '#000')
-                .attr('stroke-width', 1.5)
-
-            // 文字
-            bubble
-                .append('text')
-                .attr('x', cx + offsetX)
-                .attr('y', cy + offsetY + 25)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#000')
-                .attr('font-size', 16)
-                .attr('font-weight', 'bold')
-                .text(`机动车违章停车`)
-
-            // 自动移除
-            // setTimeout(() => bubble.remove(), 10000)
-        })
-
-      groups
+        groups
         .append('text')
         .attr('x', (d) => d3.polygonCentroid(d.coords)[0])
         .attr('y', (d) => d3.polygonCentroid(d.coords)[1])
@@ -153,6 +123,45 @@ export default {
         .attr('font-size', 14)
         .attr('pointer-events', 'none')
         .text((d) => d.name)
+    },
+
+    // 连接 WebSocket
+    connectWebSocket() {
+        const socketUrl = 'http://localhost:8080/ws' 
+        const socket = new SockJS(socketUrl)
+        this.stompClient = new Client({
+            webSocketFactory: () => socket,
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+            onConnect: () => {
+                message.success('WebSocket 已连接')
+                console.log('WebSocket 已连接')
+                // 订阅事件
+                this.stompClient.subscribe('/topic/alerts', (message) => {
+                    const data = JSON.parse(message.body)
+                    console.log('事件类型: ', data.eventType, '位置: ', data.location, '命令: ', data.command, '时间: ', data.time)
+                    // 处理事件数据
+                    // this.handleEventData(data)
+                })
+            },
+            onDisconnect: () => {
+                console.warn('WebSocket 已断开')
+                message.warning('WebSocket 已断开')
+            },
+            onStompError: (frame) => {
+                console.error('STOMP 错误:', frame.headers['message'])
+                message.error('WebSocket 错误，请检查服务是否正常')
+            }
+        })
+        this.stompClient.activate()
+    },
+
+    disconnectWebSocket() {
+        if (this.stompClient && this.stompClient.deactivate) {
+            this.stompClient.deactivate()
+            console.log('WebSocket 已断开')
+        }
     },
 
     // 新增：封装添加冒泡的函数

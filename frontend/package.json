@@ -15,6 +15,7 @@
   "dependencies": {
     "@ant-design-vue/pro-layout": "^1.0.12",
     "@antv/data-set": "^0.10.2",
+    "@stomp/stompjs": "^7.2.1",
     "@tslfe/dt-engine": "^4.2.2-3",
     "ant-design-vue": "^1.7.8",
     "axios": "^0.26.1",
@@ -32,6 +33,7 @@
     "moment": "^2.29.2",
     "nprogress": "^0.2.0",
     "prelude-ls": "^1.2.1",
+    "sockjs-client": "^1.6.1",
     "store": "^2.0.12",
     "toggle-selection": "^1.0.6",
     "viser-vue": "^2.4.8",

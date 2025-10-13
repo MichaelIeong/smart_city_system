@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCompleteRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
+import edu.fudan.se.sctap_lowcode_tool.constant.CommandConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
@@ -24,6 +25,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EventHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.Resource;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,9 @@ public class AppRuleExecutorService {
     private AppRuleLogRepository appRuleLogRepository;
 
     @Resource
+    private WebSocketPushService webSocketPushService;
+
+    @Resource
     private RedisUtil redisUtil;
 
     @Resource(name = "appRuleExecutor")
@@ -73,6 +78,7 @@ public class AppRuleExecutorService {
     private String appToken;
 
     // 记录执行中的应用规则的日志
+    @Getter
     Map<String, Map<String, List<String>>> appRuleLogMap = new ConcurrentHashMap<>();
 
     // 记录处于等待中的应用规则
@@ -111,6 +117,8 @@ public class AppRuleExecutorService {
         }
         // 增加开始执行日志
         addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行...");
+        // 向前端推送应用开始消息
+        webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_START);
         // 将事件加入数据库历史事件中
         storeEventHistory(eventType, eventParams, waitValue);
         // 处理response
@@ -693,6 +701,8 @@ public class AppRuleExecutorService {
         appRuleWaitMap.put(eventType, waitSet);
         addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
         addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+        // 向前端推送应用结束消息
+        webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_END);
         // 将日志存入数据库
         saveLog(eventType, waitValue);
     }
@@ -787,6 +797,8 @@ public class AppRuleExecutorService {
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+                    // 向前端推送应用结束消息
+                    webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_END);
                     // 存储日志
                     saveLog(eventType, waitValue);
                 }
@@ -892,7 +904,9 @@ public class AppRuleExecutorService {
         String eventType = eventData.get("eventType").toString();
         eventTriggerRequest.setEventType(eventType);
         Map<String, String> params = new HashMap<>();
-        params.put("location", eventData.get("address").toString());
+        // params.put("location", eventData.get("address").toString());
+        // TODO, 先暂时使用 00000002 作为测试
+        params.put("location", "00000002");
         // 如果是井盖水浸或者井盖倾斜
         if(eventType.equals("manhole-flooding")||eventType.equals("manhole-tilte")) {
             Map<String, Object> words = (Map<String, Object>) eventData.get("words");
