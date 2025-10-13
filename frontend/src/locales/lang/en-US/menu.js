@@ -49,5 +49,6 @@ export default {
     'menu.tap.recommend': 'App Recommendation',
     'menu.tap.construct': 'Application Construction',
     'menu.tap.board': 'Application Dashboard',
-    'menu.panel': 'City Panel'
+    'menu.panel': 'City Panel',
+    'menu.tap.monitor': 'Application Monitor'
 }

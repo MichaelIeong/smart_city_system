@@ -40,5 +40,6 @@ export default {
     'menu.account.settings': '个人设置',
     'menu.account.trigger': '触发报错',
     'menu.account.logout': '退出登录',
-    'menu.panel': '城市网格'
+    'menu.panel': '城市网格',
+    'menu.tap.monitor': '应用监控'
 }

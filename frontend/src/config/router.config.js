@@ -121,7 +121,14 @@ export const asyncRouterMap = [{
       path: '/tap/board',
       name: 'tap-board',
       component: () => import('@/views/recommend/TapBoard'),
-      meta: { title: 'menu.tap.board', keepAlive: true, icon: 'dashboard', permission: ['dashboard'] }
+      meta: { title: 'menu.tap.board', keepAlive: true, icon: 'eye', permission: ['dashboard'] }
+    },
+    // 应用监控
+    {
+      path: '/tap/monitor',
+      name: 'tap-monitor',
+      component: () => import('@/views/recommend/TapMonitor'),
+      meta: { title: 'menu.tap.monitor', keepAlive: true, icon: 'dashboard', permission: ['table'] }
     },
     // 城市网格
     {
