@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
 import edu.fudan.se.sctap_lowcode_tool.constant.CommandConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +8,6 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,17 +46,6 @@ public class WebSocketConnectionListener {
                 }));
                 log.info("✅ 已向新连接推送 {} 条正在执行的应用规则", snapshot.size());
             }
-
-            // ==========================
-            // ② 推送模拟数据（用于调试）
-            // ==========================
-            log.info("✅ 正在推送模拟 ill_parking 数据...");
-            String eventType = "ill_parking";
-            for (int i = 1; i <= 10; i++) {
-                String location = String.format("%08d", i);
-                webSocketPushService.sendAlert(eventType, location, CommandConstant.COMMAND_START);
-            }
-            log.info("✅ 模拟数据发送完成，共 10 条");
         });
     }
 }

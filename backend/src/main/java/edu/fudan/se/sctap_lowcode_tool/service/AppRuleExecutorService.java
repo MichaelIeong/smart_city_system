@@ -24,6 +24,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleLogRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EventHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +81,36 @@ public class AppRuleExecutorService {
     // 记录执行中的应用规则的日志
     @Getter
     Map<String, Map<String, List<String>>> appRuleLogMap = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void initMockData() {
+        log.info("✅ 初始化模拟应用规则数据...");
+
+        String eventType = "ill_parking";
+        Map<String, List<String>> meshMap = new ConcurrentHashMap<>();
+        Set<String> locations = new HashSet<>();
+
+        for (int i = 1; i <= 10; i++) {
+            String location = String.format("%08d", 2*i);
+            locations.add(location);
+            List<String> logs = new ArrayList<>();
+
+            logs.add("应用开始执行...");
+            logs.add("检测到车辆违章停车");
+            logs.add("AI 识别车牌号：沪A" + (1000 + i));
+            logs.add("推送至交通管理部门处理中...");
+            logs.add("等待人工确认...");
+
+            meshMap.put(location, logs);
+        }
+
+        appRuleLogMap.put(eventType, meshMap);
+        appRuleWaitMap.put(eventType, locations);
+
+        log.info("✅ 模拟数据已加入 appRuleLogMap，共 {} 个事件类型，{} 条位置记录",
+                appRuleLogMap.size(), meshMap.size());
+    }
+
 
     // 记录处于等待中的应用规则
     Map<String, Set<String>> appRuleWaitMap = new ConcurrentHashMap<>();
@@ -905,8 +936,8 @@ public class AppRuleExecutorService {
         eventTriggerRequest.setEventType(eventType);
         Map<String, String> params = new HashMap<>();
         // params.put("location", eventData.get("address").toString());
-        // TODO, 先暂时使用 00000002 作为测试
-        params.put("location", "00000002");
+        // TODO, 先暂时使用 00000060 作为测试
+        params.put("location", "00000060");
         // 如果是井盖水浸或者井盖倾斜
         if(eventType.equals("manhole-flooding")||eventType.equals("manhole-tilte")) {
             Map<String, Object> words = (Map<String, Object>) eventData.get("words");

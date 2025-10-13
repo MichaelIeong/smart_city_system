@@ -7,6 +7,29 @@
     >
       <div class="mesh-container">
         <svg ref="svg" class="svg-container"></svg>
+        <!-- ✅ 右侧日志框 -->
+        <transition name="slide">
+          <div v-if="showLogPanel" class="log-panel">
+            <div class="log-header">
+              <span>{{ currentEventTypeLabel }}（{{ currentLocation }}）</span>
+              <a-button
+                type="text"
+                @click="showLogPanel = false"
+                style="float: right; color: #999;"
+              >
+                关闭
+              </a-button>
+            </div>
+            <div class="log-body">
+              <a-empty v-if="logs.length === 0" description="暂无日志" />
+              <ul v-else>
+                <li v-for="(item, idx) in logs" :key="idx">
+                  <span class="index">{{ idx + 1 }}.</span> {{ item }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </transition>
       </div>
     </a-card>
   </page-header-wrapper>
@@ -19,6 +42,7 @@ import meshData from './meshData.json'
 import { message } from 'ant-design-vue'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
+import { getLog } from '@/api/manage'
 
 export default {
   name: 'CenterPanel',
@@ -26,8 +50,12 @@ export default {
     return { 
         polygons: [],
         stompClient: null, // WebSocket客户端
-        bubbleMap: new Map(), // 存储 meshId -> bubble 元素
-        logMap: new Map(), // 存储 meshId -> 日志数组
+        polygonMap: new Map(), // 存储 meshId -> polygon 元素
+        showLogPanel: false,
+        currentEventType: '',
+        currentEventTypeLabel: '',
+        currentLocation: '',
+        logs: []
     }
   },
   mounted() {
@@ -40,20 +68,28 @@ export default {
   },
   methods: {
     handleData() {
-      const data = meshData.data || []
-      this.polygons = data.map((item) => {
-        const params = {}
-        item.paramInfos.forEach((p) => (params[p.code] = +p.value || 0))
-        return {
-          id: item.meshInfo.meshCode,
-          name: item.meshInfo.meshName,
-          coords: item.meshInfo.meshGridList.map((p) => [Number(p.x), Number(p.y)]),
-          is_mainroad: params.is_mainroad,
-          is_residential: params.is_residential,
-          is_businessdistrict: params.is_businessdistrict,
-          is_other: params.is_other
-        }
-      })
+        const data = meshData.data || []
+        this.polygons = data.map((item) => {
+            const params = {}
+            item.paramInfos.forEach((p) => (params[p.code] = +p.value || 0))
+            return {
+            id: item.meshInfo.meshCode,
+            name: item.meshInfo.meshName,
+            coords: item.meshInfo.meshGridList.map((p) => [Number(p.x), Number(p.y)]),
+            is_mainroad: params.is_mainroad,
+            is_residential: params.is_residential,
+            is_businessdistrict: params.is_businessdistrict,
+            is_other: params.is_other
+            }
+        })
+
+        // ✅ 初始化 polygonMap
+        this.polygonMap.clear() // 先清空旧数据
+        this.polygons.forEach((poly) => {
+            this.polygonMap.set(poly.id, poly)
+        })
+
+        console.log('✅ 已注册网格Map:', this.polygonMap)
     },
 
     drawSvg() {
@@ -142,7 +178,7 @@ export default {
                     const data = JSON.parse(message.body)
                     console.log('事件类型: ', data.eventType, '位置: ', data.location, '命令: ', data.command, '时间: ', data.time)
                     // 处理事件数据
-                    // this.handleEventData(data)
+                    this.handleEventData(data)
                 })
             },
             onDisconnect: () => {
@@ -164,77 +200,102 @@ export default {
         }
     },
 
-    // 新增：封装添加冒泡的函数
-    addBubble(d, bubbleLayer) {
-      const eventType = 'illegalParking'
-
-      // 获取网格中心点
-      const [cx, cy] = d3.polygonCentroid(d.coords)
-
-      // 添加冒泡分组（仍放在 bubbleLayer 里）
-      const bubble = bubbleLayer.append('g')
-        .attr('class', 'bubble-label')
-        .attr('eventType', eventType)
-
-      const offsetX = 60 // 往右偏移
-      const offsetY = -60 // 向上偏移
-
-      // 背景框
-      bubble
-        .append('rect')
-        .attr('x', cx - 60 + offsetX)
-        .attr('y', cy + offsetY)
-        .attr('rx', 6)
-        .attr('ry', 6)
-        .attr('width', 120)
-        .attr('height', 40)
-        .attr('fill', 'rgba(255,255,255,0.85)')
-        .attr('stroke', '#000')
-        .attr('stroke-width', 1.5)
-
-      // 文字
-      bubble
-        .append('text')
-        .attr('x', cx + offsetX)
-        .attr('y', cy + offsetY + 25)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#000')
-        .attr('font-size', 16)
-        .attr('font-weight', 'bold')
-        .text('机动车违章停车')
-
-      // 新增：为冒泡添加点击事件（例如，点击移除冒泡）
-      bubble.on('click', () => {
-        message.info(`事件类型: ${eventType}, 网格ID: ${d.id}`)
-      });
-
-      // 自动移除（可选，如果需要）
-      // setTimeout(() => bubble.remove(), 10000)
-    },
-
-    // 新增：按钮点击方法
-    showBubble() {
-      // 假设为第一个网格添加冒泡（可根据需求调整）
-      if (this.polygons.length > 0) {
-        const d = this.polygons[0]  // 示例：选择第一个网格
-        console.log(this.polygons)
+    // 处理WebSocket推送的事件数据
+    handleEventData(data) { 
+        const { eventType, location, command } = data
+        if(!location) return
         const bubbleLayer = d3.select(this.$refs.svg).select('.bubble-layer')
-        this.addBubble(d, bubbleLayer)
-      } else {
-        message.warning('没有可用的网格数据')
-      }
-    }
+
+        // 找到对应网格
+        const targetPolygon = this.polygonMap.get(location)
+        if (!targetPolygon) {
+            console.warn(`未找到位置为 ${location} 的网格，跳过事件`)
+            return
+        }
+        // 如果是start命令，添加冒泡
+        if (command === 'start') {
+            const [cx, cy] = d3.polygonCentroid(targetPolygon.coords)
+            const offsetX = 60
+            const offsetY = -60
+
+            const bubble = bubbleLayer.append('g')
+                .attr('class', 'bubble-label')
+                .attr('data-id', location)
+                .attr('data-type', eventType)
+                .style('cursor', 'pointer') // 鼠标变手型
+                .on('click', async () => {  // ✅ 绑定点击事件到整个组，而不是只绑定子元素
+                    console.log('🔥 点击冒泡:', eventType, location)
+                    try {
+                        message.loading({ content: '加载日志中...', key: 'log', duration: 0 })
+                        const res = await getLog(eventType, location)
+                        message.destroy('log')
+
+                        console.log('🔥 日志面板状态 before:', this.showLogPanel)
+                        if (res && res.length > 0) {
+                            this.logs = res
+                            this.showLogPanel = true
+                            this.currentEventType = eventType
+                            this.currentEventTypeLabel = label
+                            this.currentLocation = location
+                            console.log('🔥 日志面板状态 after:', this.showLogPanel)
+                        } else {
+                            message.warning('暂无日志数据')
+                        }
+                    } catch (e) {
+                        message.error('获取日志失败')
+                        console.error(e)
+                    }
+                })
+
+            // 背景框
+            bubble.append('rect')
+                .attr('x', cx - 60 + offsetX)
+                .attr('y', cy + offsetY)
+                .attr('rx', 6)
+                .attr('ry', 6)
+                .attr('width', 120)
+                .attr('height', 40)
+                .attr('fill', 'rgba(255,255,255,0.85)')
+                .attr('stroke', '#000')
+                .attr('stroke-width', 1.5)
+
+            // 文字内容（可根据事件类型动态变化）
+            const labelMap = {
+                ill_parking: '违章停车',
+            }
+            const label = labelMap[eventType] || '事件'
+
+            bubble.append('text')
+                .attr('x', cx + offsetX)
+                .attr('y', cy + offsetY + 25)
+                .attr('text-anchor', 'middle')
+                .attr('fill', '#000')
+                .attr('font-size', 16)
+                .attr('font-weight', 'bold')
+                .text(label)
+        }
+        // 如果是end命令，删除对应位置的冒泡
+        if (command === 'end') {
+            const existing = bubbleLayer.select(`.bubble-label[data-id='${location}']`)
+            if (!existing.empty()) {
+                existing.transition()
+                    .duration(300)
+                    .attr('opacity', 0)
+                    .remove()
+                console.log(`❎ 清除冒泡: ${eventType} (${location})`)
+            }
+        }
+    },
   }
 }
 </script>
 
 <style lang="less" scoped>
-/* ✅ 在 mesh-card 上添加背景图 */
 .mesh-card {
   position: relative;
   box-shadow: none !important;
   padding: 0;
-  background-image: url('@/assets/screen_bg.png'); /* <-- 替换成你的图片路径 */
+  background-image: url('@/assets/screen_bg.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -244,13 +305,12 @@ export default {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible; /* ✅ 避免日志被裁掉 */
   display: flex;
-  justify-content: flex-start; /* 靠左显示 */
+  justify-content: flex-start;
   align-items: center;
 }
 
-/* ✅ SVG 在背景图上层 */
 .svg-container {
   position: relative;
   width: 100%;
@@ -260,5 +320,104 @@ export default {
   box-shadow: none;
   z-index: 2;
   transition: all 0.3s;
+}
+
+.log-panel {
+  position: absolute;
+  right: 40px;
+  top: 50%; /* 从垂直中线开始 */
+  transform: translateY(-50%); /* 向上偏移自身一半实现居中 */
+  width: 360px;
+  min-height: 300px; /* 可以让日志框有固定最小高度 */
+  max-height: 80%; /* 限制高度，防止超出 */
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.log-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.log-header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-header span::before {
+  content: "📋";
+  font-size: 18px;
+}
+
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.log-body::-webkit-scrollbar {
+  width: 6px;
+}
+.log-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.log-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.log-body li {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-left: 4px solid #409EFF;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.log-body li:hover {
+  transform: translateX(3px);
+  background: #f0f8ff;
+}
+
+.log-body li .index {
+  color: #999;
+  margin-right: 6px;
+  font-weight: bold;
 }
 </style>
