@@ -1,129 +1,179 @@
 <template>
   <div class="space-demo-container">
-    <a-spin :spinning="isLoading" tip="Loading...">
-      <!-- 3D渲染容器 -->
-      <div id="three-container"></div>
-    </a-spin>
+    <!-- 左侧网格图容器 (70%) -->
+    <div class="left-section">
+      <a-spin :spinning="isLoading" tip="Loading...">
+        <div class="mesh-container">
+          <svg ref="svg" class="svg-container"></svg>
+        </div>
+      </a-spin>
+    </div>
 
-    <!-- 表单区域 -->
-    <div class="form-container">
-      <div style="height: 30px;"></div> <!-- 留白区域 -->
+    <!-- 右侧表单区域 (30%) -->
+    <div class="right-section">
+      <div class="form-container">
+        <div style="height: 30px;"></div> <!-- 留白区域 -->
 
-      <!-- 下拉框部分 -->
-      <a-row :gutter="16" justify="center" align="middle" class="select-row">
-        <!-- <a-col :span="8"> -->
-        <a-select
-          v-model="selectedSpace"
-          placeholder="请选择空间"
-          style="width: 100%"
-          allow-clear
-          @change="change(selectedSpace)"
-        >
-          <a-select-option
-            v-for="space in spaces"
-            :key="space.id"
-            :value="space.id"
+        <!-- 下拉框部分 -->
+        <a-row :gutter="16" justify="center" align="middle" class="select-row">
+          <a-select
+            v-model="selectedSpace"
+            placeholder="请选择空间"
+            style="width: 100%"
+            allow-clear
+            @change="change(selectedSpace)"
           >
-            {{ space.spaceName }}
-          </a-select-option>
-        </a-select>
-        <!-- </a-col>-->
-      </a-row>
-
-      <!-- 下拉框和表格之间的留白 -->
-      <div style="height: 30px;"></div>
-
-      <!-- 四张并列的表格 -->
-      <div class="table-container">
-        <!-- 表格区域 -->
-        <a-row justify="center" gutter="{16}">
-          <!-- 第一行：属性表和状态表 -->
-          <a-col :span="11">
-            <a-table
-              :columns="propertyColumns"
-              :dataSource="propertyData"
-              pagination="{false}"
-            />
-          </a-col>
-          <a-col :span="2"></a-col>
-          <a-col :span="11">
-            <a-table
-              :columns="statusColumns"
-              :dataSource="statusData"
-              pagination="{false}"
-            />
-          </a-col>
+            <a-select-option
+              v-for="space in spaces"
+              :key="space.id"
+              :value="space.id"
+            >
+              {{ space.spaceName }}
+            </a-select-option>
+          </a-select>
         </a-row>
-        <a-row justify="center" gutter="{16}">
-          <!-- 第二行：事件表和服务表 -->
-          <a-col :span="11">
+
+        <!-- 下拉框和表格之间的留白 -->
+        <div style="height: 30px;"></div>
+
+        <!-- 四张表格 -->
+        <div class="table-container">
+          <!-- 网格元信息表（原状态表，移到第一位） -->
+          <div class="table-wrapper">
+            <a-table
+              :columns="metaColumns"
+              :dataSource="metaData"
+              :pagination="false"
+              size="small"
+            />
+          </div>
+
+          <!-- 设备表（原属性表） -->
+          <div class="table-wrapper">
+            <div class="table-header">
+              <span class="table-title">设备</span>
+            </div>
+            <a-table
+              :columns="deviceColumns"
+              :dataSource="deviceData"
+              :pagination="false"
+              size="small"
+            />
+          </div>
+
+          <!-- 事件表 -->
+          <div class="table-wrapper">
+            <div class="table-header">
+              <span class="table-title">事件</span>
+              <a-button type="primary" size="small" @click="showEventModal">
+                添加事件
+              </a-button>
+            </div>
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
-              pagination="{false}"
+              :pagination="false"
+              size="small"
             />
-          </a-col>
-          <a-col :span="2"></a-col>
-          <a-col :span="11">
+          </div>
+
+          <!-- 服务表 -->
+          <div class="table-wrapper">
+            <div class="table-header">
+              <span class="table-title">服务</span>
+              <a-button type="primary" size="small" @click="showServiceModal">
+                添加服务
+              </a-button>
+            </div>
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
-              pagination="{false}"
+              :pagination="false"
+              size="small"
             />
-          </a-col>
-        </a-row>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- 添加事件弹窗 -->
+    <a-modal
+      v-model="eventModalVisible"
+      title="添加事件"
+      @ok="handleEventOk"
+      @cancel="handleEventCancel"
+      okText="确定"
+      cancelText="取消"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="事件名称">
+          <a-input v-model="eventForm.name" placeholder="请输入事件名称" />
+        </a-form-item>
+        <a-form-item label="事件描述">
+          <a-textarea v-model="eventForm.description" placeholder="请输入事件描述" :rows="4" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 添加服务弹窗 -->
+    <a-modal
+      v-model="serviceModalVisible"
+      title="添加服务"
+      @ok="handleServiceOk"
+      @cancel="handleServiceCancel"
+      okText="确定"
+      cancelText="取消"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="服务名称">
+          <a-input v-model="serviceForm.name" placeholder="请输入服务名称" />
+        </a-form-item>
+        <a-form-item label="服务描述">
+          <a-textarea v-model="serviceForm.description" placeholder="请输入服务描述" :rows="4" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script>
-import { createWebglEngine } from '@tslfe/dt-engine'
 import axios from 'axios'
+import * as d3 from 'd3'
+import meshData from './meshData.json'
 
 export default {
   name: 'SpaceDemo',
   data () {
     return {
       isLoading: true,
-      meta: null,
-      FloorMap: {
-        0: '/Park_e50d76e1b0bd4a91869076afc36e6a01/Building_48b5fb64ad0340a1b2121478b20a9369/Floor_5bc543e44c994054b3ff843e6da0695c/graphic.glb',
-        1: '/Park_e50d76e1b0bd4a91869076afc36e6a01/graphic.glb',
-        2: '/Park_e50d76e1b0bd4a91869076afc36e6a01/Building_48b5fb64ad0340a1b2121478b20a9369/graphic.glb'
-      },
       selectedSpace: 1,
       spaces: [],
+      polygons: [],
 
-      // 表格1: 属性
-      propertyColumns: [
+      // 表格1: 网格元信息（原状态表，调整到第一位）
+      metaColumns: [
         {
-          title: '属性名称',
-          dataIndex: 'name',
-          key: 'name'
-        },
-        {
-          title: '属性信息',
+          title: '网格元信息',
           dataIndex: 'info',
           key: 'info'
         }
       ],
-      propertyData: [],
+      metaData: [],
 
-      // 表格2: 状态
-      statusColumns: [
+      // 表格2: 设备（原属性表）
+      deviceColumns: [
         {
-          title: '状态名称',
+          title: '设备名称',
           dataIndex: 'name',
           key: 'name'
         },
         {
-          title: '状态信息',
+          title: '设备功能',
           dataIndex: 'info',
           key: 'info'
         }
       ],
-      statusData: [],
+      deviceData: [],
 
       // 表格3: 事件
       eventColumns: [
@@ -153,47 +203,126 @@ export default {
           key: 'description'
         }
       ],
-      serviceData: []
+      serviceData: [],
+
+      // 弹窗控制
+      eventModalVisible: false,
+      serviceModalVisible: false,
+      eventForm: {
+        name: '',
+        description: ''
+      },
+      serviceForm: {
+        name: '',
+        description: ''
+      }
     }
   },
   methods: {
-    initMeta () {
+    initMesh () {
       this.isLoading = true
-      createWebglEngine((config) => {
-        config.scene.cache = true
-        config.scene.cacheType = (url) => {
-          if (url === this.FloorMap.yuanqu) {
-            return true
-          } else {
-            return false
-          }
+      this.handleData()
+      this.drawSvg()
+      this.isLoading = false
+    },
+    handleData () {
+      const data = meshData.data || []
+      this.polygons = data.map((item) => {
+        const params = {}
+        item.paramInfos.forEach((p) => (params[p.code] = +p.value || 0))
+        return {
+          id: item.meshInfo.meshCode,
+          name: item.meshInfo.meshName,
+          coords: item.meshInfo.meshGridList.map((p) => [Number(p.x), Number(p.y)]),
+          is_mainroad: params.is_mainroad,
+          is_residential: params.is_residential,
+          is_businessdistrict: params.is_businessdistrict,
+          is_other: params.is_other
         }
-        return config
-      }).then((app) => {
-        app.amount('three-container')
-        this.meta = app
-        this.changeDemo('0').then(() => {
-          this.isLoading = false
-        })
       })
     },
+    drawSvg () {
+      const svgEl = d3.select(this.$refs.svg)
+      svgEl.selectAll('*').remove()
+
+      svgEl
+        .attr('preserveAspectRatio', 'xMidYMid meet')
+        .attr('viewBox', '0 0 3000 1600')
+
+      const zoomG = svgEl
+        .append('g')
+        .attr('class', 'zoom-group')
+        .attr('transform', 'translate(-1200, 0) scale(0.95)')
+
+      // 添加缩放行为
+      const zoom = d3.zoom()
+        .scaleExtent([0.5, 5]) // 设置缩放范围：最小0.5倍，最大5倍
+        .on('zoom', (event) => {
+          zoomG.attr('transform', event.transform)
+        })
+
+      // 将缩放行为应用到SVG
+      svgEl.call(zoom)
+
+      const groups = zoomG
+        .selectAll('g')
+        .data(this.polygons)
+        .enter()
+        .append('g')
+        .attr('class', 'polygon-group')
+
+      groups
+        .append('polygon')
+        .attr('points', (d) => d.coords.map((p) => `${p[0]},${p[1]}`).join(' '))
+        .attr('fill', (d) => {
+          if (d.is_mainroad) return '#ff9f1c'
+          if (d.is_residential) return '#cbf3f0'
+          if (d.is_businessdistrict) return '#2ec4b6'
+          return '#1a659e'
+        })
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 1.5)
+        .attr('fill-opacity', 0.6)
+        .on('mouseover', function () {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('fill', '#2ECC71')
+            .attr('stroke-width', 3)
+        })
+        .on('mouseout', function (event, d) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('stroke-width', 1.5)
+            .attr('fill', () => {
+              if (d.is_mainroad) return '#ff9f1c'
+              if (d.is_residential) return '#cbf3f0'
+              if (d.is_businessdistrict) return '#2ec4b6'
+              return '#1a659e'
+            })
+        })
+        .on('click', (event, d) => {
+          this.$message.info(`网格ID：${d.id}`)
+        })
+
+      groups
+        .append('text')
+        .attr('x', (d) => d3.polygonCentroid(d.coords)[0])
+        .attr('y', (d) => d3.polygonCentroid(d.coords)[1])
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', 14)
+        .attr('pointer-events', 'none')
+        .text((d) => d.name)
+    },
     change (selectedSpace) {
-      this.changeDemo(selectedSpace)
       this.changeSpace(selectedSpace)
       this.fetchData(selectedSpace)
     },
     changeSpace (selectedSpace) {
       console.log('选中的空间 ID:', selectedSpace)
-    },
-    changeDemo (type) {
-      return this.meta.render(this.FloorMap[type], true).then(() => {
-        console.log('场景渲染完成.')
-
-      // 调整相机位置，使模型显示得更大
-      const camera = this.meta.camera
-      camera.position.set(0, 100, 100) // 将相机的位置调整得更近一些，缩短 Z 轴距离
-      camera.updateProjectionMatrix() // 更新投影矩阵以应用更改
-      })
     },
     async fetchData (spaceID) {
       try {
@@ -202,16 +331,15 @@ export default {
         console.log('response data:', response.data)
         const data = response.data
 
-        // 处理固定属性（对应属性表）
-        this.propertyData = Object.entries(data.fixedProperties).map(([key, value]) => ({
-          name: key,
-          info: value
+        // 处理网格元信息（原状态数据，合并为单列）
+        this.metaData = data.properties.map(property => ({
+          info: `${property.propertyKey}: ${property.propertyValue}`
         }))
 
-        // 处理状态（对应状态表）
-        this.statusData = data.properties.map(property => ({
-          name: property.propertyKey,
-          info: property.propertyValue
+        // 处理设备信息（原固定属性）
+        this.deviceData = Object.entries(data.fixedProperties).map(([key, value]) => ({
+          name: key,
+          info: value
         }))
 
         // 处理事件（对应事件表）
@@ -239,11 +367,71 @@ export default {
       } catch (error) {
         console.error('Error fetching spaces:', error)
       }
+    },
+    // 显示添加事件弹窗
+    showEventModal () {
+      this.eventModalVisible = true
+    },
+    // 处理事件添加确认
+    handleEventOk () {
+      if (!this.eventForm.name || !this.eventForm.description) {
+        this.$message.warning('请填写完整的事件信息')
+        return
+      }
+
+      // 添加到事件列表
+      this.eventData.push({
+        name: this.eventForm.name,
+        description: this.eventForm.description
+      })
+
+      // 这里可以添加 API 调用保存到后端
+      console.log('添加事件:', this.eventForm)
+
+      // 重置表单并关闭弹窗
+      this.eventForm = { name: '', description: '' }
+      this.eventModalVisible = false
+      this.$message.success('事件添加成功')
+    },
+    // 取消添加事件
+    handleEventCancel () {
+      this.eventForm = { name: '', description: '' }
+      this.eventModalVisible = false
+    },
+    // 显示添加服务弹窗
+    showServiceModal () {
+      this.serviceModalVisible = true
+    },
+    // 处理服务添加确认
+    handleServiceOk () {
+      if (!this.serviceForm.name || !this.serviceForm.description) {
+        this.$message.warning('请填写完整的服务信息')
+        return
+      }
+
+      // 添加到服务列表
+      this.serviceData.push({
+        name: this.serviceForm.name,
+        description: this.serviceForm.description
+      })
+
+      // 这里可以添加 API 调用保存到后端
+      console.log('添加服务:', this.serviceForm)
+
+      // 重置表单并关闭弹窗
+      this.serviceForm = { name: '', description: '' }
+      this.serviceModalVisible = false
+      this.$message.success('服务添加成功')
+    },
+    // 取消添加服务
+    handleServiceCancel () {
+      this.serviceForm = { name: '', description: '' }
+      this.serviceModalVisible = false
     }
   },
   mounted () {
     setTimeout(() => {
-      this.initMeta()
+      this.initMesh()
       this.fetchSpaces()
       this.fetchData(1)
     }, 1000)
@@ -262,70 +450,121 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .space-demo-container {
-  display: grid;
-  grid-template-rows: 1fr 3fr;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
 }
 
-#three-container {
-  flex: 2;
+/* 左侧网格图容器 - 70% */
+.left-section {
+  flex: 0 0 70%;
+  width: 70%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background-image: url('@/assets/screen_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.mesh-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
+}
+
+.svg-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  z-index: 2;
+  transition: all 0.3s;
+  cursor: grab;
+}
+
+.svg-container:active {
+  cursor: grabbing;
+}
+
+.ant-spin-nested-loading,
+.ant-spin-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* 右侧表单区域 - 30% */
+.right-section {
+  flex: 0 0 30%;
+  width: 30%;
+  height: 100vh;
+  background-color: #f5f5f5;
+  overflow-y: auto;
+  border-left: 1px solid #e8e8e8;
 }
 
 .form-container {
   background-color: #ffffff;
   width: 100%;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  padding-left: 50px;
-  padding-right: 50px;
-  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .select-row {
-  margin-left: 50px;
-  margin-right: 50px;
+  width: 100%;
 }
 
 .table-container {
-  position: relative;
-  height: 400px; /* 根据需要调整容器高度 */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 20px;
 }
 
-.property-table {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48%; /* 占据容器的一半宽度 */
+.table-wrapper {
+  width: 100%;
 }
 
-.status-table {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 48%; /* 占据容器的一半宽度 */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
 }
 
-.event-table {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 48%; /* 占据容器的一半宽度 */
+.table-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
 }
 
-.service-table {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 48%; /* 占据容器的一半宽度 */
-}
+/* 响应式调整 - 小屏幕时调整比例 */
+@media screen and (max-width: 1200px) {
+  .left-section {
+    flex: 0 0 60%;
+    width: 60%;
+  }
 
+  .right-section {
+    flex: 0 0 40%;
+    width: 40%;
+  }
+}
 </style>
