@@ -302,8 +302,19 @@ export default {
               return '#1a659e'
             })
         })
-        .on('click', (event, d) => {
-          this.$message.info(`网格ID：${d.id}`)
+        .on('click', async (event, d) => {
+          try {
+            // 点击后高亮当前网格
+            d3.selectAll('polygon').attr('stroke', '#ffffff').attr('stroke-width', 1.5)
+            d3.select(event.currentTarget)
+              .attr('stroke', '#000000')
+              .attr('stroke-width', 3)
+
+            this.$message.info(`加载网格 ID：${d.id}`)
+            await this.fetchGridInfo(d.id)
+          } catch (error) {
+            console.error('点击加载失败:', error)
+          }
         })
 
       groups
@@ -355,6 +366,33 @@ export default {
         }))
       } catch (error) {
         console.error('Error fetching data:', error)
+      }
+    },
+    async fetchGridInfo (gridId) {
+      try {
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        const response = await axios.get(`${baseUrl}/api/grid/${gridId}`)
+        const data = response.data
+
+        // === 网格元信息 ===
+        this.metaData = Object.entries(data.meta || {}).map(([key, value]) => ({
+          info: `${key}: ${value}`
+        }))
+
+        // === 设备信息 ===
+        this.deviceData = (data.devices || []).map(device => ({
+          name: device.name,
+          info: device.info
+        }))
+
+        // === 事件、服务（目前为空） ===
+        this.eventData = data.events || []
+        this.serviceData = data.services || []
+
+        console.log('网格信息加载完成:', data)
+      } catch (error) {
+        console.error('获取网格信息失败:', error)
+        this.$message.error('加载网格信息失败')
       }
     },
     async fetchSpaces () {

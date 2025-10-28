@@ -7,9 +7,15 @@ import org.springframework.http.*;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 
 @Service
 public class GridService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Value("${tsl.app.base-url}")
     private String baseUrl;
@@ -25,7 +31,24 @@ public class GridService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /** 构造签名头 */
+    private String findRealMeshId(String meshCode) {
+        try {
+            int num = Integer.parseInt(meshCode);
+            String meshNo = "f-city-" + num;
+            System.out.println("尝试查询 mesh_no = '" + meshNo + "'");
+
+            String sql = "SELECT id FROM grid_list WHERE LOWER(mesh_no) = LOWER(?) LIMIT 1";
+            String realId = jdbcTemplate.queryForObject(sql, String.class, meshNo);
+
+            System.out.println("找到对应: " + meshCode + " → " + meshNo + " → " + realId);
+            return realId;
+        } catch (Exception e) {
+            System.out.println("无法找到 meshCode 对应的真实网格ID: " + meshCode + " (" + e.getMessage() + ")");
+            return null;
+        }
+    }
+
+    /** 生成签名头 */
     private HttpHeaders buildHeaders(String queryString) {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String nonce = String.valueOf(new Random().nextInt(9999));
@@ -43,19 +66,25 @@ public class GridService {
         return headers;
     }
 
-    /** 统一封装接口调用 */
-    public Map<String, Object> getGridDetail(String meshId) {
+    /** 查询网格详情 */
+    public Map<String, Object> getGridDetail(String meshCode) {
         Map<String, Object> result = new LinkedHashMap<>();
-
         try {
-            // === 调用网格详情接口 ===
-            HttpHeaders meshHeaders = buildHeaders("");
+            //mesh_code → mesh_no → 真实 ID
+            String meshId = findRealMeshId(meshCode);
+            if (meshId == null) {
+                throw new RuntimeException("未找到对应的网格ID: " + meshCode);
+            }
+
+            //调远程接口
+            HttpHeaders headers = buildHeaders("");
             String meshUrl = baseUrl + "/metrics/meshInfo/detail/" + meshId;
-            ResponseEntity<String> meshResp = restTemplate.exchange(meshUrl, HttpMethod.GET, new HttpEntity<>(meshHeaders), String.class);
+            ResponseEntity<String> meshResp = restTemplate.exchange(meshUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
             JSONObject meshJson = new JSONObject(meshResp.getBody());
             JSONObject meshData = meshJson.optJSONObject("data");
 
-            // 元信息
+            //解析数据
             Map<String, Object> meta = new LinkedHashMap<>();
             if (meshData != null) {
                 meta.put("网格名称", meshData.optString("meshName", "未知"));
@@ -63,7 +92,6 @@ public class GridService {
                 meta.put("面积", meshData.optString("meshArea", "未知") + "㎡");
             }
 
-            // === 从 resources 获取设备 ===
             List<Map<String, String>> devices = new ArrayList<>();
             JSONArray resources = meshData.optJSONArray("resources");
             if (resources != null) {
@@ -76,31 +104,7 @@ public class GridService {
                 }
             }
 
-            // === 调用设备接口 ===
-            String queryString = "pageNum=1pageSize=10";
-            HttpHeaders devHeaders = buildHeaders(queryString);
-            String devUrl = baseUrl + "/device/dev/list/query?pageNum=1&pageSize=10";
-            JSONObject payload = new JSONObject();
-            payload.put("prodIds", new JSONArray().put("p_vrv"));
-            payload.put("projectId", "1001");
-
-            HttpEntity<String> devEntity = new HttpEntity<>(payload.toString(), devHeaders);
-            ResponseEntity<String> devResp = restTemplate.exchange(devUrl, HttpMethod.POST, devEntity, String.class);
-            JSONObject devJson = new JSONObject(devResp.getBody());
-            JSONArray devDatas = devJson.optJSONObject("data") != null
-                    ? devJson.getJSONObject("data").optJSONArray("datas")
-                    : new JSONArray();
-
-            // 添加设备接口的结果
-            for (int i = 0; i < devDatas.length(); i++) {
-                JSONObject item = devDatas.getJSONObject(i);
-                Map<String, String> dev = new HashMap<>();
-                dev.put("name", item.optString("name", "未知设备"));
-                dev.put("info", item.optString("prodName", "未知类型"));
-                devices.add(dev);
-            }
-
-            // === 组装结果 ===
+            //返回统一格式
             result.put("id", meshId);
             result.put("meta", meta);
             result.put("devices", devices);
@@ -109,6 +113,7 @@ public class GridService {
 
         } catch (Exception e) {
             result.put("error", e.getMessage());
+            e.printStackTrace();
         }
 
         return result;
