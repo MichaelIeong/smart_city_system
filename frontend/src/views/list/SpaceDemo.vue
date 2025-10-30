@@ -2,11 +2,16 @@
   <div class="space-demo-container">
     <!-- 左侧网格图容器 (70%) -->
     <div class="left-section">
-      <a-spin :spinning="isLoading" tip="Loading...">
-        <div class="mesh-container">
-          <svg ref="svg" class="svg-container"></svg>
-        </div>
-      </a-spin>
+      <!-- 背景层 -->
+      <div class="background-layer"></div>
+      <!-- SVG内容层 -->
+      <div class="content-layer">
+        <a-spin :spinning="isLoading" tip="Loading...">
+          <div class="mesh-container">
+            <svg ref="svg" class="svg-container"></svg>
+          </div>
+        </a-spin>
+      </div>
     </div>
 
     <!-- 右侧表单区域 (30%) -->
@@ -405,35 +410,79 @@ html, body {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 .left-section {
   flex: 0 0 70%;
   height: 100vh;
-  background-image: url('@/assets/screen_bg.png');
-  background-size: contain;  /* ✅ 保持背景图原始比例 */
-  background-position: center; /* 保证背景居中 */
+  position: relative;
+  overflow: hidden; /* 防止内容溢出 */
+  clip-path: inset(0); /* 确保所有子元素都被裁剪 */
 }
-.mesh-container {
+
+/* 背景层 - 固定在最底部 */
+.background-layer {
+  position: fixed; /* 改用 fixed 确保背景覆盖整个视口 */
+  top: 0;
+  left: 0;
+  width: 70%; /* 只占左侧 70% */
+  height: 100vh;
+  background-image: url('@/assets/screen_bg.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 内容层 - 在背景之上 */
+.content-layer {
+  position: relative;
   width: 100%;
   height: 100%;
+  z-index: 10;
+  pointer-events: auto;
+  overflow: hidden; /* 确保内容不溢出 */
+}
+.mesh-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  z-index: 20;
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  overflow: hidden; /* 限制 SVG 显示范围 */
 }
 .svg-container {
+  position: relative;
   width: 100%;
   height: 100%;
+  min-height: 100vh;
   background-color: transparent;
   border: none;
   cursor: grab;
+  z-index: 30;
+  overflow: visible; /* SVG 本身允许 overflow，由父容器控制裁剪 */
 }
-.svg-container:active { cursor: grabbing; }
+.svg-container:active {
+  cursor: grabbing;
+}
+
+/* 确保D3生成的所有元素都在顶层 */
+.zoom-group,
+.polygon-group {
+  position: relative;
+  z-index: 100 !important;
+}
 
 .right-section {
   flex: 0 0 30%;
   background-color: #f5f5f5;
   overflow-y: auto;
   border-left: 1px solid #e8e8e8;
+  position: relative;
+  z-index: 1000;
 }
 .form-container {
   background-color: #fff;
@@ -444,6 +493,10 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.table-wrapper {
+  position: relative;
+  z-index: 1;
 }
 .table-header {
   display: flex;
@@ -459,5 +512,39 @@ html, body {
   font-size: 14px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.85);
+}
+
+/* 强制Spin组件及其内容在正确层级 */
+/deep/ .ant-spin-nested-loading {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  z-index: 15;
+  overflow: hidden; /* 确保加载组件也不溢出 */
+}
+
+/deep/ .ant-spin-container {
+  position: relative;
+  z-index: 15;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden; /* 确保容器不溢出 */
+}
+
+/deep/ .ant-spin {
+  z-index: 15;
+}
+
+/* 确保SVG内所有内容都在顶层 */
+svg {
+  position: relative;
+  z-index: 40;
+  display: block; /* 移除inline默认的底部空白 */
+}
+
+svg g,
+svg polygon,
+svg text {
+  position: relative;
 }
 </style>
