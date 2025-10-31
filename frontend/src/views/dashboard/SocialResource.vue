@@ -330,52 +330,127 @@ export default {
     },
 
     handleAddSubmit () {
-      this.addForm.validateFields((err, values) => {
+      this.addForm.validateFields(async (err, values) => {
         if (!err) {
           this.addSubmitLoading = true
 
-          // 模拟提交延迟，提升用户体验
-          setTimeout(() => {
-            // 检查资源编号是否已存在
-            const existingResource = this.socialData.find(item =>
-              item.resourceId === values.resourceId.trim()
-            )
+          try {
+            // 获取当前项目ID（需要根据你的项目结构调整获取方式）
+            const projectId = 1
 
-            if (existingResource) {
-              this.$message.error('资源编号已存在，请使用其他编号')
+            if (!projectId) {
+              this.$message.error('未找到项目ID，请先选择项目')
               this.addSubmitLoading = false
               return
             }
 
-            // 生成新的ID（使用时间戳确保唯一性）
-            const newId = Date.now()
-
-            // 构造新资源数据
-            const newResource = {
-              id: newId,
+            // 构造请求数据
+            const requestData = {
               resourceId: values.resourceId.trim(),
               resourceType: values.resourceType.trim(),
               description: values.description.trim(),
               url: values.url.trim()
             }
 
-            // 添加到本地数据
-            this.socialData.push(newResource)
-            this.filteredData = [...this.socialData] // 刷新过滤后的数据
+            // 调用后端API
+            const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+            const response = await axios.post(
+              `${baseUrl}/api/socialResources/project/${projectId}`,
+              requestData,
+              {
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              }
+            )
 
-            // 重新提取资源类型
-            this.extractResourceTypes()
+            // 处理成功响应
+            if (response.status === 200) {
+              // 将后端返回的新资源添加到本地数据
+              const newResource = response.data
+              this.socialData.push(newResource)
+              this.filteredData = [...this.socialData]
 
-            // 关闭对话框并重置表单
-            this.addModalVisible = false
-            this.addForm.resetFields()
+              // 重新提取资源类型
+              this.extractResourceTypes()
+
+              // 关闭对话框并重置表单
+              this.addModalVisible = false
+              this.addForm.resetFields()
+
+              this.$message.success('新增社会资源成功')
+            } else {
+              throw new Error(`请求失败，状态码: ${response.status}`)
+            }
+          } catch (error) {
+            console.error('新增社会资源失败:', error)
+
+            // 根据错误类型显示不同的提示信息
+            if (error.response) {
+              // 后端返回的错误
+              const errorMessage = error.response.data.message || error.response.data
+              this.$message.error(`新增失败: ${errorMessage}`)
+            } else if (error.request) {
+              // 网络错误
+              this.$message.error('网络错误，请检查连接后重试')
+            } else {
+              // 其他错误
+              this.$message.error(`新增失败: ${error.message}`)
+            }
+          } finally {
             this.addSubmitLoading = false
-
-            this.$message.success('新增社会资源成功')
-          }, 500) // 500ms延迟，模拟网络请求
+          }
         }
       })
     }
+
+    // handleAddSubmit () {
+    //   this.addForm.validateFields((err, values) => {
+    //     if (!err) {
+    //       this.addSubmitLoading = true
+    //
+    //       // 模拟提交延迟，提升用户体验
+    //       setTimeout(() => {
+    //         // 检查资源编号是否已存在
+    //         const existingResource = this.socialData.find(item =>
+    //           item.resourceId === values.resourceId.trim()
+    //         )
+    //
+    //         if (existingResource) {
+    //           this.$message.error('资源编号已存在，请使用其他编号')
+    //           this.addSubmitLoading = false
+    //           return
+    //         }
+    //
+    //         // 生成新的ID（使用时间戳确保唯一性）
+    //         const newId = Date.now()
+    //
+    //         // 构造新资源数据
+    //         const newResource = {
+    //           id: newId,
+    //           resourceId: values.resourceId.trim(),
+    //           resourceType: values.resourceType.trim(),
+    //           description: values.description.trim(),
+    //           url: values.url.trim()
+    //         }
+    //
+    //         // 添加到本地数据
+    //         this.socialData.push(newResource)
+    //         this.filteredData = [...this.socialData] // 刷新过滤后的数据
+    //
+    //         // 重新提取资源类型
+    //         this.extractResourceTypes()
+    //
+    //         // 关闭对话框并重置表单
+    //         this.addModalVisible = false
+    //         this.addForm.resetFields()
+    //         this.addSubmitLoading = false
+    //
+    //         this.$message.success('新增社会资源成功')
+    //       }, 500) // 500ms延迟，模拟网络请求
+    //     }
+    //   })
+    // }
   },
 
   created () {

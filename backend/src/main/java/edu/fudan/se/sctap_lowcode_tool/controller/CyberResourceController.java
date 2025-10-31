@@ -1,13 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.CyberResourceRequest;
 import edu.fudan.se.sctap_lowcode_tool.model.CyberResourceInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.CyberResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,6 +20,13 @@ public class CyberResourceController {
     public ResponseEntity<List<CyberResourceInfo>> getCyberResourcesByProjectId(@PathVariable Integer projectId) {
         System.out.println(cyberResourceService.getCyberResourceByProjectId(projectId));
         return ResponseEntity.ok(cyberResourceService.getCyberResourceByProjectId(projectId));
+    }
+
+    @PostMapping("/project/{projectId}")
+    public ResponseEntity<CyberResourceInfo> createCyberResourceForProject(
+            @PathVariable Integer projectId,
+            @RequestBody CyberResourceRequest request) {
+        return ResponseEntity.ok(cyberResourceService.createCyberResource(projectId, request));
     }
 
 }
