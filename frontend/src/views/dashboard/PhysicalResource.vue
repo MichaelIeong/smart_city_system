@@ -13,7 +13,7 @@
                 :dataSource="deviceTypes"
                 row-key="deviceTypeId"
                 :pagination="false"
-                :scroll="{ y: 400 }"
+                :scroll="{ x: 900, y: 400 }"
                 @click="handleDeviceTypeClick"
                 :customRow="customRowClick"
                 style="flex: 1;"
@@ -202,10 +202,45 @@ export default {
 
       // 设备类型表格列定义
       deviceTypeColumns: [
-        { title: '设备类型序号', dataIndex: 'deviceTypeId', key: 'deviceTypeId', align: 'center' },
-        { title: '设备类型名称', dataIndex: 'deviceTypeName', key: 'deviceTypeName', align: 'center' },
-        { title: '设备类型属性', dataIndex: 'deviceTypeAttributes', key: 'deviceTypeAttributes', align: 'center' },
-        { title: '设备类型功能', dataIndex: 'deviceTypeFunction', key: 'deviceTypeFunction', align: 'center' }
+        {
+          title: '设备类型ID',
+          dataIndex: 'deviceTypeId',
+          key: 'deviceTypeId',
+          align: 'center',
+          width: 180,
+          ellipsis: false
+        },
+        {
+          title: '设备类型名称',
+          dataIndex: 'deviceTypeName',
+          key: 'deviceTypeName',
+          align: 'center',
+          width: 180,
+          ellipsis: false
+        },
+        {
+          title: '设备类型属性',
+          dataIndex: 'deviceTypeAttributes',
+          key: 'deviceTypeAttributes',
+          align: 'center',
+          width: 250,
+          customRender: (text) => {
+            if (!text) return '-'
+            // 将换行符替换为 <br> 标签
+            return <div style="white-space: pre-line;">{text}</div>
+          }
+        },
+        {
+          title: '设备类型功能',
+          dataIndex: 'deviceTypeFunction',
+          key: 'deviceTypeFunction',
+          align: 'center',
+          width: 250,
+          customRender: (text) => {
+            if (!text) return '-'
+            return <div style="white-space: pre-line;">{text}</div>
+          }
+        }
       ],
 
       deviceTypes: [], // 后端获取的设备类型列表
@@ -332,50 +367,17 @@ export default {
     async fetchDeviceTypes () {
       this.loading = true
       try {
-        // 从 localStorage 获取保存的 projectId
-        // const projectId = localStorage.getItem('project_id')
-        const projectId = '1'
-        if (!projectId) {
-          console.error('未找到 project_id')
-          this.$message.error('未找到项目ID，请先选择项目')
-          return
-        }
-
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        console.log('正在请求设备类型数据，URL:', `${baseUrl}/api/deviceTypes?project=${projectId}`)
-
-        // 发起带有 projectId 的 API 请求
-        const response = await axios.get(`${baseUrl}/api/deviceTypes`, {
-          params: {
-            project: projectId // 作为查询参数发送 projectId
-          }
-        })
-
-        console.log('设备类型API 返回的数据:', response.data)
-        const deviceData = response.data
-
-        // 检查返回的数据是否为数组
-        if (!Array.isArray(deviceData)) {
-          console.error('API返回的数据不是数组格式:', deviceData)
-          this.$message.error('数据格式错误')
-          return
-        }
-
-        // 将API返回的数据映射到原始代码的列结构
-        this.deviceTypes = deviceData.map(device => ({
-          deviceTypeId: device.deviceTypeId,
-          deviceTypeName: device.deviceTypeName,
-          deviceTypeAttributes: device.isSensor ? '传感器设备' : '执行器设备', // 将isSensor映射为属性
-          deviceTypeFunction: device.actuatingFunctions && device.actuatingFunctions.length > 0
-            ? device.actuatingFunctions.map(func => func.name || 'Unknown').join(', ')
-            : '无特定功能'
+        const response = await axios.get(`${baseUrl}/api/deviceTypes/fromTslProduct`)
+        // tsl_product 中字段：product_id, product_name, product_describe, product_function
+        this.deviceTypes = response.data.map(item => ({
+          deviceTypeId: item.deviceTypeId,
+          deviceTypeName: item.deviceTypeName,
+          deviceTypeAttributes: this.formatArrayField(item.deviceTypeAttributes, '未知属性'),
+          deviceTypeFunction: this.formatArrayField(item.deviceTypeFunction, '无特定功能')
         }))
-
-        console.log('处理后的设备类型数据:', this.deviceTypes)
       } catch (error) {
-        console.error('获取设备类型数据时出错:', error)
-        console.error('错误详情:', error.response?.data || error.message)
-        this.$message.error(`获取设备类型数据失败: ${error.response?.data?.message || error.message}`)
+        console.error('获取设备类型失败:', error)
       } finally {
         this.loading = false
       }
@@ -413,6 +415,35 @@ export default {
       }
       // 显示删除确认弹窗
       this.isDeleteModalVisible = true
+    },
+
+    formatArrayField (field, fallbackText) {
+      if (!field) return fallbackText
+
+      // 如果是数组，直接用换行连接
+      if (Array.isArray(field)) {
+        return field.join('\n')
+      }
+
+      // 如果是字符串，尝试解析 JSON
+      if (typeof field === 'string') {
+        try {
+          const parsed = JSON.parse(field)
+          if (Array.isArray(parsed)) {
+            return parsed.join('\n')
+          }
+          return String(parsed)
+        } catch (e) {
+          // 如果不是 JSON 格式，去掉括号和引号再换行分隔
+          return field
+            .replace(/[\\[\]"]/g, '')
+            .replace(/,/g, '\n')
+            .trim()
+        }
+      }
+
+      // 其他情况直接转为字符串
+      return String(field)
     },
 
     // 确认删除设备
@@ -658,6 +689,13 @@ export default {
   background-color: #bae7ff !important;
 }
 
+/* 表格单元格支持换行显示内容 */
+.ant-table-tbody > tr > td {
+  white-space: pre-line !important;
+  text-align: center;
+  padding: 8px 12px;
+}
+
 /* 确保卡片内容区域高度合适 */
 .ant-card-body {
   height: calc(100% - 57px);
@@ -695,6 +733,14 @@ export default {
 
 .ant-breadcrumb a:hover {
   color: #40a9ff;
+}
+
+/* 保证表格内容不换行 */
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td {
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 页面标题样式 */
