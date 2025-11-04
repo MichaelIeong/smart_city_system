@@ -5,7 +5,10 @@
       <!-- ✅ 动态绑定背景图 -->
       <div
         class="background-layer"
-        :style="{ backgroundImage: `url(${backgroundImage})` }"
+        :style="{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundPosition: backgroundOffset
+        }"
       ></div>
 
       <div class="content-layer">
@@ -157,7 +160,7 @@ import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
 // ✅ 导入三种背景图片
-import CityImg from '@/assets/city.png'
+import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
 
@@ -168,6 +171,7 @@ export default {
       isLoading: false,
       selectedType: 'F-city', // 默认类型
       backgroundImage: CityImg, // ✅ 默认背景
+      backgroundOffset: 'calc(50% - 150px) center',
 
       // ✅ 网格类型映射
       meshTypeOptions: {
@@ -222,6 +226,9 @@ export default {
   methods: {
     // ✅ 切换网格类型 + 更新背景图
     handleMeshTypeChange (type) {
+      if (type === 'F-city') this.backgroundOffset = 'calc(50% - 150px) center'
+      if (type === 'F-community') this.backgroundOffset = 'center center'
+      if (type === 'F-park') this.backgroundOffset = 'center center'
       this.$message.info(`切换到 ${this.meshTypeOptions[type]} 数据`)
       this.backgroundImage = this.backgroundMap[type] || CityImg
       this.loadMeshData(type)
@@ -230,6 +237,7 @@ export default {
     // ✅ 加载指定网格类型数据
     async loadMeshData (meshType) {
       this.isLoading = true
+      this.drawSvg(meshType)
       const data = this.meshFiles[meshType]?.data || []
       this.polygons = data.map(item => {
         const mesh = item.meshInfo
@@ -239,12 +247,12 @@ export default {
           coords: mesh.meshGridList.map(p => [Number(p.x), Number(p.y)])
         }
       })
-      this.drawSvg()
+      this.drawSvg(meshType)
       this.isLoading = false
     },
 
     // ✅ 绘制SVG网格
-    drawSvg () {
+    drawSvg (meshType) {
       const svgEl = d3.select(this.$refs.svg)
       svgEl.selectAll('*').remove()
 
@@ -253,10 +261,20 @@ export default {
         .attr('viewBox', '0 0 3000 1600')
 
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
-      const zoom = d3.zoom()
-        .scaleExtent([0.5, 5])
-        .on('zoom', (event) => zoomG.attr('transform', event.transform))
-      svgEl.call(zoom)
+      // ✅ 根据背景图片尺寸与坐标系调整缩放和平移
+      // 示例参数：scale=1.8 表示放大，translate 正数表示向右/下平移，负数向左/上偏移
+      let scale = 2.4; let offsetX = -3350; let offsetY = -1095
+      if (meshType === 'F-community') { scale = 1.8; offsetX = -20; offsetY = -750 }
+      if (meshType === 'F-park') { scale = 1.5; offsetX = -50; offsetY = -700 }
+
+      // 设置初始平移和缩放，让网格与底图重合
+      zoomG.attr('transform', `translate(${offsetX}, ${offsetY}) scale(${scale})`)
+
+      // 初始化缩放交互
+      // const zoom = d3.zoom()
+      //   .scaleExtent([0.5, 5])
+      //   .on('zoom', (event) => zoomG.attr('transform', event.transform))
+      // svgEl.call(zoom)
 
       const groups = zoomG
         .selectAll('g')
