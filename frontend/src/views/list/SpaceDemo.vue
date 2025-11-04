@@ -294,6 +294,28 @@ export default {
           d3.select(event.currentTarget)
             .attr('stroke', '#000')
             .attr('stroke-width', 3)
+
+          // 打印调试信息
+          console.log('点击网格:', d.id)
+
+          // 仅当当前为城区网格时启用跳转逻辑
+          if (this.selectedType === 'F-city') {
+            // 判断点击的网格编号
+            if (d.id.includes('f-city-11')) {
+              this.$message.success('进入社区网格页面')
+              this.selectedType = 'F-community'
+              this.handleMeshTypeChange('F-community')
+              return
+            }
+            if (d.id.includes('f-city-7')) {
+              this.$message.success('进入园区网格页面')
+              this.selectedType = 'F-park'
+              this.handleMeshTypeChange('F-park')
+              return
+            }
+          }
+
+          // 其他网格：正常加载详情
           this.$message.info(`加载网格 ID：${d.id}`)
           await this.fetchGridInfo(d.id)
         })
