@@ -383,6 +383,41 @@ export default {
       }
     },
 
+    async fetchDeviceInstancesByType (prodId) {
+      try {
+        this.loading = true
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        console.log('请求设备实例接口:', `${baseUrl}/api/devices/instances?prodId=${prodId}`)
+
+        const response = await axios.get(`${baseUrl}/api/devices/instances`, {
+          params: { prodId }
+        })
+
+        const rawData = response.data?.data || response.data || []
+        console.log('设备实例接口返回:', rawData)
+
+        // 解析接口返回数据，映射成表格字段
+        this.deviceInstances = rawData.map(device => ({
+          deviceId: device.deviceId || device.devId || '-',
+          deviceName: device.deviceName || device.devName || '未命名设备',
+          deviceRegion: device.region || '未知区域',
+          deviceTime: device.lastUpdateTime || '未知时间',
+          states: Array.isArray(device.states)
+            ? device.states.map(s => `${s.stateKey}: ${s.stateValue}`).join(', ')
+            : '离线',
+          operation: Array.isArray(device.functions)
+            ? device.functions.map(f => f.functionName).join(', ')
+            : '无可用操作',
+          deviceTypeId: prodId
+        }))
+      } catch (error) {
+        console.error('获取设备实例失败:', error)
+        this.$message.error('加载设备实例失败，请稍后重试')
+      } finally {
+        this.loading = false
+      }
+    },
+
     // 解析设备状态数组，返回状态的可读格式
     parseStates (states) {
       if (Array.isArray(states) && states.length > 0) {
@@ -513,15 +548,12 @@ export default {
     },
 
     // 设备类型行点击事件
-    handleDeviceTypeClick (record) {
-      // 设置当前选中的设备类型
+    async handleDeviceTypeClick (record) {
       this.selectedDeviceType = record
-
-      // 更新选中行的key（用于高亮显示）
       this.selectedRowKeys = [record.deviceTypeId]
-
-      console.log('选中设备类型:', record.deviceTypeName)
-      console.log('该类型的设备实例:', this.filteredDeviceInstances)
+      this.deviceInstances = [] // 清空旧数据
+      this.$message.info(`加载 ${record.deviceTypeName} 的设备实例...`)
+      await this.fetchDeviceInstancesByType(record.deviceTypeId)
     },
 
     // 设备类型行样式设置

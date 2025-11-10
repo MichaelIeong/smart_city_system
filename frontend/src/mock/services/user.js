@@ -476,6 +476,18 @@ const userNav = options => {
   const nav = [
     // dashboard
     {
+      name: 'project-selection',
+      parentId: 0,
+      id: 999,
+      path: '/project-selection',
+      meta: {
+        title: '场景选择',
+        icon: 'appstore',
+        show: true
+      },
+      component: 'ProjectSelection'
+    },
+    {
       name: 'dashboard',
       parentId: 0,
       id: 1,
@@ -485,7 +497,7 @@ const userNav = options => {
         show: true
       },
       component: 'RouteView',
-      redirect: '/dashboard/workplace'
+      redirect: '/project-selection'
     },
     {
       name: 'workplace',
