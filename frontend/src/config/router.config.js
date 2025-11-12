@@ -114,28 +114,22 @@ export const asyncRouterMap = [{
       path: '/tap/recommend',
       name: 'tap-recommend',
       component: () => import('@/views/recommend/TapRecommend'),
+      hidden: true,
       meta: { title: 'menu.tap.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
     },
     // 应用看板
-    {
-      path: '/tap/board',
-      name: 'tap-board',
-      component: () => import('@/views/recommend/TapBoard'),
-      meta: { title: 'menu.tap.board', keepAlive: true, icon: 'eye', permission: ['dashboard'] }
-    },
+    // {
+    //   path: '/tap/board',
+    //   name: 'tap-board',
+    //   component: () => import('@/views/recommend/TapBoard'),
+    //   meta: { title: 'menu.tap.board', keepAlive: true, icon: 'eye', permission: ['table'] }
+    // },
     // 应用监控
     {
       path: '/tap/monitor',
       name: 'tap-monitor',
       component: () => import('@/views/recommend/TapMonitor'),
       meta: { title: 'menu.tap.monitor', keepAlive: true, icon: 'dashboard', permission: ['table'] }
-    },
-    // 城市网格
-    {
-      path: '/center-panel',
-      name: 'center-panel',
-      component: () => import('@/views/panel/CenterPanel.vue'),
-      meta: { title: 'menu.panel', keepAlive: true, icon: 'cluster', permission: ['dashboard'] }
     },
     // result
     {

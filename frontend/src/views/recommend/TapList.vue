@@ -23,18 +23,19 @@
               </a-form-item>
             </a-col>
 
-            <a-col :md="8" :sm="24">
+            <a-col :md="6" :sm="24">
               <a-form-item label="应用描述">
                 <a-input v-model="searchParams.description" placeholder="请输入" allow-clear />
               </a-form-item>
             </a-col>
 
-            <a-col :md="10" :sm="24">
+            <a-col :md="12" :sm="24">
               <span>
                 <a-button style="margin-left: 20px" type="primary" @click="doSearch">搜索</a-button>
                 <a-button style="margin-left: 10px" @click="handleReset">重置</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleBuild">构造应用</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleCreate">创建应用</a-button>
+                <a-button style="margin-left: 10px" type="dashed" @click="handleBuild">应用构造</a-button>
+                <a-button style="margin-left: 10px" type="dashed" @click="handleRecommend">应用推荐</a-button>
+                <a-button style="margin-left: 10px" type="dashed" @click="handleCreate">应用创建</a-button>
               </span>
             </a-col>
           </a-row>
@@ -261,6 +262,11 @@ function handleBuild () {
 
 function handleCreate () {
   saveVisible.value = true
+}
+
+function handleRecommend () {
+  // 新开一个标签页打开 /tap/recommend 页面
+  window.open('/tap/recommend', '_blank')
 }
 
 async function handleEdit(record) {
