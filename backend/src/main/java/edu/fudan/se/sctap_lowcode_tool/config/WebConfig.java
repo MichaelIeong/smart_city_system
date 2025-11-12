@@ -16,12 +16,10 @@ public class WebConfig {
                         .allowedOrigins(
                                 "http://127.0.0.1:8000",
                                 "http://localhost:8000",
-                                "http://10.177.29.134:8000",
-                                "http://10.177.29.61:8000",
+                                "http://10.176.65.202:8000",
                                 "http://127.0.0.1:1880",
                                 "http://localhost:1880",
-                                "http://10.177.29.134:1880",
-                                "http://10.177.29.61:1880"
+                                "http://10.176.65.202:1880"
                         )
                         .allowedMethods("*")
                         .allowedHeaders("*")
