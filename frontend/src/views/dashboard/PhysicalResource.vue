@@ -400,14 +400,12 @@ export default {
         this.deviceInstances = rawData.map(device => ({
           deviceId: device.deviceId || device.devId || '-',
           deviceName: device.deviceName || device.devName || '未命名设备',
-          deviceRegion: device.region || '未知区域',
-          deviceTime: device.lastUpdateTime || '未知时间',
+          deviceRegion: device.deviceRegion || '未知区域',
+          deviceTime: device.lastUpdateTime || '全天',
           states: Array.isArray(device.states)
             ? device.states.map(s => `${s.stateKey}: ${s.stateValue}`).join(', ')
             : '离线',
-          operation: Array.isArray(device.functions)
-            ? device.functions.map(f => f.functionName).join(', ')
-            : '无可用操作',
+          operation: device.operation || '无操作指令',
           deviceTypeId: prodId
         }))
       } catch (error) {
