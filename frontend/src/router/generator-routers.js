@@ -10,6 +10,7 @@ const constantRouterComponents = {
   BlankLayout: BlankLayout,
   RouteView: RouteView,
   PageView: PageView,
+  ProjectSelection: () => import('@/views/user/ProjectSelection.vue'),
   '403': () => import(/* webpackChunkName: "error" */ '@/views/exception/403'),
   '404': () => import(/* webpackChunkName: "error" */ '@/views/exception/404'),
   '500': () => import(/* webpackChunkName: "error" */ '@/views/exception/500'),
@@ -67,12 +68,19 @@ const rootRouter = {
   key: '',
   name: 'index',
   path: '',
-  component: 'BasicLayout',
-  redirect: '/dashboard',
+  component: 'BlankLayout', // ⚠️ 推荐使用 BlankLayout 避免带左侧菜单栏
+  redirect: '/project-selection', // 👈 修改默认重定向路径
   meta: {
-    title: '首页'
+    title: '场景选择'
   },
-  children: []
+  children: [
+    {
+      path: '/project-selection',
+      name: 'ProjectSelection',
+      component: () => import('@/views/user/ProjectSelection.vue'),
+      meta: { title: '场景选择' }
+    }
+  ]
 }
 
 // export const generatorStaticRouter = () => {

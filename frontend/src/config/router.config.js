@@ -12,7 +12,7 @@ export const asyncRouterMap = [{
   name: 'index',
   component: BasicLayout,
   meta: { title: 'menu.home' },
-  redirect: '/space-scene',
+  redirect: '/user/project-selection',
 
   children: [
     // 场景展示
