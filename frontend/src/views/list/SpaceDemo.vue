@@ -217,7 +217,7 @@ import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
 // ✅ 导入三种背景图片
-import CityImg from '@/assets/city.png'
+import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
 
