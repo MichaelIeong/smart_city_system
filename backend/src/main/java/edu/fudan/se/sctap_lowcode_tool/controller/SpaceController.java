@@ -129,7 +129,7 @@ public class SpaceController {
     /**
      * 获取所有空间的基本信息（spaceId, spaceName）
      */
-    @GetMapping("/allspace")
+    @GetMapping("/list")
     public ResponseEntity<List<Map<String, Object>>> getAllSpaces() {
         List<SpaceInfo> spaces = spaceService.findAllSpaces();
 
