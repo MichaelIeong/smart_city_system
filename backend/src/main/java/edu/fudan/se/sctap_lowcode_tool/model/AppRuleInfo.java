@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table
+@Table(name = "app_rule_info")
 @Data
 public class AppRuleInfo {
 

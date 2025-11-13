@@ -164,6 +164,7 @@ export default {
     // 连接 WebSocket
     connectWebSocket() {
         const SOCKET_URL = (import.meta && import.meta.env && import.meta.env.VITE_SOCKET_URL) || process.env.VUE_APP_SOCKET_URL
+        console.log('SOCKET_URL:', SOCKET_URL)
         const socket = new SockJS(SOCKET_URL)
         this.stompClient = new Client({
             webSocketFactory: () => socket,

@@ -74,14 +74,15 @@
           <!-- 事件 -->
           <div class="table-wrapper">
             <div class="table-header">
-              <span class="table-title">事件</span>
+              <span class="table-title">环境级事件</span>
               <a-button type="primary" size="small" @click="showEventModal">
-                添加事件
+                添加环境级事件
               </a-button>
             </div>
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
+              :rowKey="record => record.id || record.eventType"
               :pagination="false"
               size="small"
             />
@@ -90,14 +91,49 @@
           <!-- 服务 -->
           <div class="table-wrapper">
             <div class="table-header">
-              <span class="table-title">服务</span>
+              <span class="table-title">环境级服务</span>
               <a-button type="primary" size="small" @click="showServiceModal">
-                添加服务
+                添加环境级服务
               </a-button>
             </div>
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
+              :rowKey="record => record.id || record.serviceName"
+              :pagination="false"
+              size="small"
+            />
+          </div>
+
+          <!-- 属性 -->
+          <div class="table-wrapper">
+            <div class="table-header">
+              <span class="table-title">环境级属性</span>
+              <a-button type="primary" size="small" @click="showPropertyModal">
+                添加环境级属性
+              </a-button>
+            </div>
+            <a-table
+              :columns="propertyColumns"
+              :dataSource="propertyData"
+              :rowKey="record => record.id || record.propertyName"
+              :pagination="false"
+              size="small"
+            />
+          </div>
+
+          <!-- 应用 -->
+          <div class="table-wrapper">
+            <div class="table-header">
+              <span class="table-title">应用</span>
+              <a-button type="primary" size="small" @click="addApplication">
+                添加应用
+              </a-button>
+            </div>
+            <a-table
+              :columns="applicationColumns"
+              :dataSource="applicationData"
+              :rowKey="record => record.id || record.eventType"
               :pagination="false"
               size="small"
             />
@@ -147,6 +183,27 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 属性弹窗 -->
+    <a-modal
+      v-model="propertyModalVisible"
+      title="添加属性"
+      @ok="handlePropertyOk"
+      @cancel="handlePropertyCancel"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="属性名称">
+          <a-input v-model="propertyForm.name" placeholder="请输入属性名称" />
+        </a-form-item>
+        <a-form-item label="属性描述">
+          <a-textarea
+            v-model="propertyForm.description"
+            placeholder="请输入属性描述"
+            :rows="4"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -160,7 +217,7 @@ import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
 // ✅ 导入三种背景图片
-import CityImg from '@/assets/City.png'
+import CityImg from '@/assets/city.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
 
@@ -171,7 +228,7 @@ export default {
       isLoading: false,
       selectedType: 'F-city', // 默认类型
       backgroundImage: CityImg, // ✅ 默认背景
-      backgroundOffset: 'calc(50% - 150px) center',
+      backgroundOffset: 'calc(50% - 180px) center',
 
       // ✅ 网格类型映射
       meshTypeOptions: {
@@ -198,6 +255,7 @@ export default {
 
       // 表格定义
       metaColumns: [{ title: '网格元信息', dataIndex: 'info', key: 'info' }],
+      gridId: null,
       metaData: [],
       deviceColumns: [
         { title: '设备名称', dataIndex: 'name', key: 'name' },
@@ -205,28 +263,96 @@ export default {
       ],
       deviceData: [],
       eventColumns: [
-        { title: '事件名称', dataIndex: 'name', key: 'name' },
-        { title: '事件描述', dataIndex: 'description', key: 'description' }
+        { title: '事件名称', dataIndex: 'eventType', key: 'name' },
+        {
+          title: '事件描述',
+          dataIndex: 'description',
+          key: 'description',
+          customRender: (text, record) => {
+            const value = text || ''
+            const shortText = value.length > 15 ? value.substring(0, 15) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
       ],
       eventData: [],
       serviceColumns: [
-        { title: '服务名称', dataIndex: 'name', key: 'name' },
-        { title: '服务描述', dataIndex: 'description', key: 'description' }
+        { title: '服务名称', dataIndex: 'serviceName', key: 'name' },
+        {
+          title: '服务描述',
+          dataIndex: 'description',
+          key: 'description',
+          customRender: (text, record) => {
+            const value = text || ''
+            const shortText = value.length > 15 ? value.substring(0, 15) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
       ],
       serviceData: [],
+      propertyColumns: [
+        { title: '属性名称', dataIndex: 'propertyName', key: 'name' },
+        {
+          title: '属性描述',
+          dataIndex: 'description',
+          key: 'description',
+          customRender: (text, record) => {
+            const value = text || ''
+            const shortText = value.length > 15 ? value.substring(0, 15) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
+      ],
+      propertyData: [],
+      applicationColumns: [
+        { title: '触发事件类型', dataIndex: 'eventType', key: 'name' },
+        {
+          title: '应用描述',
+          dataIndex: 'description',
+          key: 'description',
+          customRender: (text, record) => {
+            const value = text || ''
+            const shortText = value.length > 15 ? value.substring(0, 15) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
+      ],
+      applicationData: [],
 
       // 弹窗
       eventModalVisible: false,
       serviceModalVisible: false,
+      propertyModalVisible: false,
       eventForm: { name: '', description: '' },
-      serviceForm: { name: '', description: '' }
+      serviceForm: { name: '', description: '' },
+      propertyForm: { name: '', description: '' }
     }
   },
 
   methods: {
     // ✅ 切换网格类型 + 更新背景图
     handleMeshTypeChange (type) {
-      if (type === 'F-city') this.backgroundOffset = 'calc(50% - 150px) center'
+      if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       if (type === 'F-community') this.backgroundOffset = 'center center'
       if (type === 'F-park') this.backgroundOffset = 'center center'
       this.$message.info(`切换到 ${this.meshTypeOptions[type]} 数据`)
@@ -263,7 +389,7 @@ export default {
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
       // ✅ 根据背景图片尺寸与坐标系调整缩放和平移
       // 示例参数：scale=1.8 表示放大，translate 正数表示向右/下平移，负数向左/上偏移
-      let scale = 2.4; let offsetX = -3350; let offsetY = -1095
+      let scale = 2.7; let offsetX = -3830; let offsetY = -1230
       if (meshType === 'F-community') { scale = 1.8; offsetX = -20; offsetY = -750 }
       if (meshType === 'F-park') { scale = 1.5; offsetX = -50; offsetY = -700 }
 
@@ -336,10 +462,13 @@ export default {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
         const response = await axios.get(`${baseUrl}/api/grid/${gridId}`)
         const data = response.data
+        this.gridId = data.id
         this.metaData = Object.entries(data.meta || {}).map(([k, v]) => ({ info: `${k}: ${v}` }))
         this.deviceData = (data.devices || []).map(dev => ({ name: dev.name, info: dev.info }))
         this.eventData = data.events || []
         this.serviceData = data.services || []
+        this.propertyData = data.properties || []
+        this.applicationData = data.applications || []
       } catch (err) {
         console.error('加载网格信息失败', err)
       }
@@ -355,7 +484,7 @@ export default {
       this.eventData.push({ ...this.eventForm })
       this.eventForm = { name: '', description: '' }
       this.eventModalVisible = false
-      this.$message.success('事件添加成功')
+      this.$message.success('环境级事件添加成功')
     },
     handleEventCancel () { this.eventModalVisible = false },
 
@@ -368,9 +497,30 @@ export default {
       this.serviceData.push({ ...this.serviceForm })
       this.serviceForm = { name: '', description: '' }
       this.serviceModalVisible = false
-      this.$message.success('服务添加成功')
+      this.$message.success('环境级服务添加成功')
     },
-    handleServiceCancel () { this.serviceModalVisible = false }
+    handleServiceCancel () { this.serviceModalVisible = false },
+
+    showPropertyModal () { this.propertyModalVisible = true },
+    handlePropertyOk () {
+      if (!this.propertyForm.name || !this.propertyForm.description) {
+        this.$message.warning('请填写完整属性信息')
+        return
+      }
+      this.propertyData.push({ ...this.propertyForm })
+      this.propertyForm = { name: '', description: '' }
+      this.propertyModalVisible = false
+      this.$message.success('环境级属性添加成功')
+    },
+    handlePropertyCancel () { this.propertyModalVisible = false },
+
+    addApplication () {
+      if (this.gridId === null) {
+        this.$message.warning('请选择网格')
+      } else {
+        this.$message.success('选择网格：' + this.gridId)
+      }
+    }
   },
 
   mounted () {

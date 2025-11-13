@@ -1,6 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvProperty;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import edu.fudan.se.sctap_lowcode_tool.utils.SignUtil;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -29,6 +34,18 @@ public class GridService {
 
     @Value("${tsl.app.token}")
     private String token;
+
+    @Resource
+    private EnvEventService envEventService;
+
+    @Resource
+    private EnvServiceService envServiceService;
+
+    @Resource
+    private EnvPropertyService envPropertyService;
+
+    @Resource
+    private AppGridService appGridService;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -73,7 +90,7 @@ public class GridService {
     public Map<String, Object> getGridDetail(String meshCode) {
         Map<String, Object> result = new LinkedHashMap<>();
         try {
-            // 1️⃣ 从数据库获取基础信息
+            // 1. 从数据库获取基础信息
             Map<String, Object> grid = findGridInfo(meshCode);
             if (grid == null) {
                 throw new RuntimeException("未找到对应网格: " + meshCode);
@@ -84,14 +101,14 @@ public class GridService {
             String meshType = (String) grid.get("mesh_nature");
             Object meshArea = grid.get("mesh_area");
 
-            // 2️⃣ 构建 meta 元信息
+            // 2. 构建 meta 元信息
             Map<String, Object> meta = new LinkedHashMap<>();
             meta.put("网格编号", meshCode);
             meta.put("网格名称", meshName);
             meta.put("网格类型", meshType);
             meta.put("面积", meshArea != null ? meshArea + "㎡" : "未知");
 
-            // 3️⃣ 调远程接口 (若有 meshId)
+            // 3️. 调远程接口 (若有 meshId)
             List<Map<String, String>> devices = new ArrayList<>();
             try {
                 HttpHeaders headers = buildHeaders("");
@@ -116,12 +133,26 @@ public class GridService {
                 System.out.println("⚠️ 调用远程接口失败，继续使用本地数据: " + e.getMessage());
             }
 
-            // 4️⃣ 统一输出格式
+            // 4️. 统一输出格式
             result.put("id", meshId);
             result.put("meta", meta);
             result.put("devices", devices);
-            result.put("events", Collections.emptyList());
-            result.put("services", Collections.emptyList());
+
+            // 5️. 获取环境级事件列表
+            List<EnvEvent> envEvents = envEventService.findByGridId(meshId);
+            result.put("events", envEvents);
+
+            // 6. 获取环境级服务列表
+            List<EnvService> envServices = envServiceService.findByGridId(meshId);
+            result.put("services", envServices);
+
+            // 7. 获取环境级属性列表
+            List<EnvProperty> envProperties = envPropertyService.findByGridId(meshId);
+            result.put("properties", envProperties);
+
+            // 8. 获取应用级信息
+            List<AppRuleInfo> appRules = appGridService.findByGridId(meshId);
+            result.put("applications", appRules);
 
         } catch (Exception e) {
             result.put("error", e.getMessage());

@@ -41,4 +41,7 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
             @Param("description") String description,
             Pageable pageable);
 
+    @Query("SELECT r FROM AppRuleInfo r JOIN AppGrid g ON r.id = g.appRuleId WHERE g.gridId = :gridId")
+    List<AppRuleInfo> findByGridId(@Param("gridId") String gridId);
+
 }
