@@ -30,4 +30,15 @@ public class EnvEventService {
                 .toList();
     }
 
+    /**
+     * 获取环境级事件类型列表
+     * */
+    public List<String> getEnvEventTypeList(String gridId) {
+        List<EnvEvent> envEvents = envEventRepository.findByGridId(gridId);
+        return envEvents
+                .stream()
+                .map(EnvEvent::getEventType)
+                .toList();
+    }
+
 }

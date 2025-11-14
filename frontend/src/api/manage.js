@@ -511,3 +511,31 @@ export function getGridById (gridId) {
     }
   })
 }
+
+// 获取同类型的网格列表
+export function getGridListByType (gridId) {
+  const token = store.state.token
+  return request({
+    url: `${api.grid}/type/${gridId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 应用下发
+export function syncAppRule (appId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      appId,
+      gridIdList
+    }
+  })
+}

@@ -1,3 +1,5 @@
+
+你说：
 <template>
   <page-header-wrapper>
     <div class="main-container">
@@ -70,13 +72,40 @@
         </div>
       </div>
     </div>
+    <a-modal :visible="isModalVisible" title="同层次类型的全部网格列表" @cancel="closeModal" :width="800">
+      <div>
+        <a-table
+          :columns="columns"
+          :dataSource="gridList"
+          :rowKey="record => record.id"
+          :rowSelection="rowSelection"
+        >
+        </a-table>
+      </div>
+      <template v-slot:footer>
+        <a-button @click="handleConfirm" type="primary">同步下发</a-button>
+        <a-button @click="closeModal">取消</a-button>
+      </template>
+    </a-modal>
+    <a-modal :visible="isResultModalVisible" title="同步结果" @cancel="closeResultModal" :width="800">
+      <div>
+        <a-table
+          :columns="resultColumns"
+          :dataSource="gridResults"
+          :rowKey="record => record.gridId"
+        >
+          <template #bodyCell="{ column, record }">
+          </template>
+        </a-table>
+      </div>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
 <script setup>
 /* eslint-disable */
-import { ref, onMounted } from 'vue'
-import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertJsonRule, getGridById } from '@/api/manage'
+import { ref, onMounted, computed } from 'vue'
+import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertJsonRule, getGridById, getGridListByType, syncAppRule } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 const uuid = uuidv4()
@@ -88,6 +117,24 @@ const isLoading = ref(false)
 const selectedRule = ref(null)
 const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 const gridId = ref(null)
+const appId = ref(null)
+const isModalVisible = ref(false)
+const gridList = ref([])
+const columns = [
+  { title: '网格编号', dataIndex: 'id', key: 'id' },
+  { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+  { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
+  { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
+]
+const selectedRowKeys = ref([])
+const isResultModalVisible = ref(false)
+const gridResults = ref([])
+const resultColumns = [
+  { title: '网格编号', dataIndex: 'gridId', key: 'gridId' },
+  { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+  { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess'},
+  { title: '消息', dataIndex: 'message', key: 'message' }
+]
 
 onMounted(() => {
   handleGridSelection()
@@ -104,7 +151,7 @@ async function handleGridSelection() {
       // 在 chatHistory 中加入提示消息
       chatHistory.value.push({
         role: 'assistant',
-        content: `您已选择网格: ${grid.mesh_name}。`,
+        content: `您已选择网格: ${grid.meshName}。`,
         isSuccess: false,
       })
     } catch (error) {
@@ -187,9 +234,14 @@ async function submitRule() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
     try {
         const projectId = localStorage.getItem('project_id')
-        const success = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2), "")
-        if(success) {
+        const appIdNew = await createTapRule(projectId, selectedRule.value.naturalContent, JSON.stringify(selectedRule.value.jsonRule, null, 2), "")
+        if(appIdNew != 0) {
+          appId.value = appIdNew
           message.success('应用创建成功')
+          // 获取同类型网格数据
+          const gridListData = await getGridListByType(gridId.value)
+          gridList.value = gridListData
+          isModalVisible.value = true  // 显示弹窗
         } else {
           message.error('应用创建失败，请稍后重试')
         }
@@ -198,6 +250,39 @@ async function submitRule() {
     }
   }
 }
+
+// 关闭弹窗
+function closeModal() {
+  isModalVisible.value = false
+  selectedRowKeys.value = []
+}
+
+// 关闭结果弹窗
+function closeResultModal() {
+  isResultModalVisible.value = false
+}
+
+// 点击确认时输出选中的行
+async function handleConfirm() {
+  try {
+    const result = await syncAppRule(appId.value, selectedRowKeys.value)
+    gridResults.value = result
+    isResultModalVisible.value = true
+  } catch (error) {
+    message.error('同步失败: ' + error.message)
+  } finally {
+    closeModal(); // 关闭选择弹窗
+  }
+}
+
+// rowSelection 配置（直接用 computed）
+const rowSelection = computed(() => ({
+  type: 'checkbox',
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (selectedKeys) => {
+    selectedRowKeys.value = selectedKeys
+  }
+}))
 
 async function viewInNodeRed() {
   if (selectedRule.value && selectedRule.value.jsonRule) {
@@ -493,5 +578,12 @@ async function viewInNodeRed() {
 .nodered-btn:hover {
   background-color: #059669;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
+}
+
+::v-deep .success-text {
+  color: green;
+}
+::v-deep .error-text {
+  color: red;
 }
 </style>

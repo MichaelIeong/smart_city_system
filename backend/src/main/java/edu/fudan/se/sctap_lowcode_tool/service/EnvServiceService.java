@@ -28,4 +28,15 @@ public class EnvServiceService {
                 .map(EnvService::getServiceJson)
                 .toList();
     }
+
+    /**
+     * 获取环境级服务名称列表
+     * */
+    public List<String> getEnvServiceNameList(String gridId) {
+        List<EnvService> envServices = findByGridId(gridId);
+        return envServices
+                .stream()
+                .map(EnvService::getServiceName)
+                .toList();
+    }
 }

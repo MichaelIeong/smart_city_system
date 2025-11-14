@@ -1,6 +1,6 @@
 <template>
   <page-header-wrapper>
-    <a-card :bordered="false" :style="{ borderRadius: '8px', height: 'calc(100vh - 250px)' }">
+    <a-card :bordered="false" :style="{ borderRadius: '8px' }">
       <div class="table-page-search-wrapper">
         <a-form layout="inline">
           <a-row :gutter="48">

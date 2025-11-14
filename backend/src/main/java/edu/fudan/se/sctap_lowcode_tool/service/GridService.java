@@ -1,9 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvProperty;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.SignUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +44,9 @@ public class GridService {
 
     @Resource
     private AppGridService appGridService;
+
+    @Resource
+    private GridMeshRepository gridMeshRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -163,9 +164,21 @@ public class GridService {
     /**
      * 获取网格信息
      * */
-    public Map<String, Object> getGridById(String gridId) {
-        String sql = "SELECT id, mesh_no, mesh_name, mesh_nature, mesh_area FROM grid_list WHERE LOWER(id) = LOWER(?) LIMIT 1";
-        Map<String, Object> record = jdbcTemplate.queryForMap(sql, gridId);
-        return record;
+    public GridMesh getGridById(String gridId) {
+        return gridMeshRepository.findById(gridId).orElse(null);
+    }
+
+    /**
+     * 根据类型获取网格列表
+     * */
+    public List<GridMesh> getGridListByType(String gridId) {
+        // 获取网格信息
+        GridMesh gridMesh = getGridById(gridId);
+        if(gridMesh==null) {
+            return null;
+        }
+        String meshNature = gridMesh.getMeshNature();
+        String meshType = gridMesh.getMeshType();
+        return gridMeshRepository.findByMeshNatureAndMeshType(meshNature, meshType);
     }
 }

@@ -37,8 +37,8 @@ public class AppRuleController {
      * 保存应用
      * */
     @PostMapping("/create")
-    public boolean create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
-        return appRuleService.createRule(appRuleSaveRequest);
+    public ResponseEntity<Integer> create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
+        return ResponseEntity.ok(appRuleService.createRule(appRuleSaveRequest));
     }
 
     @PostMapping("/update")
@@ -116,5 +116,13 @@ public class AppRuleController {
             @PathVariable Integer id,
             @RequestParam boolean enabled) {
         return appRuleService.updateEnabledStatus(id, enabled);
+    }
+
+    /**
+     * 同步应用规则
+     * */
+    @PostMapping("/sync")
+    public ResponseEntity<List<AppRuleSyncResponse>> syncAppRule(@RequestBody AppRuleSyncRequest appRuleSyncRequest) {
+        return ResponseEntity.ok(appRuleService.syncAppRule(appRuleSyncRequest));
     }
 }
