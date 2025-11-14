@@ -17,4 +17,15 @@ public class EnvServiceService {
     public List<EnvService> findByGridId(String gridId) {
         return envServiceRepository.findByGridId(gridId);
     }
+
+    /**
+     * 获取环境级服务列表
+     * */
+    public List<String> getEnvServiceList(String gridId) {
+        List<EnvService> envServices = findByGridId(gridId);
+        return envServices
+                .stream()
+                .map(EnvService::getServiceJson)
+                .toList();
+    }
 }

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -16,5 +17,15 @@ public class EnvPropertyService {
 
     public List<EnvProperty> findByGridId(String gridId) {
         return envPropertyRepository.findByGridId(gridId);
+    }
+
+    /**
+     * 获取环境级属性列表
+     * */
+    public List<String> getEnvPropertyList(String gridId) {
+        List<EnvProperty> envProperties = findByGridId(gridId);
+        return envProperties.stream()
+                .map(envProperty -> envProperty.getPropertyName() + ": " + envProperty.getDescription())
+                .collect(Collectors.toList());
     }
 }

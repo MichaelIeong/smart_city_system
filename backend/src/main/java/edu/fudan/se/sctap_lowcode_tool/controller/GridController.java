@@ -16,4 +16,9 @@ public class GridController {
     public Map<String, Object> getGridInfo(@PathVariable String meshId) {
         return gridService.getGridDetail(meshId);
     }
+
+    @GetMapping("/base/{gridId}")
+    public Map<String, Object> getGridById(@PathVariable String gridId) {
+        return gridService.getGridById(gridId);
+    }
 }

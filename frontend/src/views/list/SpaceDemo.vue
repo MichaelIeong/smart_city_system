@@ -518,7 +518,7 @@ export default {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
       } else {
-        this.$message.success('选择网格：' + this.gridId)
+        this.$router.push(`/tap/recommend?gridId=${this.gridId}`)
       }
     }
   },

@@ -156,9 +156,16 @@ public class GridService {
 
         } catch (Exception e) {
             result.put("error", e.getMessage());
-            e.printStackTrace();
         }
-
         return result;
+    }
+
+    /**
+     * 获取网格信息
+     * */
+    public Map<String, Object> getGridById(String gridId) {
+        String sql = "SELECT id, mesh_no, mesh_name, mesh_nature, mesh_area FROM grid_list WHERE LOWER(id) = LOWER(?) LIMIT 1";
+        Map<String, Object> record = jdbcTemplate.queryForMap(sql, gridId);
+        return record;
     }
 }

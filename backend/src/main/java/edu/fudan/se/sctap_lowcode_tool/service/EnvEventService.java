@@ -19,4 +19,15 @@ public class EnvEventService {
         return envEventRepository.findByGridId(gridId);
     }
 
+    /**
+     * 获取环境级事件列表
+     * */
+    public List<String> getEnvEventList(String gridId) {
+        List<EnvEvent> envEvents = envEventRepository.findByGridId(gridId);
+        return envEvents
+                .stream()
+                .map(EnvEvent::getEventJson)
+                .toList();
+    }
+
 }

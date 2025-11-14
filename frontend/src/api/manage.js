@@ -20,7 +20,8 @@ const api = {
   fusionExecute: '/api/fusion/executeRule',
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
-  sensors: '/api/node-red/sensors'
+  sensors: '/api/node-red/sensors',
+  grid: '/api/grid'
 }
 
 export default api
@@ -349,14 +350,15 @@ export function listTapRule ({ projectId, eventType, description, pageNo, pageSi
 }
 
 // 生成自然语言描述 tap 规则
-export function generateNaturalRule (uuid, message) {
+export function generateNaturalRule (uuid, message, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/recommend/generateNaturalRule`,
     method: 'post',
     data: {
       uuid,
-      message
+      message,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -491,6 +493,18 @@ export function getLog (eventType, waitValue) {
   const token = store.state.token
   return request({
     url: `${api.tapExector}/getLog?eventType=${eventType}&waitValue=${waitValue}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据网格Id获取网格数据
+export function getGridById (gridId) {
+  const token = store.state.token
+  return request({
+    url: `${api.grid}/base/${gridId}`,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`

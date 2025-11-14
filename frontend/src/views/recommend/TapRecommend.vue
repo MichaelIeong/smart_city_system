@@ -75,18 +75,54 @@
 
 <script setup>
 /* eslint-disable */
-import { ref } from 'vue'
-import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertJsonRule } from '@/api/manage'
+import { ref, onMounted } from 'vue'
+import { generateNaturalRule, generateJsonRule, findSimilarRules, createTapRule, convertJsonRule, getGridById } from '@/api/manage'
 import { v4 as uuidv4 } from 'uuid'
 import { message } from 'ant-design-vue'
 const uuid = uuidv4()
 const chatHistory = ref([
-  { role: 'assistant', content: '您好，我是您的应用智能助手，请描述您的应用需求！', isSuccess: false },
+  { role: 'assistant', content: '您好，我是您的智能助手，请描述您的应用需求！', isSuccess: false },
 ])
 const inputContent = ref('')
 const isLoading = ref(false)
 const selectedRule = ref(null)
 const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
+const gridId = ref(null)
+
+onMounted(() => {
+  handleGridSelection()
+})
+
+// 处理网格选择逻辑
+async function handleGridSelection() {
+  const gridIdFromUrl = new URLSearchParams(window.location.search).get('gridId')
+  if (gridIdFromUrl) {
+    // 获取网格数据
+    try {
+      gridId.value = gridIdFromUrl
+      const grid = await getGridById(gridId.value)
+      // 在 chatHistory 中加入提示消息
+      chatHistory.value.push({
+        role: 'assistant',
+        content: `您已选择网格: ${grid.mesh_name}。`,
+        isSuccess: false,
+      })
+    } catch (error) {
+      chatHistory.value.push({
+        role: 'assistant',
+        content: '获取网格数据失败，请稍后重试。',
+        isSuccess: false,
+      })
+    }
+  } else {
+    // 没有从 URL 中提取到 gridId 时，显示提示消息
+    chatHistory.value.push({
+      role: 'assistant',
+      content: '您还未选择网格，请选择一个网格。',
+      isSuccess: false,
+    })
+  }
+}
 
 async function sendMessage() {
   const content = inputContent.value.trim()
@@ -99,7 +135,7 @@ async function sendMessage() {
   const loadingIndex = chatHistory.value.length
   chatHistory.value.push({ role: 'assistant', content: '生成中...', isSuccess: false })
   try {
-    const res = await generateNaturalRule(uuid, content )
+    const res = await generateNaturalRule(uuid, content, gridId.value )
     chatHistory.value.splice(loadingIndex, 1, {
       role: 'assistant',
       content: res,
@@ -225,6 +261,7 @@ async function viewInNodeRed() {
   display: flex;
   word-wrap: break-word;
   white-space: pre-wrap;
+  margin-bottom: 2px;
 }
 
 .chat-message.user {

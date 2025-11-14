@@ -41,6 +41,15 @@ public class AppRuleService {
     private ProjectRepository projectRepository;
 
     @Resource
+    private EnvServiceService envServiceService;
+
+    @Resource
+    private EnvPropertyService envPropertyService;
+
+    @Resource
+    private EnvEventService envEventService;
+
+    @Resource
     private MilvusUtil milvusUtil;
 
     private final ChatLanguageModel chatLanguageModel;
@@ -232,13 +241,23 @@ public class AppRuleService {
     public ResponseEntity<String> generateNaturalRule(RuleGenerateRequest ruleGenerateRequest) {
         String uuid = ruleGenerateRequest.getUuid();
         String message = ruleGenerateRequest.getMessage();
+        String gridId = ruleGenerateRequest.getGridId();
         // 更新 uuid 的对话时间
         uuidUpdateTimeMap.put(uuid, System.currentTimeMillis());
         // 获取对话历史
         List<ChatMessage> messages = uuidMessageHistoryMap.getOrDefault(uuid, new ArrayList<>());
         // 如果是第一次对话，构造系统消息
         if(messages.isEmpty()) {
-            messages.add(new SystemMessage(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT));
+            // 根据网格ID获取环境级事件、属性、服务列表
+            List<String> envEvents = envEventService.getEnvEventList(gridId);
+            List<String> envProperties = envPropertyService.getEnvPropertyList(gridId);
+            List<String> envServices = envServiceService.getEnvServiceList(gridId);
+            String envEventsStr = String.join("\n", envEvents);
+            String envPropertiesStr = String.join("\n", envProperties);
+            String envServicesStr = String.join("\n", envServices);
+            String systemPrompt = String.format(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
+            System.out.println(systemPrompt);
+            messages.add(new SystemMessage(systemPrompt));
         }
         // 加入用户消息
         messages.add(new UserMessage(message));
