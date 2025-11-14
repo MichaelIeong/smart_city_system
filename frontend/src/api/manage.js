@@ -383,14 +383,15 @@ export function findSimilarRules (message) {
 }
 
 // 生成 json 形式的 tap 规则
-export function generateJsonRule (uuid, message) {
+export function generateJsonRule (uuid, message, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/recommend/generateJsonRule`,
     method: 'post',
     data: {
       uuid,
-      message
+      message,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`

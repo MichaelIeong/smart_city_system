@@ -87,14 +87,17 @@
         <a-button @click="closeModal">取消</a-button>
       </template>
     </a-modal>
-    <a-modal :visible="isResultModalVisible" title="同步结果" @cancel="closeResultModal" :width="800">
+    <a-modal :visible="isResultModalVisible" title="同步结果" @cancel="closeResultModal" :width="800" :footer="null">
       <div>
         <a-table
           :columns="resultColumns"
           :dataSource="gridResults"
           :rowKey="record => record.gridId"
         >
-          <template #bodyCell="{ column, record }">
+          <template slot="isSuccessSlot" slot-scope="text">
+            <span :style="{ color: text === 1 ? 'green' : 'red' }">
+              {{ text === 1 ? '成功' : '失败' }}
+            </span>
           </template>
         </a-table>
       </div>
@@ -132,7 +135,7 @@ const gridResults = ref([])
 const resultColumns = [
   { title: '网格编号', dataIndex: 'gridId', key: 'gridId' },
   { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
-  { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess'},
+  { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess', scopedSlots: { customRender: 'isSuccessSlot' }},
   { title: '消息', dataIndex: 'message', key: 'message' }
 ]
 
@@ -222,7 +225,7 @@ async function generateRule() {
     try {
         selectedRule.value.jsonRule = '正在生成应用JSON...'
         selectedRule.value.isSimilar = false
-        const jsonRule = await generateJsonRule(uuid, selectedRule.value.naturalContent )
+        const jsonRule = await generateJsonRule(uuid, selectedRule.value.naturalContent, gridId.value )
         selectedRule.value.jsonRule = jsonRule;
     } catch (error) {
         selectedRule.value.jsonRule = 'JSON规则生成失败: ' + error.message
@@ -260,6 +263,7 @@ function closeModal() {
 // 关闭结果弹窗
 function closeResultModal() {
   isResultModalVisible.value = false
+  gridResults.value = []
 }
 
 // 点击确认时输出选中的行
@@ -578,12 +582,5 @@ async function viewInNodeRed() {
 .nodered-btn:hover {
   background-color: #059669;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* 减小阴影效果 */
-}
-
-::v-deep .success-text {
-  color: green;
-}
-::v-deep .error-text {
-  color: red;
 }
 </style>

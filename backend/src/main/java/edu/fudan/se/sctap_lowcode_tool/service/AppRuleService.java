@@ -509,7 +509,7 @@ public class AppRuleService {
                 try {
                     return checkGridIdSupport(gridId, appId, envEvent, envServiceSet);
                 } catch (Exception e) {
-                    return new AppRuleSyncResponse(gridId, null, false, e.getMessage());
+                    return new AppRuleSyncResponse(gridId, null, 0, e.getMessage());
                 }
             };
             futures.add(executor.submit(task));
@@ -520,7 +520,7 @@ public class AppRuleService {
             try {
                 responses.add(future.get());
             } catch (InterruptedException | ExecutionException e) {
-                responses.add(new AppRuleSyncResponse(null, null, false, e.getMessage()));
+                responses.add(new AppRuleSyncResponse(null, null, 0, e.getMessage()));
             }
         }
         // 关闭线程池
@@ -568,18 +568,18 @@ public class AppRuleService {
     private AppRuleSyncResponse checkGridIdSupport(String gridId, Integer appId, String envEvent, Set<String> envServiceSet) {
         GridMesh gridMesh = gridMeshRepository.findById(gridId).orElse(null);
         if(gridMesh == null) {
-            return new AppRuleSyncResponse(gridId, null, false, "网格不存在");
+            return new AppRuleSyncResponse(gridId, null, 0, "网格不存在");
         }
         List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
         List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
         // 检查 envEvent 是否在 envEventTypeList 中
         if (!envEventTypeList.contains(envEvent)) {
-            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), false, "不支持环境级事件："+envEvent);
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "不支持环境级事件："+envEvent);
         }
         // 检查 envServiceSet 中的所有元素是否都在 envServiceNameList 中
         for (String envService : envServiceSet) {
             if (!envServiceNameList.contains(envService)) {
-                return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), false, "不支持环境级服务：" + envService);
+                return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "不支持环境级服务：" + envService);
             }
         }
         // 保存到数据库
@@ -588,10 +588,10 @@ public class AppRuleService {
         appGrid.setGridId(gridId);
         appGrid = appGridRepository.save(appGrid);
         if(appGrid.getId()==null) {
-            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), false, "保存到数据库失败");
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "保存到数据库失败");
         }
         // TODO 下发到边端服务器
         // 所有检查通过
-        return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), true, "下发成功");
+        return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 1, "下发成功");
     }
 }

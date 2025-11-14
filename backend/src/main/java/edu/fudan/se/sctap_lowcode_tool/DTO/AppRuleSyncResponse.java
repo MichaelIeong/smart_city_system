@@ -8,6 +8,6 @@ import lombok.Data;
 public class AppRuleSyncResponse {
     private String gridId;
     private String meshName;
-    private Boolean isSuccess;
+    private Integer isSuccess;
     private String message;
 }
