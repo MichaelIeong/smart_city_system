@@ -1,5 +1,3 @@
-
-你说：
 <template>
   <page-header-wrapper>
     <div class="main-container">
