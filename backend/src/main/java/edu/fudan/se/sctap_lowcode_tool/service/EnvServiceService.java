@@ -14,15 +14,11 @@ public class EnvServiceService {
     @Resource
     private EnvServiceRepository envServiceRepository;
 
-    public List<EnvService> findByGridId(String gridId) {
-        return envServiceRepository.findByGridId(gridId);
-    }
-
     /**
      * 获取环境级服务列表
      * */
-    public List<String> getEnvServiceList(String gridId) {
-        List<EnvService> envServices = findByGridId(gridId);
+    public List<String> getEnvServiceJsonList(String gridId) {
+        List<EnvService> envServices = envServiceRepository.findByGridId(gridId);
         return envServices
                 .stream()
                 .map(EnvService::getServiceJson)
@@ -33,10 +29,17 @@ public class EnvServiceService {
      * 获取环境级服务名称列表
      * */
     public List<String> getEnvServiceNameList(String gridId) {
-        List<EnvService> envServices = findByGridId(gridId);
+        List<EnvService> envServices = envServiceRepository.findByGridId(gridId);
         return envServices
                 .stream()
                 .map(EnvService::getServiceName)
                 .toList();
+    }
+
+    /**
+     * 获取环境级服务列表
+     * */
+    public List<EnvService> getEnvServiceList(String gridId) {
+        return  envServiceRepository.findByGridId(gridId);
     }
 }

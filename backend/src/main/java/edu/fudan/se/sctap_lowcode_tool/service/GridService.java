@@ -140,19 +140,19 @@ public class GridService {
             result.put("devices", devices);
 
             // 5️. 获取环境级事件列表
-            List<EnvEvent> envEvents = envEventService.findByGridId(meshId);
+            List<EnvEvent> envEvents = envEventService.getEnvEventList(meshId);
             result.put("events", envEvents);
 
             // 6. 获取环境级服务列表
-            List<EnvService> envServices = envServiceService.findByGridId(meshId);
+            List<EnvService> envServices = envServiceService.getEnvServiceList(meshId);
             result.put("services", envServices);
 
             // 7. 获取环境级属性列表
-            List<EnvProperty> envProperties = envPropertyService.findByGridId(meshId);
+            List<EnvProperty> envProperties = envPropertyService.getEnvPropertyList(meshId);
             result.put("properties", envProperties);
 
             // 8. 获取应用级信息
-            List<AppRuleInfo> appRules = appGridService.findByGridId(meshId);
+            List<AppRuleInfo> appRules = appGridService.getAppList(meshId);
             result.put("applications", appRules);
 
         } catch (Exception e) {

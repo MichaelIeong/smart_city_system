@@ -15,17 +15,20 @@ public class EnvPropertyService {
     @Resource
     private EnvPropertyRepository envPropertyRepository;
 
-    public List<EnvProperty> findByGridId(String gridId) {
-        return envPropertyRepository.findByGridId(gridId);
+    /**
+     * 获取环境级属性列表
+     * */
+    public List<String> getEnvPropertyStringList(String gridId) {
+        List<EnvProperty> envProperties = envPropertyRepository.findByGridId(gridId);
+        return envProperties.stream()
+                .map(envProperty -> envProperty.getPropertyName() + ": " + envProperty.getDescription())
+                .collect(Collectors.toList());
     }
 
     /**
      * 获取环境级属性列表
      * */
-    public List<String> getEnvPropertyList(String gridId) {
-        List<EnvProperty> envProperties = findByGridId(gridId);
-        return envProperties.stream()
-                .map(envProperty -> envProperty.getPropertyName() + ": " + envProperty.getDescription())
-                .collect(Collectors.toList());
+    public List<EnvProperty> getEnvPropertyList(String gridId) {
+        return envPropertyRepository.findByGridId(gridId);
     }
 }

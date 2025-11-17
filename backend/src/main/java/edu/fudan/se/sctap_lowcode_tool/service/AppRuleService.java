@@ -260,9 +260,9 @@ public class AppRuleService {
         // 如果是第一次对话，构造系统消息
         if(messages.isEmpty()) {
             // 根据网格ID获取环境级事件、属性、服务列表
-            List<String> envEvents = envEventService.getEnvEventList(gridId);
-            List<String> envProperties = envPropertyService.getEnvPropertyList(gridId);
-            List<String> envServices = envServiceService.getEnvServiceList(gridId);
+            List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+            List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+            List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
             String envEventsStr = String.join("\n", envEvents);
             String envPropertiesStr = String.join("\n", envProperties);
             String envServicesStr = String.join("\n", envServices);
@@ -292,9 +292,9 @@ public class AppRuleService {
         List<ChatMessage> messages = new ArrayList<>();
         // 构造系统提示词
         // 根据网格ID获取环境级事件、属性、服务列表
-        List<String> envEvents = envEventService.getEnvEventList(gridId);
-        List<String> envProperties = envPropertyService.getEnvPropertyList(gridId);
-        List<String> envServices = envServiceService.getEnvServiceList(gridId);
+        List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
         String envEventsStr = String.join("\n", envEvents);
         String envPropertiesStr = String.join("\n", envProperties);
         String envServicesStr = String.join("\n", envServices);

@@ -15,14 +15,10 @@ public class EnvEventService {
     @Resource
     private EnvEventRepository envEventRepository;
 
-    public List<EnvEvent> findByGridId(String gridId) {
-        return envEventRepository.findByGridId(gridId);
-    }
-
     /**
      * 获取环境级事件列表
      * */
-    public List<String> getEnvEventList(String gridId) {
+    public List<String> getEnvEventJsonList(String gridId) {
         List<EnvEvent> envEvents = envEventRepository.findByGridId(gridId);
         return envEvents
                 .stream()
@@ -39,6 +35,13 @@ public class EnvEventService {
                 .stream()
                 .map(EnvEvent::getEventType)
                 .toList();
+    }
+
+    /**
+     * 获取环境级事件列表
+     * */
+    public List<EnvEvent> getEnvEventList(String gridId) {
+        return envEventRepository.findByGridId(gridId);
     }
 
 }

@@ -146,6 +146,8 @@ const searchParams = reactive({
   description: ''
 })
 
+const gridId = "6b2b5be61c60401aa4c6da9828a7df68"
+
 // 事件选项
 const eventOptions = [
   { value: 'manhole-flooding', label: '井盖水浸' },
@@ -254,7 +256,7 @@ function handleReset () {
 
 function handleBuild () {
   if (NODE_RED_URL) {
-    window.open(NODE_RED_URL, '_blank')
+    window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank')
   } else {
     message.error('未配置 NODE_RED_URL')
   }
@@ -301,7 +303,7 @@ async function openNodeRed () {
       body: saveForm.flowJson
     })
   }
-  window.open(`${NODE_RED_URL}`, '_blank')
+  window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank')
 }
 
 function handleDelete (record) {
