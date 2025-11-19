@@ -126,8 +126,14 @@
           <div class="table-wrapper">
             <div class="table-header">
               <span class="table-title">应用</span>
-              <a-button type="primary" size="small" @click="addApplication">
-                添加应用
+              <a-button type="primary" size="small" @click="routeToRecommendApplication">
+                应用推荐
+              </a-button>
+              <a-button type="primary" size="small" @click="openNodeRED">
+                应用构造
+              </a-button>
+              <a-button type="primary" size="small" @click="showCreateApplicationModal">
+                创建应用
               </a-button>
             </div>
             <a-table
@@ -204,6 +210,90 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 新增应用创建弹窗 -->
+    <a-modal
+      v-model="appModalVisible"
+      title="创建应用"
+      :confirm-loading="saveLoading"
+      @cancel="closeSave"
+      destroy-on-close
+    >
+
+      <a-form
+        ref="saveFormRef"
+        :model="saveForm"
+        layout="vertical"
+      >
+        <a-form-item label="应用描述" name="description">
+          <a-textarea
+            :rows="4"
+            v-model="saveForm.description"
+            placeholder="请输入应用的简要描述，不能超过 300 字"
+            allow-clear
+          />
+          <span
+            style="
+              position: absolute;
+              right: 8px;
+              bottom: -18px;
+              font-size: 12px;
+              color: #999;
+            "
+          >
+            {{ (saveForm.description || '').length }} / 300
+          </span>
+        </a-form-item>
+
+        <a-form-item label="Node-RED 导出 JSON" name="flowJson">
+          <a-textarea
+            v-model="saveForm.flowJson"
+            placeholder="请将 Node-RED 导出的 JSON 粘贴到这里"
+            :rows="8"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+
+      <!-- Vue2 slot 写法 -->
+      <template slot="footer">
+        <a-button @click="closeSave">取消</a-button>
+        <a-button type="default" @click="openNodeRED">打开 Node-RED</a-button>
+        <a-button type="primary" :loading="saveLoading" @click="submitSave">保存</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal v-model="gridModalVisible" title="同层次类型的全部网格列表" @cancel="closeGridModal" :width="800">
+      <div>
+        <a-table
+          :columns="gridColumns"
+          :dataSource="gridList"
+          :rowKey="record => record.id"
+          :rowSelection="rowSelection()"
+        >
+        </a-table>
+      </div>
+      <template v-slot:footer>
+        <a-button @click="handleGridConfirm" type="primary">同步下发</a-button>
+        <a-button @click="closeGridModal">取消</a-button>
+      </template>
+    </a-modal>
+
+    <a-modal v-model="isResultModalVisible" title="同步结果" @cancel="closeResultModal" :width="800" :footer="null">
+      <div>
+        <a-table
+          :columns="resultColumns"
+          :dataSource="gridResults"
+          :rowKey="record => record.gridId"
+        >
+          <template slot="isSuccessSlot" slot-scope="text">
+            <span :style="{ color: text === 1 ? 'green' : 'red' }">
+              {{ text === 1 ? '成功' : '失败' }}
+            </span>
+          </template>
+        </a-table>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -220,6 +310,8 @@ import FPark from './F-park.json'
 import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
+
+import { createTapRule, getGridListByType, syncAppRule } from '@/api/manage'
 
 export default {
   name: 'SpaceDemo',
@@ -345,7 +437,32 @@ export default {
       propertyModalVisible: false,
       eventForm: { name: '', description: '' },
       serviceForm: { name: '', description: '' },
-      propertyForm: { name: '', description: '' }
+      propertyForm: { name: '', description: '' },
+      // 创建应用弹窗
+      appModalVisible: false,
+      saveLoading: false,
+      saveForm: {
+        description: '',
+        flowJson: ''
+      },
+      gridModalVisible: false,
+      gridColumns: [
+        { title: '网格编号', dataIndex: 'id', key: 'id' },
+        { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+        { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
+        { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
+      ],
+      gridList: [],
+      selectedRowKeys: [],
+      appId: null,
+      isResultModalVisibe: false,
+      gridResults: [],
+      resultColumns: [
+        { title: '网格编号', dataIndex: 'gridId', key: 'gridId' },
+        { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+        { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess', scopedSlots: { customRender: 'isSuccessSlot' } },
+        { title: '消息', dataIndex: 'message', key: 'message' }
+      ]
     }
   },
 
@@ -514,12 +631,122 @@ export default {
     },
     handlePropertyCancel () { this.propertyModalVisible = false },
 
-    addApplication () {
+    routeToRecommendApplication () {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
       } else {
         this.$router.push(`/tap/recommend?gridId=${this.gridId}`)
       }
+    },
+
+    openNodeRED () {
+      if (this.gridId === null) {
+        this.$message.warning('请选择网格')
+      } else {
+        const NODE_RED_URL = (import.meta && import.meta.env && import.meta.env.VITE_NODE_RED_URL) || process.env.VUE_APP_NODE_RED_URL
+        window.open(`${NODE_RED_URL}?gridId=${this.gridId}`, '_blank')
+      }
+    },
+
+    showCreateApplicationModal () {
+      if (this.gridId === null) {
+        this.$message.warning('请选择网格')
+      } else {
+        this.appModalVisible = true
+      }
+    },
+
+    // 关闭弹窗
+    closeSave () {
+      this.appModalVisible = false
+      this.saveForm = { description: '', flowJson: '' }
+    },
+
+    // 保存
+    async submitSave () {
+      try {
+        this.saveLoading = true
+        // --- 手动校验 ---
+        if (!this.saveForm.description || this.saveForm.description.trim() === '') {
+          this.$message.error('请输入应用描述')
+          return
+        }
+        if (this.saveForm.description.length > 300) {
+          this.$message.error('应用描述不能超过 300 个字符')
+          return
+        }
+        if (!this.saveForm.flowJson || this.saveForm.flowJson.trim() === '') {
+          this.$message.error('请粘贴 Node-RED 导出的 JSON')
+          return
+        }
+        try {
+          JSON.parse(this.saveForm.flowJson)
+        } catch (e) {
+          this.$message.error('JSON 格式不正确，请检查后再试')
+          return
+        }
+        const hide = this.$message.loading('正在创建应用，请稍等片刻...', 0)
+        try {
+          const projectId = localStorage.getItem('project_id')
+          const appIdNew = await createTapRule(projectId, this.saveForm.description, '', this.saveForm.flowJson)
+          if (appIdNew) {
+            hide()
+            this.$message.success('应用创建成功')
+            this.appId = appIdNew
+            this.appModalVisible = false
+            this.saveForm.description = ''
+            this.saveForm.flowJson = ''
+            // 获取同类型网格数据
+            const gridListData = await getGridListByType(this.gridId)
+            this.gridList = gridListData
+            this.gridModalVisible = true
+          } else {
+            hide()
+            this.$message.error('应用创建失败，请稍后重试')
+          }
+        } catch (error) {
+          hide()
+          this.$message.error('应用创建失败: ' + error.message)
+        }
+      } catch (err) {
+        if (err?.errorFields) {
+          // 表单校验错误由 antdv 弹出
+        } else {
+          this.$message.error(`创建失败：${err?.message || '未知错误'}`)
+        }
+      } finally {
+        this.saveLoading = false
+      }
+    },
+
+    rowSelection () {
+      return {
+        type: 'checkbox',
+        selectedRowKeys: this.selectedRowKeys,
+        onChange: (keys) => {
+          this.selectedRowKeys = keys
+        }
+      }
+    },
+    closeGridModal () {
+      this.gridModalVisible = false
+      this.selectedRowKeys = []
+      this.gridList = []
+    },
+    async handleGridConfirm () {
+      try {
+        const result = await syncAppRule(this.appId, this.selectedRowKeys)
+        this.gridResults = result
+        this.isResultModalVisible = true
+      } catch (error) {
+        this.$message.error('同步失败: ' + error.message)
+      } finally {
+        this.closeGridModal()
+      }
+    },
+    closeResultModal () {
+      this.isResultModalVisible = false
+      this.gridResults = []
     }
   },
 

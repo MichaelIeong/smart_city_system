@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvProperty;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvPropertyService;
 import jakarta.annotation.Resource;
