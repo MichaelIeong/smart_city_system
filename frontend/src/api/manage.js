@@ -417,7 +417,7 @@ export function convertJsonRule (ruleJson) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, description, ruleJson, flowJson) {
+export function createTapRule (projectId, description, ruleJson, flowJson, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/create`,
@@ -426,7 +426,8 @@ export function createTapRule (projectId, description, ruleJson, flowJson) {
       projectId,
       description,
       ruleJson,
-      flowJson
+      flowJson,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`

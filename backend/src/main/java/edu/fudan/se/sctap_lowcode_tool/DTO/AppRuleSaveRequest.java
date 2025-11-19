@@ -8,4 +8,5 @@ public class AppRuleSaveRequest {
     private String description;
     private String ruleJson;
     private String flowJson;
+    private String gridId;
 }

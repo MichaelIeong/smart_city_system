@@ -119,6 +119,7 @@ public class AppRuleService {
     public Integer createRule(AppRuleSaveRequest appRuleSaveRequest) {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
+        String gridId = appRuleSaveRequest.getGridId();
         // 如果是大模型创建应用
         if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
@@ -145,7 +146,7 @@ public class AppRuleService {
         // 如果是通过Node-RED创建应用
         if(flowJson!=null&&!flowJson.isBlank()) {
             // 转换为JSON
-            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
             if(jsonRule==null||jsonRule.isBlank()) {
                 return 0;
             }
@@ -173,6 +174,7 @@ public class AppRuleService {
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
         // 首先判断应用是否存在
         AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
+        String gridId = "6b2b5be61c60401aa4c6da9828a7df68";
         if(appRuleInfo==null) {
             return false;
         }
@@ -182,7 +184,7 @@ public class AppRuleService {
             // 更新 flowJson 和 ruleJson
             if(!flowJson.equals(appRuleInfo.getFlowJson())) {
                 // 转换JSON
-                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
                 if(jsonRule==null||jsonRule.isBlank()) {
                     return false;
                 }
@@ -392,10 +394,18 @@ public class AppRuleService {
     /**
      * 将Node-RED Flow 转换成 AppRuleJson
      * */
-    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson) {
+    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson, String gridId) {
         // 构造系统消息和用户消息
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new SystemMessage(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT));
+        // 根据网格ID获取环境级事件、属性、服务列表
+        List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
+        String envEventsStr = String.join("\n", envEvents);
+        String envPropertiesStr = String.join("\n", envProperties);
+        String envServicesStr = String.join("\n", envServices);
+        String systemPrompt = String.format(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
+        messages.add(new SystemMessage(systemPrompt));
         messages.add(new UserMessage(nodeRedFlowJson));
         // 最多重试一次
         final int MAX_RETRY = 1;

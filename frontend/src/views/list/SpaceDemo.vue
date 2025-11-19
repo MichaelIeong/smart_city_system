@@ -688,8 +688,8 @@ export default {
         const hide = this.$message.loading('正在创建应用，请稍等片刻...', 0)
         try {
           const projectId = localStorage.getItem('project_id')
-          const appIdNew = await createTapRule(projectId, this.saveForm.description, '', this.saveForm.flowJson)
-          if (appIdNew) {
+          const appIdNew = await createTapRule(projectId, this.saveForm.description, '', this.saveForm.flowJson, this.gridId)
+          if (appIdNew !== 0) {
             hide()
             this.$message.success('应用创建成功')
             this.appId = appIdNew
