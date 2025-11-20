@@ -118,68 +118,6 @@
       </div>
     </div>
 
-    <!-- 事件弹窗 -->
-    <a-modal
-      v-model="eventModalVisible"
-      title="添加事件"
-      @ok="handleEventOk"
-      @cancel="handleEventCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="事件名称">
-          <a-input v-model="eventForm.name" placeholder="请输入事件名称" />
-        </a-form-item>
-        <a-form-item label="事件描述">
-          <a-textarea
-            v-model="eventForm.description"
-            placeholder="请输入事件描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 服务弹窗 -->
-    <a-modal
-      v-model="serviceModalVisible"
-      title="添加服务"
-      @ok="handleServiceOk"
-      @cancel="handleServiceCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="服务名称">
-          <a-input v-model="serviceForm.name" placeholder="请输入服务名称" />
-        </a-form-item>
-        <a-form-item label="服务描述">
-          <a-textarea
-            v-model="serviceForm.description"
-            placeholder="请输入服务描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 属性弹窗 -->
-    <a-modal
-      v-model="propertyModalVisible"
-      title="添加属性"
-      @ok="handlePropertyOk"
-      @cancel="handlePropertyCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="属性名称">
-          <a-input v-model="propertyForm.name" placeholder="请输入属性名称" />
-        </a-form-item>
-        <a-form-item label="属性描述">
-          <a-textarea
-            v-model="propertyForm.description"
-            placeholder="请输入属性描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
@@ -451,48 +389,29 @@ export default {
     },
 
     // 弹窗控制逻辑
-    showEventModal () { this.eventModalVisible = true },
-    handleEventOk () {
-      if (!this.eventForm.name || !this.eventForm.description) {
-        this.$message.warning('请填写完整事件信息')
+    showEventModal () {
+      const gridId = this.gridId // 获取当前网格的 ID
+      if (!gridId) {
+        this.$message.warning('未选择网格 ID')
         return
       }
-      this.eventData.push({ ...this.eventForm })
-      this.eventForm = { name: '', description: '' }
-      this.eventModalVisible = false
-      this.$message.success('环境级事件添加成功')
-      // 新增：跳转到“事件融合”页面
-      this.$router.push('/event-fusion')
-    },
-    handleEventCancel () { this.eventModalVisible = false },
+      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
 
-    showServiceModal () { this.serviceModalVisible = true },
-    handleServiceOk () {
-      if (!this.serviceForm.name || !this.serviceForm.description) {
-        this.$message.warning('请填写完整服务信息')
-        return
-      }
-      this.serviceData.push({ ...this.serviceForm })
-      this.serviceForm = { name: '', description: '' }
-      this.serviceModalVisible = false
-      this.$message.success('环境级服务添加成功')
-      // 新增：跳转到“服务组合”页面
-      this.$router.push('/service-group')
+      // 弹出新的 Node-RED 窗口
+      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
     },
-    handleServiceCancel () { this.serviceModalVisible = false },
 
-    showPropertyModal () { this.propertyModalVisible = true },
-    handlePropertyOk () {
-      if (!this.propertyForm.name || !this.propertyForm.description) {
-        this.$message.warning('请填写完整属性信息')
+    showServiceModal () {
+      const gridId = this.gridId // 获取当前网格的 ID
+      if (!gridId) {
+        this.$message.warning('未选择网格 ID')
         return
       }
-      this.propertyData.push({ ...this.propertyForm })
-      this.propertyForm = { name: '', description: '' }
-      this.propertyModalVisible = false
-      this.$message.success('环境级属性添加成功')
+      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
+
+      // 弹出新的 Node-RED 窗口
+      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
     },
-    handlePropertyCancel () { this.propertyModalVisible = false },
 
     addApplication () {
       if (this.gridId === null) {
