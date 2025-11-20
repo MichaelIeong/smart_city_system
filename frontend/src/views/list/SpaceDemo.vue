@@ -2,7 +2,7 @@
   <div class="space-demo-container">
     <!-- 左侧网格图容器 -->
     <div class="left-section">
-      <!-- ✅ 动态绑定背景图 -->
+      <!-- 动态绑定背景图 -->
       <div
         class="background-layer"
         :style="{
@@ -46,39 +46,35 @@
 
         <div style="height: 30px;"></div>
 
-        <!-- 四张表格 -->
-        <div class="table-container">
-          <!-- 网格元信息 -->
-          <div class="table-wrapper">
-            <a-table
-              :columns="metaColumns"
-              :dataSource="metaData"
-              :pagination="false"
-              size="small"
-            />
+        <!-- 网格元信息 -->
+        <div class="table-wrapper">
+          <div class="table-header">
+            <span class="table-title">网格元信息</span>
           </div>
+          <a-table
+            :columns="metaColumns"
+            :dataSource="metaData"
+            :pagination="false"
+            size="small"
+          />
+        </div>
 
+        <div style="height: 20px;"></div>
+
+        <!-- 标签页容器 -->
+        <el-tabs type="border-card">
           <!-- 设备 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">设备</span>
-            </div>
+          <el-tab-pane label="设备">
             <a-table
               :columns="deviceColumns"
               :dataSource="deviceData"
               :pagination="false"
               size="small"
             />
-          </div>
+          </el-tab-pane>
 
           <!-- 事件 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级事件</span>
-              <a-button type="primary" size="small" @click="showEventModal">
-                添加环境级事件
-              </a-button>
-            </div>
+          <el-tab-pane label="环境级事件">
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
@@ -86,16 +82,13 @@
               :pagination="false"
               size="small"
             />
-          </div>
+            <a-button type="primary" size="small" @click="showEventModal">
+              添加环境级事件
+            </a-button>
+          </el-tab-pane>
 
           <!-- 服务 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级服务</span>
-              <a-button type="primary" size="small" @click="showServiceModal">
-                添加环境级服务
-              </a-button>
-            </div>
+          <el-tab-pane label="环境级服务">
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
@@ -103,33 +96,13 @@
               :pagination="false"
               size="small"
             />
-          </div>
-
-          <!-- 属性 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级属性</span>
-              <a-button type="primary" size="small" @click="showPropertyModal">
-                添加环境级属性
-              </a-button>
-            </div>
-            <a-table
-              :columns="propertyColumns"
-              :dataSource="propertyData"
-              :rowKey="record => record.id || record.propertyName"
-              :pagination="false"
-              size="small"
-            />
-          </div>
+            <a-button type="primary" size="small" @click="showServiceModal">
+              添加环境级服务
+            </a-button>
+          </el-tab-pane>
 
           <!-- 应用 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">应用</span>
-              <a-button type="primary" size="small" @click="addApplication">
-                添加应用
-              </a-button>
-            </div>
+          <el-tab-pane label="应用">
             <a-table
               :columns="applicationColumns"
               :dataSource="applicationData"
@@ -137,8 +110,11 @@
               :pagination="false"
               size="small"
             />
-          </div>
-        </div>
+            <a-button type="primary" size="small" @click="addApplication">
+              添加应用
+            </a-button>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
 
@@ -216,7 +192,7 @@ import FCity from './F-city.json'
 import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
-// ✅ 导入三种背景图片
+// 导入三种背景图片
 import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
@@ -227,24 +203,24 @@ export default {
     return {
       isLoading: false,
       selectedType: 'F-city', // 默认类型
-      backgroundImage: CityImg, // ✅ 默认背景
+      backgroundImage: CityImg, // 默认背景
       backgroundOffset: 'calc(50% - 180px) center',
 
-      // ✅ 网格类型映射
+      // 网格类型映射
       meshTypeOptions: {
         'F-city': '城区网格',
         'F-community': '社区网格',
         'F-park': '园区网格'
       },
 
-      // ✅ JSON 映射
+      // JSON 映射
       meshFiles: {
         'F-city': FCity,
         'F-community': FCommunity,
         'F-park': FPark
       },
 
-      // ✅ 背景图映射
+      // 背景图映射
       backgroundMap: {
         'F-city': CityImg,
         'F-community': CommunityImg,
@@ -350,7 +326,7 @@ export default {
   },
 
   methods: {
-    // ✅ 切换网格类型 + 更新背景图
+    // 切换网格类型 + 更新背景图
     handleMeshTypeChange (type) {
       if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       if (type === 'F-community') this.backgroundOffset = 'center center'
@@ -360,7 +336,7 @@ export default {
       this.loadMeshData(type)
     },
 
-    // ✅ 加载指定网格类型数据
+    // 加载指定网格类型数据
     async loadMeshData (meshType) {
       this.isLoading = true
       this.drawSvg(meshType)
@@ -377,7 +353,7 @@ export default {
       this.isLoading = false
     },
 
-    // ✅ 绘制SVG网格
+    // 绘制SVG网格
     drawSvg (meshType) {
       const svgEl = d3.select(this.$refs.svg)
       svgEl.selectAll('*').remove()
@@ -387,7 +363,7 @@ export default {
         .attr('viewBox', '0 0 3000 1600')
 
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
-      // ✅ 根据背景图片尺寸与坐标系调整缩放和平移
+      // 根据背景图片尺寸与坐标系调整缩放和平移
       // 示例参数：scale=1.8 表示放大，translate 正数表示向右/下平移，负数向左/上偏移
       let scale = 2.7; let offsetX = -3830; let offsetY = -1230
       if (meshType === 'F-community') { scale = 1.8; offsetX = -20; offsetY = -750 }
@@ -456,7 +432,7 @@ export default {
         .text(d => d.name)
     },
 
-    // ✅ 获取单个网格信息
+    // 获取单个网格信息
     async fetchGridInfo (gridId) {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
@@ -485,6 +461,8 @@ export default {
       this.eventForm = { name: '', description: '' }
       this.eventModalVisible = false
       this.$message.success('环境级事件添加成功')
+      // 新增：跳转到“事件融合”页面
+      this.$router.push('/event-fusion')
     },
     handleEventCancel () { this.eventModalVisible = false },
 
@@ -498,6 +476,8 @@ export default {
       this.serviceForm = { name: '', description: '' }
       this.serviceModalVisible = false
       this.$message.success('环境级服务添加成功')
+      // 新增：跳转到“服务组合”页面
+      this.$router.push('/service-group')
     },
     handleServiceCancel () { this.serviceModalVisible = false },
 
@@ -539,6 +519,14 @@ export default {
 .left-section {
   flex: 0 0 70%;
   position: relative;
+  height: 100%;  /* 确保左侧容器的高度为100% */
+}
+.right-section {
+  flex: 0 0 30%;
+  background: #f5f5f5;
+  overflow-y: auto;
+  border-left: 1px solid #ddd;
+  height: 100%;  /* 确保右侧容器的高度为100% */
 }
 .background-layer {
   position: absolute;
@@ -566,12 +554,6 @@ export default {
   width: 100%;
   height: 100%;
 }
-.right-section {
-  flex: 0 0 30%;
-  background: #f5f5f5;
-  overflow-y: auto;
-  border-left: 1px solid #ddd;
-}
 .form-container {
   background-color: #fff;
   width: 100%;
@@ -581,6 +563,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.table-wrapper {
+  margin-bottom: 10px; /* 适当调整表格之间的间距 */
 }
 .table-header {
   display: flex;
