@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -109,6 +110,14 @@ public class AppRuleService {
     }
 
     public void deleteRulesByIds(Iterable<Integer> ruleIds) {
+        // 删除边缘应用
+        for(Integer ruleId : ruleIds) {
+            List<AppGrid> appGrids = appGridRepository.findByAppRuleId(ruleId);
+            if(!appGrids.isEmpty()) {
+                appGridRepository.deleteAll(appGrids);
+            }
+            // TODO 下发删除命令
+        }
         appRuleRepository.deleteAllById(ruleIds);
         // 从向量数据库中删除
         for (Integer id : ruleIds) {
@@ -127,7 +136,6 @@ public class AppRuleService {
                 var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
                 // 设置事件类型
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
-                appRuleInfo.setEnabled(true);
                 // 插入数据库
                 appRuleInfo = appRuleRepository.save(appRuleInfo);
                 // 插入向量数据库
@@ -154,7 +162,6 @@ public class AppRuleService {
             appRuleInfo.setRuleJson(jsonRule);
             var appRule = parseJsonRule(jsonRule);
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
-            appRuleInfo.setEnabled(true);
             // 插入数据库
             appRuleInfo = appRuleRepository.save(appRuleInfo);
             // 插入向量数据库
@@ -232,8 +239,33 @@ public class AppRuleService {
     }
 
     public PageDTO<AppRuleInfo> list(Integer projectId, AppRuleQueryRequest appRuleQueryRequest) {
-        Pageable pageable = PageRequest.of(appRuleQueryRequest.getPageNo() - 1, appRuleQueryRequest.getPageSize(), Sort.by("id").ascending());
-        Page<AppRuleInfo> repoResult = appRuleRepository.searchByProjectWithFilters(projectId, appRuleQueryRequest.getEventType(), appRuleQueryRequest.getDescription(), pageable);
+        // 1. 动态创建 Sort 对象
+        Sort sort;
+        if (appRuleQueryRequest.getSortField() != null && !appRuleQueryRequest.getSortField().isEmpty()) {
+            // 映射排序方向
+            Sort.Direction direction = Sort.Direction.ASC;
+            if ("descend".equals(appRuleQueryRequest.getSortOrder())) {
+                direction = Sort.Direction.DESC;
+            }
+            sort = Sort.by(direction, appRuleQueryRequest.getSortField());
+        } else {
+            // 如果没有排序字段，默认按 id 升序
+            sort = Sort.by("id").ascending();
+        }
+        // 2. 使用动态创建的 sort 对象
+        Pageable pageable = PageRequest.of(
+                appRuleQueryRequest.getPageNo() - 1,
+                appRuleQueryRequest.getPageSize(),
+                sort // 传入动态排序对象
+        );
+        // 3. 执行查询
+        Page<AppRuleInfo> repoResult = appRuleRepository.searchByProjectWithFilters(
+                projectId,
+                appRuleQueryRequest.getEventType(),
+                appRuleQueryRequest.getDescription(),
+                pageable
+        );
+        // 4. 返回结果
         return new PageDTO<>(
                 appRuleQueryRequest.getPageNo(), appRuleQueryRequest.getPageSize(),
                 repoResult.getTotalElements(), repoResult.getTotalPages(),
@@ -242,12 +274,13 @@ public class AppRuleService {
     }
 
     public boolean updateEnabledStatus(Integer id, Boolean enabled) {
-        AppRuleInfo appRuleInfo = appRuleRepository.findById(id).orElse(null);
-        if(appRuleInfo==null) {
+        AppGrid appGrid = appGridRepository.findById(id).orElse(null);
+        if(appGrid==null) {
             return false;
         }
-        appRuleInfo.setEnabled(enabled);
-        appRuleRepository.save(appRuleInfo);
+        appGrid.setEnabled(enabled);
+        appGridRepository.save(appGrid);
+        // TODO 需要下发边缘端
         return true;
     }
 
@@ -519,7 +552,7 @@ public class AppRuleService {
                 try {
                     return checkGridIdSupport(gridId, appId, envEvent, envServiceSet);
                 } catch (Exception e) {
-                    return new AppRuleSyncResponse(gridId, null, 0, e.getMessage());
+                    return new AppRuleSyncResponse(gridId, null, null, 0, e.getMessage());
                 }
             };
             futures.add(executor.submit(task));
@@ -530,7 +563,7 @@ public class AppRuleService {
             try {
                 responses.add(future.get());
             } catch (InterruptedException | ExecutionException e) {
-                responses.add(new AppRuleSyncResponse(null, null, 0, e.getMessage()));
+                responses.add(new AppRuleSyncResponse(null, null, null, 0, e.getMessage()));
             }
         }
         // 关闭线程池
@@ -578,30 +611,50 @@ public class AppRuleService {
     private AppRuleSyncResponse checkGridIdSupport(String gridId, Integer appId, String envEvent, Set<String> envServiceSet) {
         GridMesh gridMesh = gridMeshRepository.findById(gridId).orElse(null);
         if(gridMesh == null) {
-            return new AppRuleSyncResponse(gridId, null, 0, "网格不存在");
+            return new AppRuleSyncResponse(gridId, null, null, 0, "网格不存在");
         }
         List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
         List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
         // 检查 envEvent 是否在 envEventTypeList 中
         if (!envEventTypeList.contains(envEvent)) {
-            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "不支持环境级事件："+envEvent);
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "不支持环境级事件："+envEvent);
         }
         // 检查 envServiceSet 中的所有元素是否都在 envServiceNameList 中
         for (String envService : envServiceSet) {
             if (!envServiceNameList.contains(envService)) {
-                return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "不支持环境级服务：" + envService);
+                return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "不支持环境级服务：" + envService);
             }
         }
         // 保存到数据库
         AppGrid appGrid = new AppGrid();
         appGrid.setAppRuleId(appId);
         appGrid.setGridId(gridId);
+        appGrid.setEnabled(false);
         appGrid = appGridRepository.save(appGrid);
         if(appGrid.getId()==null) {
-            return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 0, "保存到数据库失败");
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "保存到数据库失败");
         }
         // TODO 下发到边端服务器
         // 所有检查通过
-        return new AppRuleSyncResponse(gridId, gridMesh.getMeshName(), 1, "下发成功");
+        return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "下发成功");
+    }
+
+    /**
+     * 获取应用执行详情
+     * */
+    public List<AppRuleExecuteDetail> getAppRuleExecuteDetail(Integer appId) {
+        List<AppGrid> appGridList = appGridRepository.findByAppRuleId(appId);
+        return appGridList.stream().map(appGrid -> {
+            AppRuleExecuteDetail appRuleExecuteDetail = new AppRuleExecuteDetail();
+            appRuleExecuteDetail.setId(appGrid.getId());
+            appRuleExecuteDetail.setGridId(appGrid.getGridId());
+            appRuleExecuteDetail.setEnabled(appGrid.getEnabled());
+            GridMesh gridMesh = gridMeshRepository.findById(appGrid.getGridId()).orElse(null);
+            if(gridMesh != null) {
+                appRuleExecuteDetail.setMeshNo(gridMesh.getMeshNo());
+                appRuleExecuteDetail.setMeshName(gridMesh.getMeshName());
+            }
+            return appRuleExecuteDetail;
+        }).collect(Collectors.toList());
     }
 }

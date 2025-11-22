@@ -193,7 +193,7 @@ const isGridSelectionModalVisible = ref(false)
 const gridList = ref([])
 const selectedSyncGridKeys = ref([]) // 对应原 selectedRowKeys
 const gridColumns = [ // 对应原 columns
-  { title: '网格编号', dataIndex: 'id', key: 'id' },
+  { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
   { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
   { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
   { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
@@ -203,7 +203,7 @@ const gridColumns = [ // 对应原 columns
 const isSyncResultModalVisible = ref(false)
 const gridSyncResults = ref([]) // 对应原 gridResults
 const syncResultColumns = [ // 对应原 resultColumns
-  { title: '网格编号', dataIndex: 'gridId', key: 'gridId' },
+  { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
   { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
   { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess', scopedSlots: { customRender: 'isSuccessSlot' }},
   { title: '消息', dataIndex: 'message', key: 'message' }

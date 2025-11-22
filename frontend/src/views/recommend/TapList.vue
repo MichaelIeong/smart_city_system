@@ -25,430 +25,377 @@
 
             <a-col :md="6" :sm="24">
               <a-form-item label="应用描述">
-                <a-input v-model="searchParams.description" placeholder="请输入" allow-clear />
-              </a-form-item>
+                <a-input v-model="searchParams.description" placeholder="请输入" allow-clear /> </a-form-item>
             </a-col>
 
             <a-col :md="12" :sm="24">
               <span>
                 <a-button style="margin-left: 20px" type="primary" @click="doSearch">搜索</a-button>
                 <a-button style="margin-left: 10px" @click="handleReset">重置</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleBuild">应用构造</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleRecommend">应用推荐</a-button>
-                <a-button style="margin-left: 10px" type="dashed" @click="handleCreate">应用创建</a-button>
               </span>
             </a-col>
           </a-row>
         </a-form>
       </div>
 
-      <s-table
-        ref="tableRef"
-        size="default"
-        rowKey="id"
+      <a-table
         :columns="columns"
-        :data="loadData"
-        showPagination="auto"
+        :data-source="dataSource"
+        :pagination="pagination"
+        :loading="loading"
+        rowKey="id"
+        @change="handleTableChange"
+        size="default"
       >
         <span slot="description" slot-scope="text">
-          <ellipsis :length="15" tooltip>{{ text }}</ellipsis>
-        </span>
-
-        <span slot="enabled" slot-scope="enabled">
-          <a-tag :color="enabled ? 'green' : 'red'">{{ enabled ? '启用中' : '已禁用' }}</a-tag>
+          <span
+            :title="text"
+            class="ellipsis-50-chars"
+          >
+            {{ text }}
+          </span>
         </span>
 
         <span slot="action" slot-scope="text, record">
-          <template>
-            <a @click="handleEdit(record)">编辑</a>
-            <a-divider type="vertical"/>
-            <a @click="handleDelete(record)">删除</a>
-            <a-divider type="vertical"/>
-            <a-switch
-              size="small"
-              :checked="record.enabled"
-              :loading="toggleLoadingMap[record.id]"
-              @change="checked => onToggleEnabled(record, checked)"
-              checked-children="启用"
-              un-checked-children="禁用"
-            />
-          </template>
+          <a @click="showDetail(record)">查看详情</a>
+          <a-divider type="vertical"/>
+          <a @click="handleDelete(record)">删除</a>
         </span>
-      </s-table>
-
-      <a-modal
-        :visible="saveVisible"
-        title="创建应用"
-        :confirm-loading="saveLoading"
-        @cancel="closeSave"
-        destroy-on-close
-      >
-        <a-form
-          ref="saveFormRef"
-          :model="saveForm"
-          layout="vertical"
-        >
-          <a-form-item label="应用描述" name="description">
-            <a-textarea
-              :rows="4"
-              v-model="saveForm.description"
-              placeholder="请输入应用的简要描述，不能超过 300 字"
-              allow-clear
-            />
-            <span
-              style="
-                position: absolute;
-                right: 8px;
-                bottom: -18px;
-                font-size: 12px;
-                color: #999;
-              "
-            >
-              {{ saveForm.description.length }} / 300
-            </span>
-          </a-form-item>
-
-          <a-form-item label="Node-RED 导出 JSON" name="flowJson">
-            <a-textarea
-              v-model="saveForm.flowJson"
-              placeholder="请将 Node-RED 导出的 JSON 粘贴到这里"
-              :rows="8"
-              allow-clear
-            />
-          </a-form-item>
-        </a-form>
-        <template slot="footer">
-          <a-button @click="closeSave">取消</a-button>
-          <a-button type="default" @click="openNodeRed">打开 Node-RED</a-button>
-          <a-button type="primary" :loading="saveLoading" @click="submitSave">保存</a-button>
-        </template>
-      </a-modal>
+      </a-table>
     </a-card>
+
+    <a-modal
+      :title="detailModalTitle"
+      :width="800"
+      :visible="detailModalVisible"
+      :confirmLoading="detailModalLoading"
+      :footer="null"
+      @cancel="handleDetailModalClose"
+      :bodyStyle="{ height: '500px', overflowY: 'auto' }"
+    >
+      <a-table
+        :columns="detailColumns"
+        :data-source="executeDetailData"
+        :loading="detailModalLoading"
+        rowKey="gridId"
+        size="small"
+        :pagination="false"
+      >
+        <span slot="enabled" slot-scope="text">
+          <a-badge :status="text ? 'processing' : 'default'" :text="text ? '启用中' : '禁用中'" />
+        </span>
+
+        <span slot="action" slot-scope="text, record">
+          <a v-if="record.enabled" @click="handleDisable(record)">禁用</a>
+          <a v-else @click="handleEnable(record)">启用</a>
+        </span>
+      </a-table>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
-<script setup>
+<script>
+// ⚠️ Vue 2 通常使用选项式 API 或 setup 语法糖的兼容模式，这里改为标准的 setup 模式
+
 /* eslint-disable */
-import { message, Modal } from 'ant-design-vue'
-import { ref, reactive } from 'vue'
-import dayjs from 'dayjs'
-import { listTapRule, deleteTap, createTapRule, getTapDetail, updateTapRule, setTapEnabled } from '@/api/manage'
-import { STable, Ellipsis } from '@/components'
+import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, onMounted } from 'vue';
+import dayjs from 'dayjs';
+import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled } from '@/api/manage';
 
-// 如果是 Vite，请用 import.meta.env.VITE_NODE_RED_URL；如果是 Vue-CLI，保留原样
-const NODE_RED_URL =
-  (import.meta && import.meta.env && import.meta.env.VITE_NODE_RED_URL) ||
-  process.env.VUE_APP_NODE_RED_URL
+export default {
+    // 假设您在项目中启用了 setup 语法
+    setup() {
+        // === 表格状态管理 ===
+        const loading = ref(false);
+        const dataSource = ref([]);
+        const pagination = reactive({
+            current: 1,
+            pageSize: 10,
+            total: 0,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+        });
+        let currentSorter = {};
+        let currentFilters = {};
 
-// 查询参数（由 STable 的 parameter 合流到接口调用）
-const searchParams = reactive({
-  eventType: '',
-  description: ''
-})
+        // 查询参数
+        const searchParams = reactive({
+            eventType: '',
+            description: ''
+        });
 
-const gridId = "6b2b5be61c60401aa4c6da9828a7df68"
+        // === 数据和列定义 ===
+        const eventOptions = [
+            { value: 'manhole-flooding', label: '井盖水浸' },
+            { value: 'manhole-tilte', label: '井盖倾斜' },
+            { value: 'truck_dect', label: '渣土车识别' },
+            { value: 'ill_parking', label: '机动车违章停车' },
+            { value: 'ill_parking2', label: '非机动车违章停车' },
+            { value: 'waste_accumulate', label: '垃圾堆积' },
+            { value: 'greenbelt_stack', label: '绿化带乱堆乱放' },
+            { value: 'road-operate', label: '占道经营' },
+            { value: 'out-store', label: '店外经营' },
+            { value: 'road-feeding', label: '占道饲养家禽' },
+            { value: 'trash_full', label: '垃圾桶满溢' }
+        ];
 
-// 事件选项
-const eventOptions = [
-  { value: 'manhole-flooding', label: '井盖水浸' },
-  { value: 'manhole-tilte', label: '井盖倾斜' },
-  { value: 'truck_dect', label: '渣土车识别' },
-  { value: 'ill_parking', label: '机动车违章停车' },
-  { value: 'ill_parking2', label: '非机动车违章停车' },
-  { value: 'waste_accumulate', label: '垃圾堆积' },
-  { value: 'greenbelt_stack', label: '绿化带乱堆乱放' },
-  { value: 'road-operate', label: '占道经营' },
-  { value: 'out-store', label: '店外经营' },
-  { value: 'road-feeding', label: '占道饲养家禽' },
-  { value: 'trash_full', label: '垃圾桶满溢' }
-]
+        const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : v);
+        const eventLabelMap = Object.fromEntries(eventOptions.map(o => [norm(o.value), o.label]));
 
-// 规范化 key，避免大小写/空格问题
-const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : v)
+        const columns = [
+            { title: '序号', dataIndex: 'id' },
+            { title: '事件类型', dataIndex: 'eventTypeLabel' },
+            {
+                title: '描述',
+                dataIndex: 'description',
+                // ⚠️ Vue 2 兼容：使用 scopedSlots
+                scopedSlots: { customRender: 'description' } 
+            },
+            {
+                title: '更新时间',
+                dataIndex: 'updateTime',
+                sorter: true,
+            },
+            {
+                title: '操作',
+                dataIndex: 'action',
+                width: '200px',
+                // ⚠️ Vue 2 兼容：使用 scopedSlots
+                scopedSlots: { customRender: 'action' }
+            }
+        ];
 
-// 映射表：value -> label
-const eventLabelMap = Object.fromEntries(eventOptions.map(o => [norm(o.value), o.label]))
+        // === 弹窗和详情状态 (新增) ===
+        const detailModalVisible = ref(false);
+        const detailModalLoading = ref(false);
+        const executeDetailData = ref([]);
+        const detailModalTitle = ref('应用执行详情');
+        
+        // 记录当前查看详情的 Rule ID
+        const currentDetailRuleId = ref(null);
 
-// 表格列
-const columns = [
-  { title: '序号', dataIndex: 'id' },
-  { title: '事件类型', dataIndex: 'eventTypeLabel' },
-  {
-    title: '描述',
-    dataIndex: 'description',
-    // 兼容某些 STable 封装：声明使用名为 "description" 的插槽
-    scopedSlots: { customRender: 'description' }
-  },
-  {
-    title: '状态',
-    dataIndex: 'enabled',
-    width: '160px',
-    scopedSlots: { customRender: 'enabled' } // 声明使用名为 "enabled" 的插槽
-  },
-  {
-    title: '更新时间',
-    dataIndex: 'updateTime',
-    sorter: (a, b) => new Date(a.updateTime) - new Date(b.updateTime)
-  },
-  {
-    title: '操作',
-    dataIndex: 'action',
-    width: '200px',
-    scopedSlots: { customRender: 'action' }
-  }
-]
+        // === 表格列定义 (新增详情表格的列) ===
+        const detailColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+          {
+            title: '状态',
+            dataIndex: 'enabled',
+            key: 'enabled',
+            // Vue 2 兼容：使用 scopedSlots
+            scopedSlots: { customRender: 'enabled' }
+          },
+          {
+            title: '操作',
+            key: 'action',
+            // Vue 2 兼容：使用 scopedSlots
+            scopedSlots: { customRender: 'action' }
+          }
+        ];
 
-// 表格引用，用于刷新
-const tableRef = ref(null)
+        // === 核心数据加载函数 ===
+        async function loadData(pageNo, pageSize, sorter = {}, filters = {}) {
+            loading.value = true;
+            try {
+                const projectId = localStorage.getItem('project_id') || '';
+                // 提取排序字段和方向
+                const sortField = sorter.field;
+                const sortOrder = sorter.order;
 
-// STable 期望的“数据加载函数”
-// parameter 由 STable 传入，一般包含 pageNo / pageSize / sorter / filters
-const loadData = async (parameter = {}) => {
-  try {
-    const projectId = localStorage.getItem('project_id') || ''
-    const pageNo = parameter.pageNo || 1
-    const pageSize = parameter.pageSize || 10
+                const params = {
+                    projectId,
+                    eventType: searchParams.eventType,
+                    description: searchParams.description,
+                    pageNo,
+                    pageSize,
+                    sortField: sortField, 
+                    sortOrder: sortOrder,
+                    ...filters
+                };
 
-    const res = await listTapRule({
-      projectId,
-      eventType: searchParams.eventType,
-      description: searchParams.description,
-      pageNo,
-      pageSize
-    })
+                const res = await listTapRule(params);
 
-    const records = res?.data ?? []
-    const rows = records.map(r => ({
-      ...r,
-      // 事件类型映射 label，找不到就回退原值
-      eventTypeLabel: eventLabelMap[norm(r.eventType)] ?? r.eventType,
-      // 时间格式化：2025-08-19 15:59:16
-      updateTime: r.updateTime ? dayjs(r.updateTime).format('YYYY-MM-DD HH:mm:ss') : ''
-    }))
+                const records = res?.data ?? [];
+                const rows = records.map(r => ({
+                    ...r,
+                    eventTypeLabel: eventLabelMap[norm(r.eventType)] ?? r.eventType,
+                    updateTime: r.updateTime ? dayjs(r.updateTime).format('YYYY-MM-DD HH:mm:ss') : ''
+                }));
 
-    return {
-      data: rows,
-      pageNo,
-      total: res?.totalCount ?? 0
-    }
-  } catch (e) {
-    message.error('获取应用列表失败')
-    // 返回空数据以避免表格挂起
-    return {
-      data: [],
-      pageNo: parameter.pageNo || 1,
-      total: 0
-    }
-  }
-}
+                dataSource.value = rows;
+                pagination.current = res?.pageNo ?? pageNo;
+                pagination.total = res?.totalCount ?? 0;
 
-// 交互：搜索/重置/创建/保存/编辑/删除
-function doSearch () {
-  // 让 STable 从第一页重新拉取
-  tableRef.value?.refresh(true)
-}
-
-function handleReset () {
-  searchParams.eventType = ''
-  searchParams.description = ''
-  tableRef.value?.refresh(true)
-}
-
-function handleBuild () {
-  if (NODE_RED_URL) {
-    window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank')
-  } else {
-    message.error('未配置 NODE_RED_URL')
-  }
-}
-
-function handleCreate () {
-  saveVisible.value = true
-}
-
-function handleRecommend () {
-  // 新开一个标签页打开 /tap/recommend 页面
-  window.open('/tap/recommend', '_blank')
-}
-
-async function handleEdit(record) {
-  const hide = message.loading('正在获取应用数据，请稍等片刻...', 0)
-  try {
-    // 调用接口获取详情
-    const res = await getTapDetail({ id: record.id })
-    if (res) {
-      hide()
-      // 把返回的数据填充到表单
-      saveForm.description = res.description || ''
-      saveForm.flowJson = res.flowJson || ''  // 根据后端字段名调整
-      saveForm.id = res.id  // 如果要更新时带上 id
-
-      // 打开弹窗
-      saveVisible.value = true
-    } else {
-      hide()
-      message.error('未获取到应用数据')
-    }
-  } catch (error) {
-    hide()
-    message.error('获取应用数据失败：' + (error.message || '未知错误'))
-  }
-}
-
-async function openNodeRed () {
-  if(saveForm.flowJson) {
-    await fetch(`${NODE_RED_URL}/flows`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: saveForm.flowJson
-    })
-  }
-  window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank')
-}
-
-function handleDelete (record) {
-  Modal.confirm({
-    title: '确认删除?',
-    content: '删除后将无法恢复，请确认是否继续。',
-    onOk () {
-      return deleteTap({ id: record.id })
-        .then(() => {
-          tableRef.value?.refresh()
-          message.success('删除成功')
-        })
-        .catch((err) => {
-          console.error('删除失败:', err)   // 打印详细错误堆栈
-          message.error(`删除失败: ${err?.message || '未知错误'}`)
-        })
-    }
-  })
-}
-
-const toggleLoadingMap = reactive({})
-async function onToggleEnabled (record, checked) {
-  const id = record.id
-  const prev = record.enabled
-
-  // 乐观更新，失败再回滚
-  record.enabled = checked
-  toggleLoadingMap[id] = true
-  try {
-    const success = await setTapEnabled(id, checked)
-    if(success) {
-      message.success(`已${checked ? '启用' : '禁用'}（ID: ${id}）`)
-      tableRef.value?.refresh()
-    }
-    else {
-      message.error(`操作失败：${err?.message || '未知错误'}`)
-    }
-  } catch (err) {
-    record.enabled = prev // 回滚
-    message.error(`操作失败：${err?.message || '未知错误'}`)
-  } finally {
-    toggleLoadingMap[id] = false
-  }
-}
-
-// 保存应用： 弹窗和表单
-const saveVisible = ref(false)
-const saveLoading = ref(false)
-const saveFormRef = ref(null)
-
-const saveForm = reactive({
-  id: '',
-  description: '',
-  flowJson: ''
-})
-
-function closeSave () {
-  saveVisible.value = false
-  // 可选：关闭时重置表单
-  saveForm.id = ''
-  saveForm.description = ''
-  saveForm.flowJson = ''
-}
-
-// 提交保存
-async function submitSave () {
-  try {
-    saveLoading.value = true
-    // --- 手动校验 ---
-    if (!saveForm.description || saveForm.description.trim() === '') {
-      message.error('请输入应用描述')
-      return
-    }
-    if (saveForm.description.length > 300) {
-      message.error('描述不能超过 300 个字符')
-      return
-    }
-    if (!saveForm.flowJson || saveForm.flowJson.trim() === '') {
-      message.error('请粘贴 Node-RED 导出的 JSON')
-      return
-    }
-    try {
-      JSON.parse(saveForm.flowJson)
-    } catch (e) {
-      message.error('JSON 格式不正确，请检查后再试')
-      return
-    }
-    // 修改应用
-    if(saveForm.id) {
-      const hide = message.loading('正在更新应用，请稍等片刻...', 0)
-      try {
-        const success = await updateTapRule(saveForm.id, saveForm.description, saveForm.flowJson)
-        if (success) {
-          hide()
-          message.success('应用更新成功')
-          saveVisible.value = false
-          saveForm.id = ''
-          saveForm.description = ''
-          saveForm.flowJson = ''
-          tableRef.value?.refresh?.()
-        } else {
-          hide()
-          message.error('应用更新失败，请稍后重试')
+            } catch (e) {
+                message.error('获取应用列表失败');
+                dataSource.value = [];
+                pagination.total = 0;
+            } finally {
+                loading.value = false;
+            }
         }
-      } catch (error) {
-        hide()
-        message.error('应用更新失败: ' + error.message)
-      }
-    }
-    // 创建应用
-    else {
-      const hide = message.loading('正在创建应用，请稍等片刻...', 0)
-      try {
-        const projectId = localStorage.getItem('project_id')
-        const success = await createTapRule(projectId, saveForm.description, "", saveForm.flowJson)
-        if (success) {
-          hide()
-          message.success('应用创建成功')
-          saveVisible.value = false
-          saveForm.id = ''
-          saveForm.description = ''
-          saveForm.flowJson = ''
-          tableRef.value?.refresh?.()
-        } else {
-          hide()
-          message.error('应用创建失败，请稍后重试')
+
+        // === a-table 事件处理函数 ===
+        function handleTableChange(p, filters, sorter) {
+            currentSorter = sorter;
+            currentFilters = filters;
+            
+            pagination.pageSize = p.pageSize;
+            pagination.current = p.current;
+            
+            loadData(p.current, p.pageSize, sorter, filters);
         }
-      } catch (error) {
-        hide()
-        message.error('应用创建失败: ' + error.message)
-      }
+
+        // === 交互操作 ===
+        function doSearch () {
+            pagination.current = 1;
+            loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
+        }
+
+        function handleReset () {
+            searchParams.eventType = '';
+            searchParams.description = '';
+            pagination.current = 1;
+            currentSorter = {};
+            currentFilters = {};
+            loadData(pagination.current, pagination.pageSize);
+        }
+
+        function handleDelete (record) {
+            Modal.confirm({
+                title: '确认删除?',
+                content: '删除后将无法恢复，请确认是否继续。',
+                onOk () {
+                    return deleteTap({ id: record.id })
+                        .then(() => {
+                            loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
+                            message.success('删除成功');
+                        })
+                        .catch((err) => {
+                            message.error(`删除失败: ${err?.message || '未知错误'}`);
+                        });
+                }
+            });
+        }
+
+        onMounted(() => {
+            loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
+        });
+
+        async function showDetail(record) {
+            detailModalVisible.value = true;
+            detailModalLoading.value = true;
+            detailModalTitle.value = `应用执行详情 - ID: ${record.id}`;
+            currentDetailRuleId.value = record.id;
+            
+            try {
+                // 1. 调用 API 获取执行详情数据，使用 record.id 作为 appId
+                const res = await getAppExecuteDetail(record.id);
+                console.log('executeDetailData', res);
+                executeDetailData.value = res || []; 
+            } catch (e) {
+                message.error('获取应用执行详情失败');
+                executeDetailData.value = [];
+            } finally {
+                detailModalLoading.value = false;
+            }
+        }
+        
+        // 弹窗关闭事件
+        function handleDetailModalClose() {
+            detailModalVisible.value = false;
+            executeDetailData.value = []; // 清空数据
+            currentDetailRuleId.value = null;
+        }
+
+        // 启用操作 (占位函数)
+        async function handleEnable(record) {
+          if (detailModalLoading.value) return;
+          detailModalLoading.value = true;
+          try {
+              const res = await setExecuteTapEnabled(record.id, true); 
+              if (res) {
+                record.enabled = true;
+                message.success(`应用网格【${record.meshName}】启用成功`);
+              } else{
+                message.error(`应用网格【${record.meshName}】启用失败`);
+              }
+
+          } catch (e) {
+              message.error(`启用失败: ${e?.message || '未知错误'}`);
+          } finally {
+              detailModalLoading.value = false;
+          }
+        }
+
+        // 禁用操作 (占位函数)
+        async function handleDisable(record) {
+          if (detailModalLoading.value) return;
+          detailModalLoading.value = true;
+          try {
+              // 1. 调用后端 API，将状态设置为 false (禁用)
+              // 这里的 record.id 对应后端 @PathVariable Integer id (AppGrid ID)
+              const res = await setExecuteTapEnabled(record.id, false);
+              if (res) {
+                record.enabled = false;
+                message.success(`应用网格【${record.meshName}】禁用成功`);
+              } else {
+                message.error(`应用网格【${record.meshName}】禁用失败`);
+              }
+          } catch (e) {
+              message.error(`禁用失败: ${e?.message || '未知错误'}`);
+          } finally {
+              detailModalLoading.value = false;
+          }
+        }
+        
+        return {
+          loading,
+          dataSource,
+          pagination,
+          searchParams,
+          eventOptions,
+          columns,
+          doSearch,
+          handleReset,
+          handleTableChange,
+          handleDelete,
+          detailColumns,
+          executeDetailData,
+          detailModalVisible,
+          detailModalLoading,
+          detailModalTitle,
+          handleDetailModalClose,
+          handleEnable,
+          handleDisable,
+          showDetail
+        }
     }
-  } catch (err) {
-    if (err?.errorFields) {
-      // 表单校验错误由 antdv 弹出
-    } else {
-      message.error(`创建失败：${err?.message || '未知错误'}`)
-    }
-  } finally {
-    saveLoading.value = false
-  }
 }
 </script>
+
 <style lang="less" scoped>
 .table-page-search-wrapper {
   margin-bottom: 16px;
+}
+/* 强制单行省略号截断样式 */
+.ellipsis-50-chars {
+    /* 1. 设置为 inline-block 或 block，以便设置宽度 */
+    display: inline-block; 
+    
+    /* 2. 必须设置最大宽度，以触发溢出 */
+    /* 请根据您的实际表格布局调整这个值 */
+    max-width: 250px; 
+
+    /* 3. 强制内容不换行 */
+    white-space: nowrap; 
+    
+    /* 4. 隐藏溢出内容 */
+    overflow: hidden; 
+    
+    /* 5. 显示省略号 */
+    text-overflow: ellipsis; 
 }
 </style>

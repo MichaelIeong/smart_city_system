@@ -111,7 +111,7 @@ public class AppRuleController {
      * @param id 规则id
      * @param enabled 是否启用
      */
-    @PostMapping("/{id}/enabled")
+    @PostMapping("/execute/enabled/{id}")
     public boolean updateEnabledStatus(
             @PathVariable Integer id,
             @RequestParam boolean enabled) {
@@ -124,5 +124,13 @@ public class AppRuleController {
     @PostMapping("/sync")
     public ResponseEntity<List<AppRuleSyncResponse>> syncAppRule(@RequestBody AppRuleSyncRequest appRuleSyncRequest) {
         return ResponseEntity.ok(appRuleService.syncAppRule(appRuleSyncRequest));
+    }
+
+    /**
+     * 查看应用执行详情
+     * */
+    @GetMapping("/execute/detail/{id}")
+    public ResponseEntity<List<AppRuleExecuteDetail>> getAppRuleExecuteDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(appRuleService.getAppRuleExecuteDetail(id));
     }
 }

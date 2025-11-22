@@ -332,7 +332,7 @@ export function getSensors (projectId) {
   })
 }
 
-export function listTapRule ({ projectId, eventType, description, pageNo, pageSize }) {
+export function listTapRule ({ projectId, eventType, description, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: `${api.tap}/list/${projectId}`,
@@ -341,7 +341,9 @@ export function listTapRule ({ projectId, eventType, description, pageNo, pageSi
       eventType,
       description,
       pageNo,
-      pageSize
+      pageSize,
+      sortField,
+      sortOrder
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -455,10 +457,10 @@ export function updateTapRule (id, description, flowJson) {
 }
 
 // 修改应用状态
-export function setTapEnabled (id, enabled) {
+export function setExecuteTapEnabled (id, enabled) {
   const token = store.state.token
   return request({
-    url: `${api.tap}/${id}/enabled?enabled=${enabled}`,
+    url: `${api.tap}/execute/enabled/${id}?enabled=${enabled}`,
     method: 'post',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -538,6 +540,18 @@ export function syncAppRule (appId, gridIdList) {
     data: {
       appId,
       gridIdList
+    }
+  })
+}
+
+// 查看应用执行详情
+export function getAppExecuteDetail (appId) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/execute/detail/${appId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
     }
   })
 }
