@@ -171,9 +171,33 @@ export default {
       metaColumns: [{ title: '网格元信息', dataIndex: 'info', key: 'info' }],
       gridId: null,
       metaData: [],
+      // 优化后的设备表格列定义
       deviceColumns: [
-        { title: '设备名称', dataIndex: 'name', key: 'name' },
-        { title: '设备功能', dataIndex: 'info', key: 'info' }
+        {
+          title: '设备名称',
+          dataIndex: 'name',
+          key: 'name',
+          width: 150, // 设定一个固定宽度
+          align: 'center' // 内容居中
+        },
+        {
+          title: '设备功能',
+          dataIndex: 'info',
+          key: 'info',
+          align: 'left', // 描述性内容左对齐
+          // 添加自定义渲染，优化长文本显示，并提供 Tooltip
+          customRender: (text) => {
+            const value = text || '无功能描述'
+            // 如果文本长度超过 20 个字符，则进行截断
+            const shortText = value.length > 20 ? value.substring(0, 18) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
       ],
       deviceData: [],
       eventColumns: [
