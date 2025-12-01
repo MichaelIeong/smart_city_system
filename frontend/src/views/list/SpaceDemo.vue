@@ -262,6 +262,18 @@ export default {
       propertyForm: { name: '', description: '' }
     }
   },
+  created () {
+    // 1. 从 URL 路由参数中读取我们从 ProjectSelection 传递过来的值
+    const initialMeshType = this.$route.query.initialMeshType
+
+    // 2. 如果参数存在且是有效的网格类型，则覆盖默认的 selectedType
+    if (initialMeshType && this.meshFiles[initialMeshType]) {
+      this.selectedType = initialMeshType
+
+      // 调试：确认参数被读取
+      console.log('Router param detected. Initializing with:', initialMeshType)
+    }
+  },
 
   methods: {
     // 切换网格类型 + 更新背景图
@@ -269,8 +281,15 @@ export default {
       if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       if (type === 'F-community') this.backgroundOffset = 'center center'
       if (type === 'F-park') this.backgroundOffset = 'center center'
+      // 2. 切换 selectedType (防止手动切换时 data 不更新，但此处在 created/mounted 阶段调用时无需修改 data)
+      this.selectedType = type
+
       this.$message.info(`切换到 ${this.meshTypeOptions[type]} 数据`)
+
+      // 3. 设置背景图片
       this.backgroundImage = this.backgroundMap[type] || CityImg
+
+      // 4. 加载网格数据
       this.loadMeshData(type)
     },
 
@@ -338,22 +357,22 @@ export default {
           // 打印调试信息
           console.log('点击网格:', d.id)
 
-          // 仅当当前为城区网格时启用跳转逻辑
-          if (this.selectedType === 'F-city') {
-            // 判断点击的网格编号
-            if (d.id.includes('f-city-11')) {
-              this.$message.success('进入社区网格页面')
-              this.selectedType = 'F-community'
-              this.handleMeshTypeChange('F-community')
-              return
-            }
-            if (d.id.includes('f-city-7')) {
-              this.$message.success('进入园区网格页面')
-              this.selectedType = 'F-park'
-              this.handleMeshTypeChange('F-park')
-              return
-            }
-          }
+          // // 仅当当前为城区网格时启用跳转逻辑
+          // if (this.selectedType === 'F-city') {
+          //   // 判断点击的网格编号
+          //   if (d.id.includes('f-city-11')) {
+          //     this.$message.success('进入社区网格页面')
+          //     this.selectedType = 'F-community'
+          //     this.handleMeshTypeChange('F-community')
+          //     return
+          //   }
+          //   if (d.id.includes('f-city-7')) {
+          //     this.$message.success('进入园区网格页面')
+          //     this.selectedType = 'F-park'
+          //     this.handleMeshTypeChange('F-park')
+          //     return
+          //   }
+          // }
 
           // 其他网格：正常加载详情
           this.$message.info(`加载网格 ID：${d.id}`)
@@ -423,7 +442,7 @@ export default {
   },
 
   mounted () {
-    this.loadMeshData(this.selectedType)
+    this.handleMeshTypeChange(this.selectedType)
   }
 }
 </script>
