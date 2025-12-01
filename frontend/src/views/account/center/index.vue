@@ -1,288 +1,288 @@
-<template>
-  <div class="page-header-index-wide page-header-wrapper-grid-content-main">
-    <a-row :gutter="24">
-      <a-col :md="24" :lg="7">
-        <a-card :bordered="false">
-          <div class="account-center-avatarHolder">
-            <div class="avatar">
-              <img :src="avatar">
-            </div>
-            <div class="username">{{ nickname }}</div>
-            <div class="bio">海纳百川，有容乃大</div>
-          </div>
-          <div class="account-center-detail">
-            <p>
-              <i class="title"></i>交互专家
-            </p>
-            <p>
-              <i class="group"></i>蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED
-            </p>
-            <p>
-              <i class="address"></i>
-              <span>浙江省</span>
-              <span>杭州市</span>
-            </p>
-          </div>
-          <a-divider/>
+<!--<template>-->
+<!--  <div class="page-header-index-wide page-header-wrapper-grid-content-main">-->
+<!--    <a-row :gutter="24">-->
+<!--      <a-col :md="24" :lg="7">-->
+<!--        <a-card :bordered="false">-->
+<!--          <div class="account-center-avatarHolder">-->
+<!--            <div class="avatar">-->
+<!--              <img :src="avatar">-->
+<!--            </div>-->
+<!--            <div class="username">{{ nickname }}</div>-->
+<!--            <div class="bio">海纳百川，有容乃大</div>-->
+<!--          </div>-->
+<!--          <div class="account-center-detail">-->
+<!--            <p>-->
+<!--              <i class="title"></i>交互专家-->
+<!--            </p>-->
+<!--            <p>-->
+<!--              <i class="group"></i>蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED-->
+<!--            </p>-->
+<!--            <p>-->
+<!--              <i class="address"></i>-->
+<!--              <span>浙江省</span>-->
+<!--              <span>杭州市</span>-->
+<!--            </p>-->
+<!--          </div>-->
+<!--          <a-divider/>-->
 
-          <!--          <div class="account-center-tags">-->
-          <!--            <div class="tagsTitle">标签</div>-->
-          <!--            <div>-->
-          <!--              <template v-for="(tag, index) in tags">-->
-          <!--                <a-tooltip v-if="tag.length > 20" :key="tag" :title="tag">-->
-          <!--                  <a-tag-->
-          <!--                    :key="tag"-->
-          <!--                    :closable="index !== 0"-->
-          <!--                    :close="() => handleTagClose(tag)"-->
-          <!--                  >{{ `${tag.slice(0, 20)}...` }}</a-tag>-->
-          <!--                </a-tooltip>-->
-          <!--                <a-tag-->
-          <!--                  v-else-->
-          <!--                  :key="tag"-->
-          <!--                  :closable="index !== 0"-->
-          <!--                  :close="() => handleTagClose(tag)"-->
-          <!--                >{{ tag }}</a-tag>-->
-          <!--              </template>-->
-          <!--              <a-input-->
-          <!--                v-if="tagInputVisible"-->
-          <!--                ref="tagInput"-->
-          <!--                type="text"-->
-          <!--                size="small"-->
-          <!--                :style="{ width: '78px' }"-->
-          <!--                :value="tagInputValue"-->
-          <!--                @change="handleInputChange"-->
-          <!--                @blur="handleTagInputConfirm"-->
-          <!--                @keyup.enter="handleTagInputConfirm"-->
-          <!--              />-->
-          <!--              <a-tag v-else @click="showTagInput" style="background: #fff; borderStyle: dashed;">-->
-          <!--                <a-icon type="plus"/>New Tag-->
-          <!--              </a-tag>-->
-          <!--            </div>-->
-          <!--          </div>-->
-          <!--          <a-divider :dashed="true"/>-->
+<!--          &lt;!&ndash;          <div class="account-center-tags">&ndash;&gt;-->
+<!--          &lt;!&ndash;            <div class="tagsTitle">标签</div>&ndash;&gt;-->
+<!--          &lt;!&ndash;            <div>&ndash;&gt;-->
+<!--          &lt;!&ndash;              <template v-for="(tag, index) in tags">&ndash;&gt;-->
+<!--          &lt;!&ndash;                <a-tooltip v-if="tag.length > 20" :key="tag" :title="tag">&ndash;&gt;-->
+<!--          &lt;!&ndash;                  <a-tag&ndash;&gt;-->
+<!--          &lt;!&ndash;                    :key="tag"&ndash;&gt;-->
+<!--          &lt;!&ndash;                    :closable="index !== 0"&ndash;&gt;-->
+<!--          &lt;!&ndash;                    :close="() => handleTagClose(tag)"&ndash;&gt;-->
+<!--          &lt;!&ndash;                  >{{ `${tag.slice(0, 20)}...` }}</a-tag>&ndash;&gt;-->
+<!--          &lt;!&ndash;                </a-tooltip>&ndash;&gt;-->
+<!--          &lt;!&ndash;                <a-tag&ndash;&gt;-->
+<!--          &lt;!&ndash;                  v-else&ndash;&gt;-->
+<!--          &lt;!&ndash;                  :key="tag"&ndash;&gt;-->
+<!--          &lt;!&ndash;                  :closable="index !== 0"&ndash;&gt;-->
+<!--          &lt;!&ndash;                  :close="() => handleTagClose(tag)"&ndash;&gt;-->
+<!--          &lt;!&ndash;                >{{ tag }}</a-tag>&ndash;&gt;-->
+<!--          &lt;!&ndash;              </template>&ndash;&gt;-->
+<!--          &lt;!&ndash;              <a-input&ndash;&gt;-->
+<!--          &lt;!&ndash;                v-if="tagInputVisible"&ndash;&gt;-->
+<!--          &lt;!&ndash;                ref="tagInput"&ndash;&gt;-->
+<!--          &lt;!&ndash;                type="text"&ndash;&gt;-->
+<!--          &lt;!&ndash;                size="small"&ndash;&gt;-->
+<!--          &lt;!&ndash;                :style="{ width: '78px' }"&ndash;&gt;-->
+<!--          &lt;!&ndash;                :value="tagInputValue"&ndash;&gt;-->
+<!--          &lt;!&ndash;                @change="handleInputChange"&ndash;&gt;-->
+<!--          &lt;!&ndash;                @blur="handleTagInputConfirm"&ndash;&gt;-->
+<!--          &lt;!&ndash;                @keyup.enter="handleTagInputConfirm"&ndash;&gt;-->
+<!--          &lt;!&ndash;              />&ndash;&gt;-->
+<!--          &lt;!&ndash;              <a-tag v-else @click="showTagInput" style="background: #fff; borderStyle: dashed;">&ndash;&gt;-->
+<!--          &lt;!&ndash;                <a-icon type="plus"/>New Tag&ndash;&gt;-->
+<!--          &lt;!&ndash;              </a-tag>&ndash;&gt;-->
+<!--          &lt;!&ndash;            </div>&ndash;&gt;-->
+<!--          &lt;!&ndash;          </div>&ndash;&gt;-->
+<!--          &lt;!&ndash;          <a-divider :dashed="true"/>&ndash;&gt;-->
 
-          <div class="account-center-team">
-            <div class="teamTitle">团队</div>
-            <a-spin :spinning="teamSpinning">
-              <div class="members">
-                <a-row>
-                  <a-col :span="12" v-for="(item, index) in teams" :key="index">
-                    <a>
-                      <a-avatar size="small" :src="item.avatar"/>
-                      <span class="member">{{ item.name }}</span>
-                    </a>
-                  </a-col>
-                </a-row>
-              </div>
-            </a-spin>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :md="24" :lg="17">
-        <a-card
-          style="width:100%"
-          :bordered="false"
-          :tabList="tabListNoTitle"
-          :activeTabKey="noTitleKey"
-          @tabChange="key => handleTabChange(key, 'noTitleKey')"
-        >
-          <article-page v-if="noTitleKey === 'article'"></article-page>
-          <app-page v-else-if="noTitleKey === 'app'"></app-page>
-          <project-page v-else-if="noTitleKey === 'project'"></project-page>
-        </a-card>
-      </a-col>
-    </a-row>
-  </div>
-</template>
+<!--          <div class="account-center-team">-->
+<!--            <div class="teamTitle">团队</div>-->
+<!--            <a-spin :spinning="teamSpinning">-->
+<!--              <div class="members">-->
+<!--                <a-row>-->
+<!--                  <a-col :span="12" v-for="(item, index) in teams" :key="index">-->
+<!--                    <a>-->
+<!--                      <a-avatar size="small" :src="item.avatar"/>-->
+<!--                      <span class="member">{{ item.name }}</span>-->
+<!--                    </a>-->
+<!--                  </a-col>-->
+<!--                </a-row>-->
+<!--              </div>-->
+<!--            </a-spin>-->
+<!--          </div>-->
+<!--        </a-card>-->
+<!--      </a-col>-->
+<!--      <a-col :md="24" :lg="17">-->
+<!--        <a-card-->
+<!--          style="width:100%"-->
+<!--          :bordered="false"-->
+<!--          :tabList="tabListNoTitle"-->
+<!--          :activeTabKey="noTitleKey"-->
+<!--          @tabChange="key => handleTabChange(key, 'noTitleKey')"-->
+<!--        >-->
+<!--          <article-page v-if="noTitleKey === 'article'"></article-page>-->
+<!--          <app-page v-else-if="noTitleKey === 'app'"></app-page>-->
+<!--          <project-page v-else-if="noTitleKey === 'project'"></project-page>-->
+<!--        </a-card>-->
+<!--      </a-col>-->
+<!--    </a-row>-->
+<!--  </div>-->
+<!--</template>-->
 
-<script>
-import { PageView, RouteView } from '@/layouts'
-import { AppPage, ArticlePage, ProjectPage } from './page'
+<!--<script>-->
+<!--import { PageView, RouteView } from '@/layouts'-->
+<!--import { AppPage, ArticlePage, ProjectPage } from './page'-->
 
-import { mapGetters } from 'vuex'
+<!--import { mapGetters } from 'vuex'-->
 
-export default {
-  components: {
-    RouteView,
-    PageView,
-    AppPage,
-    ArticlePage,
-    ProjectPage
-  },
-  data () {
-    return {
+<!--export default {-->
+<!--  components: {-->
+<!--    RouteView,-->
+<!--    PageView,-->
+<!--    AppPage,-->
+<!--    ArticlePage,-->
+<!--    ProjectPage-->
+<!--  },-->
+<!--  data () {-->
+<!--    return {-->
 
-      tagInputVisible: false,
-      tagInputValue: '',
+<!--      tagInputVisible: false,-->
+<!--      tagInputValue: '',-->
 
-      teams: [],
-      teamSpinning: true,
+<!--      teams: [],-->
+<!--      teamSpinning: true,-->
 
-      tabListNoTitle: [
-        {
-          key: 'article',
-          tab: '文章(8)'
-        },
-        {
-          key: 'app',
-          tab: '应用(8)'
-        },
-        {
-          key: 'project',
-          tab: '项目(8)'
-        }
-      ],
-      noTitleKey: 'app'
-    }
-  },
-  computed: {
-    ...mapGetters(['nickname', 'avatar'])
-  },
-  mounted () {
-    this.getTeams()
-  },
-  methods: {
-    getTeams () {
-      this.$http.get('/workplace/teams').then(res => {
-        this.teams = res.result
-        this.teamSpinning = false
-      })
-    },
+<!--      tabListNoTitle: [-->
+<!--        {-->
+<!--          key: 'article',-->
+<!--          tab: '文章(8)'-->
+<!--        },-->
+<!--        {-->
+<!--          key: 'app',-->
+<!--          tab: '应用(8)'-->
+<!--        },-->
+<!--        {-->
+<!--          key: 'project',-->
+<!--          tab: '项目(8)'-->
+<!--        }-->
+<!--      ],-->
+<!--      noTitleKey: 'app'-->
+<!--    }-->
+<!--  },-->
+<!--  computed: {-->
+<!--    ...mapGetters(['nickname', 'avatar'])-->
+<!--  },-->
+<!--  mounted () {-->
+<!--    this.getTeams()-->
+<!--  },-->
+<!--  methods: {-->
+<!--    getTeams () {-->
+<!--      this.$http.get('/workplace/teams').then(res => {-->
+<!--        this.teams = res.result-->
+<!--        this.teamSpinning = false-->
+<!--      })-->
+<!--    },-->
 
-    handleTabChange (key, type) {
-      this[type] = key
-    },
+<!--    handleTabChange (key, type) {-->
+<!--      this[type] = key-->
+<!--    },-->
 
-    handleTagClose (removeTag) {
-      const tags = this.tags.filter(tag => tag !== removeTag)
-      this.tags = tags
-    },
+<!--    handleTagClose (removeTag) {-->
+<!--      const tags = this.tags.filter(tag => tag !== removeTag)-->
+<!--      this.tags = tags-->
+<!--    },-->
 
-    showTagInput () {
-      this.tagInputVisible = true
-      this.$nextTick(() => {
-        this.$refs.tagInput.focus()
-      })
-    },
+<!--    showTagInput () {-->
+<!--      this.tagInputVisible = true-->
+<!--      this.$nextTick(() => {-->
+<!--        this.$refs.tagInput.focus()-->
+<!--      })-->
+<!--    },-->
 
-    handleInputChange (e) {
-      this.tagInputValue = e.target.value
-    },
+<!--    handleInputChange (e) {-->
+<!--      this.tagInputValue = e.target.value-->
+<!--    },-->
 
-    handleTagInputConfirm () {
-      const inputValue = this.tagInputValue
-      let tags = this.tags
-      if (inputValue && !tags.includes(inputValue)) {
-        tags = [...tags, inputValue]
-      }
+<!--    handleTagInputConfirm () {-->
+<!--      const inputValue = this.tagInputValue-->
+<!--      let tags = this.tags-->
+<!--      if (inputValue && !tags.includes(inputValue)) {-->
+<!--        tags = [...tags, inputValue]-->
+<!--      }-->
 
-      Object.assign(this, {
-        tags,
-        tagInputVisible: false,
-        tagInputValue: ''
-      })
-    }
-  }
-}
-</script>
+<!--      Object.assign(this, {-->
+<!--        tags,-->
+<!--        tagInputVisible: false,-->
+<!--        tagInputValue: ''-->
+<!--      })-->
+<!--    }-->
+<!--  }-->
+<!--}-->
+<!--</script>-->
 
-<style lang="less" scoped>
-.page-header-wrapper-grid-content-main {
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  transition: 0.3s;
+<!--<style lang="less" scoped>-->
+<!--.page-header-wrapper-grid-content-main {-->
+<!--  width: 100%;-->
+<!--  height: 100%;-->
+<!--  min-height: 100%;-->
+<!--  transition: 0.3s;-->
 
-  .account-center-avatarHolder {
-    text-align: center;
-    margin-bottom: 24px;
+<!--  .account-center-avatarHolder {-->
+<!--    text-align: center;-->
+<!--    margin-bottom: 24px;-->
 
-    & > .avatar {
-      margin: 0 auto;
-      width: 104px;
-      height: 104px;
-      margin-bottom: 20px;
-      border-radius: 50%;
-      overflow: hidden;
-      img {
-        height: 100%;
-        width: 100%;
-      }
-    }
+<!--    & > .avatar {-->
+<!--      margin: 0 auto;-->
+<!--      width: 104px;-->
+<!--      height: 104px;-->
+<!--      margin-bottom: 20px;-->
+<!--      border-radius: 50%;-->
+<!--      overflow: hidden;-->
+<!--      img {-->
+<!--        height: 100%;-->
+<!--        width: 100%;-->
+<!--      }-->
+<!--    }-->
 
-    .username {
-      color: rgba(0, 0, 0, 0.85);
-      font-size: 20px;
-      line-height: 28px;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-  }
+<!--    .username {-->
+<!--      color: rgba(0, 0, 0, 0.85);-->
+<!--      font-size: 20px;-->
+<!--      line-height: 28px;-->
+<!--      font-weight: 500;-->
+<!--      margin-bottom: 4px;-->
+<!--    }-->
+<!--  }-->
 
-  .account-center-detail {
-    p {
-      margin-bottom: 8px;
-      padding-left: 26px;
-      position: relative;
-    }
+<!--  .account-center-detail {-->
+<!--    p {-->
+<!--      margin-bottom: 8px;-->
+<!--      padding-left: 26px;-->
+<!--      position: relative;-->
+<!--    }-->
 
-    i {
-      position: absolute;
-      height: 14px;
-      width: 14px;
-      left: 0;
-      top: 4px;
-      background: url(https://gw.alipayobjects.com/zos/rmsportal/pBjWzVAHnOOtAUvZmZfy.svg);
-    }
+<!--    i {-->
+<!--      position: absolute;-->
+<!--      height: 14px;-->
+<!--      width: 14px;-->
+<!--      left: 0;-->
+<!--      top: 4px;-->
+<!--      background: url(https://gw.alipayobjects.com/zos/rmsportal/pBjWzVAHnOOtAUvZmZfy.svg);-->
+<!--    }-->
 
-    .title {
-      background-position: 0 0;
-    }
-    .group {
-      background-position: 0 -22px;
-    }
-    .address {
-      background-position: 0 -44px;
-    }
-  }
+<!--    .title {-->
+<!--      background-position: 0 0;-->
+<!--    }-->
+<!--    .group {-->
+<!--      background-position: 0 -22px;-->
+<!--    }-->
+<!--    .address {-->
+<!--      background-position: 0 -44px;-->
+<!--    }-->
+<!--  }-->
 
-  .account-center-tags {
-    .ant-tag {
-      margin-bottom: 8px;
-    }
-  }
+<!--  .account-center-tags {-->
+<!--    .ant-tag {-->
+<!--      margin-bottom: 8px;-->
+<!--    }-->
+<!--  }-->
 
-  .account-center-team {
-    .members {
-      a {
-        display: block;
-        margin: 12px 0;
-        line-height: 24px;
-        height: 24px;
-        .member {
-          font-size: 14px;
-          color: rgba(0, 0, 0, 0.65);
-          line-height: 24px;
-          max-width: 100px;
-          vertical-align: top;
-          margin-left: 12px;
-          transition: all 0.3s;
-          display: inline-block;
-        }
-        &:hover {
-          span {
-            color: #184aa1;
-          }
-        }
-      }
-    }
-  }
+<!--  .account-center-team {-->
+<!--    .members {-->
+<!--      a {-->
+<!--        display: block;-->
+<!--        margin: 12px 0;-->
+<!--        line-height: 24px;-->
+<!--        height: 24px;-->
+<!--        .member {-->
+<!--          font-size: 14px;-->
+<!--          color: rgba(0, 0, 0, 0.65);-->
+<!--          line-height: 24px;-->
+<!--          max-width: 100px;-->
+<!--          vertical-align: top;-->
+<!--          margin-left: 12px;-->
+<!--          transition: all 0.3s;-->
+<!--          display: inline-block;-->
+<!--        }-->
+<!--        &:hover {-->
+<!--          span {-->
+<!--            color: #184aa1;-->
+<!--          }-->
+<!--        }-->
+<!--      }-->
+<!--    }-->
+<!--  }-->
 
-  .tagsTitle,
-  .teamTitle {
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.85);
-    margin-bottom: 12px;
-  }
-}
-</style>
+<!--  .tagsTitle,-->
+<!--  .teamTitle {-->
+<!--    font-weight: 500;-->
+<!--    color: rgba(0, 0, 0, 0.85);-->
+<!--    margin-bottom: 12px;-->
+<!--  }-->
+<!--}-->
+<!--</style>-->
