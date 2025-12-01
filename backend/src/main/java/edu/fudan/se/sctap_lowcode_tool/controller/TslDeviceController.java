@@ -31,11 +31,11 @@ public class TslDeviceController {
         try {
             Map<String, Object> result = tslDeviceService.queryDeviceInstances(prodId);
 
-            if (result.containsKey("error")) {
-                // 外部接口异常时
-                return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                        .body(Map.of("success", false, "message", result.get("error")));
-            }
+//            if (result.containsKey("error")) {
+//                // 外部接口异常时
+//                return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+//                        .body(Map.of("success", false, "message", result.get("error")));
+//            }
 
             return ResponseEntity.ok(result);
 
