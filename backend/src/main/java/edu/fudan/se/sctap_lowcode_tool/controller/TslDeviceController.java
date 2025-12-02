@@ -45,4 +45,26 @@ public class TslDeviceController {
                     .body(Map.of("success", false, "message", "服务异常：" + e.getMessage()));
         }
     }
+    // TslDeviceController.java (在现有代码中添加以下方法)
+
+    /**
+     * 新增设备实例
+     * POST /api/devices/instances
+     */
+    @PostMapping("/instances")
+    public ResponseEntity<?> addDeviceInstance(@RequestBody Map<String, String> instanceData) {
+        try {
+            Map<String, Object> result = tslDeviceService.addDeviceInstance(instanceData);
+            // 成功返回 201 Created 状态码
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "请求参数错误：" + e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "新增设备实例失败：" + e.getMessage()));
+        }
+    }
 }
+

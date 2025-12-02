@@ -11,12 +11,10 @@ import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -29,6 +27,9 @@ public class DeviceTypeService {
 
     @Autowired
     private DeviceTypeNodeRepository deviceTypeNodeRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;
@@ -90,6 +91,60 @@ public class DeviceTypeService {
                     .ifPresent(node -> deviceTypeNodeRepository.deleteById(node.getId()));
         });
         deviceTypeRepository.deleteById(id);
+    }
+    /**
+     * 新增设备类型到 tsl_product 表
+     * @param productData 包含 deviceTypeId, deviceTypeName, deviceTypeAttributes, deviceTypeFunction
+     * @return 成功信息
+     */
+    public Map<String, Object> addDeviceType(Map<String, String> productData) {
+        String productId = productData.get("deviceTypeId");
+        String productName = productData.get("deviceTypeName");
+        // 映射：使用 product_property 字段
+        String productProperty = productData.get("deviceTypeAttributes");
+        // 映射：使用 product_function 字段
+        String productFunction = productData.get("deviceTypeFunction");
+
+        if (productId == null || productId.isEmpty() || productName == null || productName.isEmpty()) {
+            throw new IllegalArgumentException("设备类型序号和名称不能为空。");
+        }
+
+        // 格式化：将前端传入的属性和功能字符串转换为 JSON 数组格式
+        String propertyJson = formatStringToArrayJson(productProperty);
+        String functionJson = formatStringToArrayJson(productFunction);
+
+        // 插入 SQL 使用 product_property 和 product_function
+        String sql = "INSERT INTO tsl_product (product_id, product_name, product_property, product_function) " +
+                "VALUES (?, ?, ?, ?)";
+
+        int updated = jdbcTemplate.update(sql,
+                productId,
+                productName,
+                propertyJson,
+                functionJson);
+
+        if (updated > 0) {
+            return Map.of("success", true, "message", "设备类型添加成功", "productId", productId);
+        } else {
+            throw new RuntimeException("设备类型添加失败，数据库未更新。");
+        }
+    }
+
+    // 辅助方法：将逗号或换行分隔的字符串转换为简单的 JSON 数组字符串 (保持与之前提供的代码一致)
+    private String formatStringToArrayJson(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return "[]";
+        }
+        String[] elements = input.split("[,\\n\\r]+");
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < elements.length; i++) {
+            sb.append("\"").append(elements[i].trim()).append("\"");
+            if (i < elements.length - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     // neo4j

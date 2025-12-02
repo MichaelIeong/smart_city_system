@@ -96,4 +96,62 @@ public class TslDeviceService {
             return Map.of("error", "本地数据库查询设备实例失败：" + e.getMessage());
         }
     }
+    // TslDeviceService.java (在现有代码中添加以下方法)
+
+    /**
+     * 新增设备实例到 tsl_devices 表
+     * @param instanceData 包含 deviceId, deviceName, deviceRegion, deviceTime, states, operation, deviceTypeId
+     * @return 成功信息
+     */
+    public Map<String, Object> addDeviceInstance(Map<String, String> instanceData) {
+        String productId = instanceData.get("deviceTypeId");
+        if (productId == null || productId.isEmpty()) {
+            throw new IllegalArgumentException("设备实例必须关联一个设备类型 (deviceTypeId)。");
+        }
+
+        String deviceId = instanceData.get("deviceId");
+        String deviceName = instanceData.get("deviceName");
+        String deviceRegion = instanceData.get("deviceRegion"); // 映射到 mesh_name
+        String deviceTime = instanceData.get("deviceTime"); // 映射到 created_at
+        String states = instanceData.get("states");
+
+        if (deviceId == null || deviceId.isEmpty() || deviceName == null || deviceName.isEmpty()) {
+            throw new IllegalArgumentException("设备序号和设备名称不能为空。");
+        }
+
+        // 状态转换：前端输入可能是文字，我们将其转换为数据库的 int (1:离线, 2:在线)
+        int status = 2; // 默认假设新增设备为 '在线'
+        if (states != null) {
+            if (states.contains("离线") || states.contains("1")) {
+                status = 1;
+            } else if (states.contains("在线") || states.contains("2")) {
+                status = 2;
+            }
+        }
+
+        // created_at 字段：使用当前时间或前端传入的值
+        String createdAt = deviceTime != null && !deviceTime.isEmpty() ? deviceTime :
+                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+
+        // project_id 假设使用默认值 1001 (与您的 CSV 文件中数据一致)
+        String projectId = "1001";
+
+        String sql = "INSERT INTO tsl_devices (device_id, device_name, product_id, status, mesh_name, created_at, project_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        int updated = jdbcTemplate.update(sql,
+                deviceId,
+                deviceName,
+                productId,
+                status,
+                deviceRegion, // mesh_name
+                createdAt,
+                projectId);
+
+        if (updated > 0) {
+            return Map.of("success", true, "message", "设备实例添加成功", "deviceId", deviceId);
+        } else {
+            throw new RuntimeException("设备实例添加失败，数据库未更新。");
+        }
+    }
 }
