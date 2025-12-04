@@ -98,6 +98,14 @@ public class FusionRuleService {
         }).orElse(false);
     }
 
+    public boolean updateBranchName(int branchId, String newName) {
+        return branchRepo.findById(branchId).map(b -> {
+            b.setBranchName(newName);
+            branchRepo.save(b);
+            return true;
+        }).orElse(false);
+    }
+
     /* =========================
      * 分支 CRUD / 执行
      * ========================= */

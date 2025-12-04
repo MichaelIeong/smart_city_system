@@ -67,6 +67,21 @@ public class FusionRuleController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("规则未找到");
     }
 
+    @Operation(summary = "修改分支名称")
+    @PutMapping("/branches/{branchId}")
+    public ResponseEntity<String> renameBranch(@PathVariable int branchId,
+                                               @RequestBody Map<String, Object> body) {
+        Object v = body.get("branchName");
+        String newName = (v == null) ? null : String.valueOf(v).trim();
+        if (newName == null || newName.isEmpty()) {
+            return ResponseEntity.badRequest().body("branchName 不能为空");
+        }
+
+        boolean ok = fusionRuleService.updateBranchName(branchId, newName);
+        return ok ? ResponseEntity.ok("更新成功")
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
+    }
+
     // （可选）规则列表附带分支数，便于前端展示
     @Operation(summary = "规则列表（含分支数量）", description = "主干规则及其分支数量统计")
     @GetMapping("/rulesWithCounts")
