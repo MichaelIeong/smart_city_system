@@ -325,9 +325,34 @@ export default {
       }
       return v
     },
-    async pushFlowAndOpen (flowJson, { deployType = 'flows' } = {}) {
+    async pushFlowAndOpen (flowJson, { deployType = 'flows', branchId = null } = {}) {
       const base = this._nrBase()
-      const normalized = this._normalizeFlow(flowJson)
+      let normalized = this._normalizeFlow(flowJson)
+
+      // ===== 重点：如果带了 branchId，就把它写进 Publish 节点的配置里 =====
+      if (branchId != null) {
+        try {
+          if (Array.isArray(normalized)) {
+            normalized = normalized.map(node => {
+              if (node && node.type === 'Publish') {
+                // 写成字符串，跟 Node-RED 默认配置类型一致
+                return { ...node, branchId: String(branchId) }
+              }
+              return node
+            })
+          } else if (normalized && typeof normalized === 'object') {
+            Object.keys(normalized).forEach(key => {
+              const node = normalized[key]
+              if (node && node.type === 'Publish') {
+                normalized[key] = { ...node, branchId: String(branchId) }
+              }
+            })
+          }
+        } catch (e) {
+          console.error('注入 branchId 到 flowJson 失败', e)
+        }
+      }
+
       const bodyStr = JSON.stringify(normalized)
 
       const headers = {
@@ -344,7 +369,6 @@ export default {
         const text = await resp.text().catch(() => '')
         throw new Error(`推送到 Node-RED 失败：HTTP ${resp.status} ${text}`)
       }
-      window.open(`${base}`, '_blank')
     },
 
     // ===== Space 映射 =====
@@ -788,10 +812,15 @@ export default {
     async goToNodeRed (model) {
       try {
         const branchId = model?.branchId
+        if (!branchId) {
+          message.error('无效的实例 ID')
+          return
+        }
+
         let branch = this.branches.find(b => b.branchId === branchId)
 
         if (!branch || !branch.flowJson) {
-          const data = await this.fetchBranchJson(branchId)
+          const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}/json`)
           branch = { ...(branch || {}), ...(data || {}) }
         }
 
@@ -800,7 +829,15 @@ export default {
           return
         }
 
-        await this.pushFlowAndOpen(branch.flowJson, { deployType: 'flows' })
+        // 1. 带着 branchId 把当前分支的 flow 推给 Node-RED（在 Publish 节点里注入 branchId）
+        await this.pushFlowAndOpen(branch.flowJson, {
+          deployType: 'flows',
+          branchId
+        })
+
+        // 2. 打开 Node-RED 编辑器（不再依赖 URL 传 branchId）
+        const base = this._nrBase() // 比如 http://127.0.0.1:1880
+        window.open(base, '_blank')
       } catch (e) {
         console.error(e)
         message.error('推送 Node-RED 失败')

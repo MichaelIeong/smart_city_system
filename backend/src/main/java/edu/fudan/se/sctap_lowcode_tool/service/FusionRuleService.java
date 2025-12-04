@@ -238,7 +238,8 @@ public class FusionRuleService {
                 FusionRuleBranch branch = new FusionRuleBranch();
                 branch.setRule(rule);
                 branch.setSpace(space);
-                branch.setBranchName(spaceName);                       // 名称=location=空间名
+                String autoName = extractLocationName(ruleJsonForSpace);
+                branch.setBranchName(autoName);
                 branch.setFusionTarget(baseFusionTarget);              // 复制模板
                 branch.setStatus(activateNewBranches ? "active" : "inactive");
                 branch.setRuleJson(ruleJsonForSpace);
@@ -565,5 +566,31 @@ public class FusionRuleService {
             branchRepo.save(b);
             return true;
         }).orElse(false);
+    }
+
+    private String extractLocationName(String ruleJsonStr) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(ruleJsonStr);
+
+            Set<String> locations = new LinkedHashSet<>();
+
+            root.fields().forEachRemaining(entry -> {
+                JsonNode node = entry.getValue();
+                if (node.has("type") && "Sensor".equalsIgnoreCase(node.get("type").asText())) {
+                    JsonNode loc = node.get("location");
+                    if (loc != null && loc.isTextual() && !loc.asText().isBlank()) {
+                        locations.add(loc.asText());
+                    }
+                }
+            });
+
+            if (locations.isEmpty()) return "未命名实例";
+
+            return String.join(" + ", locations);
+
+        } catch (Exception e) {
+            return "未命名实例";
+        }
     }
 }

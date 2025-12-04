@@ -42,7 +42,7 @@ public class NodeRedService {
     @Autowired
     private PersonService personService;
 
-    /*** 保存上传的规则 */
+    /*** 保存上传的规则（支持更新已有分支） */
     public void handleUploadRule(Map<String, JsonNode> msg) {
         JsonNode ruleJsonNode = msg.get("ruleJson");
         JsonNode flowJsonNode = msg.get("flowJson");
@@ -58,10 +58,60 @@ public class NodeRedService {
         }
         String fusionTarget = fusionTargetNode.asText();
 
+        // 可选：projectId / spaceId / branchName / status
         Integer projectId = msg.get("projectId") != null ? msg.get("projectId").asInt() : null;
         Integer spaceId = msg.get("spaceId") != null ? msg.get("spaceId").asInt() : null;
         String branchNameReq = msg.get("branchName") != null ? msg.get("branchName").asText() : null;
         String statusReq = msg.get("status") != null ? msg.get("status").asText() : "inactive";
+
+        // 关键：从 msg 里取 branchId（Node-RED publish.js 里要发上来）
+        Integer branchId = null;
+        JsonNode branchIdNode = msg.get("branchId");
+        if (branchIdNode != null && branchIdNode.isInt()) {
+            branchId = branchIdNode.asInt();
+        } else if (branchIdNode != null && branchIdNode.isTextual()) {
+            try {
+                branchId = Integer.parseInt(branchIdNode.asText());
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
+        // ===== 1) 若带 branchId，则更新已有分支 =====
+        if (branchId != null) {
+            FusionRuleBranch branch = branchRepo.findById(branchId).orElseThrow(() -> new IllegalArgumentException("Branch not found"));
+
+            // 可选：更新主干名称
+            FusionRule rule = branch.getRule();
+            if (rule != null && ruleName != null && !ruleName.isBlank()) {
+                rule.setRuleName(ruleName);
+                fusionRuleRepository.save(rule);
+            }
+
+            // 可选：更新 space（一般编辑不改 space，可按需保留）
+            if (spaceId != null) {
+                SpaceInfo space = spaceRepository.findById(spaceId).orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
+                branch.setSpace(space);
+            }
+
+            // 编辑已有分支时：优先尊重显式传入的 branchName，不动的话保持原名
+            if (branchNameReq != null && !branchNameReq.isBlank()) {
+                branch.setBranchName(branchNameReq.trim());
+            }
+            if (statusReq != null && !statusReq.isBlank()) {
+                branch.setStatus(statusReq.trim());
+            }
+
+            branch.setFusionTarget(fusionTarget);
+            branch.setRuleJson(ruleJsonNode.toString());
+            branch.setFlowJson(flowJsonNode.toString());
+
+            branchRepo.save(branch);
+
+            System.out.println("已更新分支 branchId=" + branchId + "（ruleId=" + (rule != null ? rule.getRuleId() : null) + "）");
+            return;
+        }
+
+        // ===== 2) 否则走“新建主干+分支”逻辑 =====
 
         // 先建主干
         FusionRule rule = new FusionRule();
@@ -74,14 +124,22 @@ public class NodeRedService {
         // 取空间（可为空）
         SpaceInfo space = null;
         if (spaceId != null) {
-            space = spaceRepository.findById(spaceId)
-                    .orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
+            space = spaceRepository.findById(spaceId).orElseThrow(() -> new IllegalArgumentException("Space not found: " + spaceId));
         }
 
-        // 分支名策略：优先用前端传入 -> 其次用空间名 -> 否则回退 ruleName
+        // ★ 根据 ruleJson 里 Sensor 的 location 自动生成实例名
+        String autoNameByLocation = buildBranchNameFromRuleJson(ruleJsonNode);
+
+        // 分支名策略：
+        // 1) 前端显式传入 branchName
+        // 2) 若能从 ruleJson 里解析出 location，则用 "loc1+loc2" 这种形式
+        // 3) 再其次用空间名
+        // 4) 否则回退 ruleName
         String finalBranchName;
         if (branchNameReq != null && !branchNameReq.isBlank()) {
             finalBranchName = branchNameReq.trim();
+        } else if (autoNameByLocation != null && !autoNameByLocation.isBlank()) {
+            finalBranchName = autoNameByLocation;
         } else if (space != null && space.getSpaceName() != null && !space.getSpaceName().isBlank()) {
             finalBranchName = space.getSpaceName().trim();
         } else {
@@ -100,8 +158,44 @@ public class NodeRedService {
 
         branchRepo.save(branch);
 
-        System.out.println("已创建主干 ruleId=" + rule.getRuleId()
-                + " 与分支 branchId=" + branch.getBranchId());
+        System.out.println("已创建主干 ruleId=" + rule.getRuleId() + " 与分支 branchId=" + branch.getBranchId() + "，branchName=" + finalBranchName);
+    }
+
+
+    /**
+     * 从 ruleJson 中提取所有 Sensor 节点的 location，
+     * 用 "A+B+..." 的形式拼成分支名；若没有则返回 null。
+     */
+    private String buildBranchNameFromRuleJson(JsonNode ruleJsonNode) {
+        if (ruleJsonNode == null || !ruleJsonNode.isObject()) return null;
+
+        // LinkedHashSet 保持去重 + 顺序
+        Set<String> locations = new LinkedHashSet<>();
+
+        ruleJsonNode.fields().forEachRemaining(entry -> {
+            String key = entry.getKey();
+            if ("steps".equals(key) || "rulename".equals(key)) return;
+
+            JsonNode node = entry.getValue();
+            if (node != null && node.isObject()) {
+                String type = node.path("type").asText("");
+                if ("Sensor".equalsIgnoreCase(type)) {
+                    String loc = node.path("location").asText(null);
+                    if (loc != null) {
+                        loc = loc.trim();
+                        if (!loc.isEmpty()) {
+                            locations.add(loc);
+                        }
+                    }
+                }
+            }
+        });
+
+        if (locations.isEmpty()) {
+            return null;
+        }
+        // 一个或多个 location，用 '+' 拼起来
+        return String.join("+", locations);
     }
 
     /**
