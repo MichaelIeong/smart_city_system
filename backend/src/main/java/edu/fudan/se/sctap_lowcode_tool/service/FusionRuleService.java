@@ -530,4 +530,40 @@ public class FusionRuleService {
             return 0.0;
         }
     }
+
+    /**
+     * 根据分支ID获取该分支的 ruleJson / flowJson
+     */
+    public Map<String, Object> getBranchJson(int branchId) {
+        FusionRuleBranch branch = branchRepo.findById(branchId)
+                .orElseThrow(() -> new IllegalArgumentException("分支未找到: " + branchId));
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("branchId", branch.getBranchId());
+        res.put("ruleId", branch.getRule() != null ? branch.getRule().getRuleId() : null);
+        res.put("branchName", branch.getBranchName());
+        res.put("spaceId", branch.getSpace() != null ? branch.getSpace().getSpaceId() : null);
+        res.put("status", branch.getStatus());
+        res.put("fusionTarget", branch.getFusionTarget());
+        res.put("ruleJson", branch.getRuleJson());
+        res.put("flowJson", branch.getFlowJson());
+        return res;
+    }
+
+    /**
+     * 更新分支的 ruleJson / flowJson
+     * 允许只更新其中一个；传 null 表示不改该字段
+     */
+    public boolean updateBranchJson(int branchId, String ruleJson, String flowJson) {
+        return branchRepo.findById(branchId).map(b -> {
+            if (ruleJson != null) {
+                b.setRuleJson(ruleJson);
+            }
+            if (flowJson != null) {
+                b.setFlowJson(flowJson);
+            }
+            branchRepo.save(b);
+            return true;
+        }).orElse(false);
+    }
 }

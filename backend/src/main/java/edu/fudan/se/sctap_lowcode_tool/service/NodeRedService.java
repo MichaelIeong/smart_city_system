@@ -101,8 +101,7 @@ public class NodeRedService {
         branchRepo.save(branch);
 
         System.out.println("已创建主干 ruleId=" + rule.getRuleId()
-                + " 与分支 branchId=" + branch.getBranchId()
-                + "（branch_index 已移除，不再使用）");
+                + " 与分支 branchId=" + branch.getBranchId());
     }
 
     /**

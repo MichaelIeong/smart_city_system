@@ -164,4 +164,56 @@ public class FusionRuleController {
                 fusionRuleService.applyRuleToExecutableSpaces(ruleId, activateNewBranches, spaceIds);
         return ResponseEntity.ok(result);
     }
+
+    @Operation(summary = "查看分支的规则 JSON", description = "根据 branchId 返回该分支的 ruleJson 与 flowJson")
+    @GetMapping("/branches/{branchId}/json")
+    public ResponseEntity<?> getBranchJson(@PathVariable int branchId) {
+        try {
+            Map<String, Object> data = fusionRuleService.getBranchJson(branchId);
+            return ResponseEntity.ok(data);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "查询分支 JSON 失败: " + e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "更新分支的规则 JSON", description = "根据 branchId 更新 ruleJson / flowJson，允许只改其中一个")
+    @PutMapping("/branches/{branchId}/json")
+    public ResponseEntity<?> updateBranchJson(@PathVariable int branchId,
+                                              @RequestBody Map<String, Object> body) {
+        Object ruleJsonObj = body.get("ruleJson");
+        Object flowJsonObj = body.get("flowJson");
+
+        if (ruleJsonObj == null && flowJsonObj == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "ruleJson 和 flowJson 不能同时为空"));
+        }
+
+        // 将对象转换为 JSON 字符串
+        String ruleJsonStr = null;
+        String flowJsonStr = null;
+        try {
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            if (ruleJsonObj != null) {
+                ruleJsonStr = (ruleJsonObj instanceof String s)
+                        ? s
+                        : mapper.writeValueAsString(ruleJsonObj);
+            }
+            if (flowJsonObj != null) {
+                flowJsonStr = (flowJsonObj instanceof String s)
+                        ? s
+                        : mapper.writeValueAsString(flowJsonObj);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "请求体解析失败: " + e.getMessage()));
+        }
+
+        boolean ok = fusionRuleService.updateBranchJson(branchId, ruleJsonStr, flowJsonStr);
+        return ok ? ResponseEntity.ok("更新分支 JSON 成功")
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
+    }
 }

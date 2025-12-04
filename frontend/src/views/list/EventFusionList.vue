@@ -101,7 +101,7 @@
       </a-row>
     </div>
 
-    <!-- 编辑实例（仅名称 + 纯跳转到 Node-RED） -->
+    <!-- 编辑实例（名称 + DSL + Node-RED 跳转） -->
     <a-modal
       v-model="branchModal.visible"
       title="编辑实例"
@@ -110,6 +110,7 @@
       :confirmLoading="branchModal.loading"
     >
       <a-form :form="branchForm">
+        <!-- 实例名称 -->
         <a-form-item label="实例名称" :labelCol="{span:5}" :wrapperCol="{span:19}">
           <a-input
             v-decorator="[
@@ -120,6 +121,24 @@
           />
         </a-form-item>
 
+        <!-- 规则 DSL（ruleJson） -->
+        <a-form-item label="规则 DSL" :labelCol="{span:5}" :wrapperCol="{span:19}">
+          <a-spin :spinning="branchModal.dslLoading">
+            <a-textarea
+              v-model="branchModal.ruleJson"
+              :rows="10"
+              :disabled="!branchModal.dslEditable"
+              placeholder="点击下方『解锁 DSL 编辑』按钮后可修改，内容为 ruleJson（JSON 格式）"
+            />
+          </a-spin>
+          <div style="margin-top: 8px; text-align: right;">
+            <a-button size="small" @click="toggleDslEditable">
+              {{ branchModal.dslEditable ? '锁定 DSL' : '解锁 DSL 编辑' }}
+            </a-button>
+          </div>
+        </a-form-item>
+
+        <!-- Node-RED 跳转 -->
         <div style="display: flex; justify-content: center; align-items: center; margin-top: 12px;">
           <a-button type="primary" @click="goToNodeRed(branchModal.model)">
             在 Node-RED 中编辑
@@ -186,7 +205,6 @@
       </a-form>
     </a-modal>
 
-    <!-- 你已有的 LLM 弹窗 -->
     <LLMCreation
       :modelModalVisible="modelModalVisible"
       @update:modelModalVisible="modelModalVisible = $event"
@@ -233,11 +251,14 @@ export default {
       filteredBranches: [],
       branchQuery: { status: 'all' },
 
-      // 实例弹窗
+      // 实例弹窗（名称 + DSL）
       branchModal: {
         visible: false,
-        loading: false,
-        model: { branchId: null, branchName: '' }
+        loading: false, // 点击“确定”时 loading
+        dslLoading: false, // 加载 DSL 时 loading
+        dslEditable: false, // 是否允许编辑 DSL（需要点按钮解锁）
+        model: { branchId: null, branchName: '' },
+        ruleJson: '' // 当前实例的 DSL（ruleJson）
       },
       branchForm: null,
 
@@ -585,6 +606,12 @@ export default {
         message.error('获取实例列表失败')
       }
     },
+    // ===== 分支 JSON 接口（给 Node-RED 用） =====
+    async fetchBranchJson (branchId) {
+      if (!branchId) throw new Error('branchId 不能为空')
+      const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}/json`)
+      return data || {}
+    },
     filterBranches () {
       const s = this.branchQuery.status
       this.filteredBranches = (s === 'all') ? [...this.branches] : this.branches.filter(b => (b.status || 'inactive') === s)
@@ -641,7 +668,7 @@ export default {
       })
     },
 
-    // ====== 仅编辑“实例名称”，按钮进入 Node-RED（纯跳转） ======
+    // ====== 编辑实例（名称 + DSL） ======
     editBranch (record) {
       this.branchModal.model = {
         branchId: record.branchId,
@@ -651,28 +678,104 @@ export default {
     },
     openBranchModal () {
       this.branchModal.visible = true
+      this.branchModal.loading = false
+      this.branchModal.dslLoading = false
+      this.branchModal.dslEditable = false
+      this.branchModal.ruleJson = ''
       this.$nextTick(() => {
         this.branchForm = this.$form.createForm(this, { name: 'branchForm' })
         const { branchName } = this.branchModal.model
         this.branchForm.setFieldsValue({ branchName })
       })
+      // 打开弹窗时加载该实例的 DSL
+      this.loadBranchDsl(this.branchModal.model.branchId)
     },
     closeBranchModal () {
       this.branchModal.visible = false
       this.branchModal.loading = false
+      this.branchModal.dslLoading = false
+      this.branchModal.dslEditable = false
+      this.branchModal.ruleJson = ''
     },
+    // 加载某个实例的 DSL（ruleJson）
+    async loadBranchDsl (branchId) {
+      if (!branchId) return
+      this.branchModal.dslLoading = true
+      try {
+        const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}/json`)
+        const raw = data?.ruleJson
+
+        if (typeof raw === 'string') {
+          const s = raw.trim()
+          // 尝试格式化成缩进 JSON，方便阅读和编辑
+          if (s.startsWith('{') || s.startsWith('[')) {
+            try {
+              const obj = JSON.parse(s)
+              this.branchModal.ruleJson = JSON.stringify(obj, null, 2)
+            } catch (e) {
+              this.branchModal.ruleJson = raw
+            }
+          } else {
+            this.branchModal.ruleJson = raw
+          }
+        } else if (raw && typeof raw === 'object') {
+          this.branchModal.ruleJson = JSON.stringify(raw, null, 2)
+        } else {
+          this.branchModal.ruleJson = ''
+        }
+      } catch (e) {
+        console.error(e)
+        message.error('加载规则 DSL 失败')
+      } finally {
+        this.branchModal.dslLoading = false
+      }
+    },
+    // 切换 DSL 是否可编辑
+    toggleDslEditable () {
+      this.branchModal.dslEditable = !this.branchModal.dslEditable
+    },
+    // 名称 +（如果解锁）DSL 一起提交
     submitBranchModal () {
       this.branchForm.validateFields(async (err, values) => {
         if (err) return
         this.branchModal.loading = true
+        const branchId = this.branchModal.model.branchId
+
         try {
-          await axios.put(`${BASE}/api/fusion/branches/${this.branchModal.model.branchId}`, {
+          // 1) 更新实例名称
+          await axios.put(`${BASE}/api/fusion/branches/${branchId}`, {
             branchName: values.branchName
           })
+
+          // 2) 若 DSL 已解锁，则更新 ruleJson
+          if (this.branchModal.dslEditable) {
+            const text = (this.branchModal.ruleJson || '').trim()
+            if (!text) {
+              message.error('规则 DSL 不能为空')
+              this.branchModal.loading = false
+              return
+            }
+
+            let parsed
+            try {
+              parsed = JSON.parse(text)
+            } catch (e) {
+              message.error('规则 DSL 不是合法 JSON，请检查格式')
+              this.branchModal.loading = false
+              return
+            }
+
+            await axios.put(`${BASE}/api/fusion/branches/${branchId}/json`, {
+              ruleJson: parsed
+            })
+          }
+
           message.success('更新成功')
           this.closeBranchModal()
-          await this.fetchBranches(this.activeRule.ruleId)
-          this.filterBranches()
+          if (this.activeRule && this.activeRule.ruleId) {
+            await this.fetchBranches(this.activeRule.ruleId)
+            this.filterBranches()
+          }
         } catch (e) {
           console.error(e)
           message.error('更新失败')
@@ -688,7 +791,7 @@ export default {
         let branch = this.branches.find(b => b.branchId === branchId)
 
         if (!branch || !branch.flowJson) {
-          const { data } = await axios.get(`${BASE}/api/fusion/branches/${branchId}`)
+          const data = await this.fetchBranchJson(branchId)
           branch = { ...(branch || {}), ...(data || {}) }
         }
 
