@@ -228,8 +228,8 @@ export default {
     return {
       // 主干
       columns: [
-        { title: '规则名称', dataIndex: 'ruleName' },
-        { title: '操作', dataIndex: 'action', width: '320px', scopedSlots: { customRender: 'action' } }
+        { title: '规则名称', dataIndex: 'ruleName', width: '170px' },
+        { title: '操作', dataIndex: 'action', width: '260px', scopedSlots: { customRender: 'action' } }
       ],
       data: [],
       queryParam: { status: 'all' },
@@ -243,7 +243,6 @@ export default {
       // 实例
       branchColumns: [
         { title: '实例空间', dataIndex: 'branchName', width: 60, scopedSlots: { customRender: 'branchName' } },
-        { title: '目标表', dataIndex: 'fusionTarget', width: 50 },
         { title: '状态', dataIndex: 'status', width: 50, scopedSlots: { customRender: 'status' } },
         { title: '操作', dataIndex: 'action', width: 100, scopedSlots: { customRender: 'action' } }
       ],
@@ -872,7 +871,7 @@ export default {
 
 .one-line-ellipsis {
   display: inline-block;
-  max-width: 240px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
