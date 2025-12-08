@@ -5,9 +5,9 @@
         <!-- 左侧：通用规则 -->
         <a-col :span="12">
           <a-card title="通用规则" bordered :style="{ borderRadius: '8px', height: '100%' }">
-            <div class="table-page-search-wrapper" style="margin-bottom: 12px;"></div>
+            <div class="table-page-search-wrapper"></div>
 
-            <div style="margin-bottom: 12px;">
+            <div style="margin-bottom: 15px;">
               <a-button type="primary" icon="plus" @click="handleAdd">
                 使用Node-Red创建规则
               </a-button>
@@ -21,9 +21,9 @@
                 ref="table"
                 size="default"
                 rowKey="ruleId"
+                :pagination="false"
                 :columns="columns"
                 :dataSource="data"
-                :pagination="pagination"
                 :customRow="customRuleRow"
                 :scroll="{ y: 'calc(100vh - 460px)' }"
                 style="flex:1;"
@@ -31,7 +31,7 @@
                 <span slot="status" slot-scope="text">
                   <a-badge
                     :status="text === 'active' ? 'processing' : 'default'"
-                    :text="text === 'active' ? '运行中' : '已关闭'" />
+                    :text="text === 'active' ? '执行中' : '已暂停'" />
                 </span>
 
                 <span slot="action" slot-scope="text, record">
@@ -55,8 +55,8 @@
                 <a-col :md="16" :sm="24">
                   <a-select v-model="branchQuery.status" placeholder="请选择实例状态" style="width:100%;">
                     <a-select-option value="all">全部</a-select-option>
-                    <a-select-option value="active">运行中</a-select-option>
-                    <a-select-option value="inactive">已关闭</a-select-option>
+                    <a-select-option value="active">执行中</a-select-option>
+                    <a-select-option value="inactive">已暂停</a-select-option>
                   </a-select>
                 </a-col>
                 <a-col :md="8" :sm="24">
@@ -82,7 +82,7 @@
                 <span slot="status" slot-scope="text">
                   <a-badge
                     :status="text === 'active' ? 'processing' : 'default'"
-                    :text="text === 'active' ? '运行中' : '已关闭'" />
+                    :text="text === 'active' ? '执行中' : '已暂停'" />
                 </span>
 
                 <span slot="action" slot-scope="text, record">
@@ -232,7 +232,6 @@ export default {
       ],
       data: [],
       queryParam: { status: 'all' },
-      pagination: { current: 1, pageSize: 10, total: 0 },
       selectedRowKeys: [],
       selectedRows: [],
       modelModalVisible: false,
@@ -387,7 +386,6 @@ export default {
       getRuleList().then(res => {
         const { status } = this.queryParam
         this.data = (status === 'all') ? res : res.filter(r => r.status === status)
-        this.pagination.total = this.data.length
         if (this.data.length > 0) this.onPickRule(this.data[0])
       })
     },
@@ -846,7 +844,7 @@ export default {
     toggleBranchStatus (record) {
       const status = record.status || 'inactive'
       if (status === 'active') {
-        // 当前运行中 -> 调用暂停逻辑（里面已有确认弹窗）
+        // 当前执行中 -> 调用暂停逻辑（里面已有确认弹窗）
         this.pauseBranch(record)
       } else {
         // 当前关闭 -> 执行
