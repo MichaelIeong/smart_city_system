@@ -39,7 +39,6 @@
 
 <script>
 import { asyncRouterMap } from '@/config/router.config.js'
-import { SettingDrawer, updateTheme } from '@ant-design-vue/pro-layout'
 import { i18nRender } from '@/locales'
 import { mapState } from 'vuex'
 import { CONTENT_WIDTH_TYPE } from '@/store/mutation-types'
@@ -52,7 +51,6 @@ import Ads from '@/components/Other/CarbonAds'
 export default {
   name: 'BasicLayout',
   components: {
-    SettingDrawer,
     RightContent,
     GlobalFooter,
     Ads
@@ -97,10 +95,6 @@ export default {
           this.collapsed = !this.collapsed
         }, 16)
       })
-    }
-
-    if (process.env.NODE_ENV !== 'production' || process.env.VUE_APP_PREVIEW === 'true') {
-      updateTheme(this.settings.primaryColor)
     }
   },
   methods: {
