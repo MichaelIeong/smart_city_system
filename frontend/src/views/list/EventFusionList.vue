@@ -70,7 +70,7 @@
                 :dataSource="filteredBranches"
                 row-key="branchId"
                 :pagination="false"
-                :scroll="{ x: 600, y: 'calc(100vh - 540px)' }"
+                :scroll="{ x: 400, y: 'calc(100vh - 540px)' }"
                 style="flex:1;"
               >
                 <span slot="branchName" slot-scope="text">
@@ -86,15 +86,14 @@
                 </span>
 
                 <span slot="action" slot-scope="text, record">
-                  <a @click.stop.prevent="executeBranch(record)">执行</a>
-                  <a-divider type="vertical" />
-                  <a @click.stop.prevent="pauseBranch(record)">暂停</a>
+                  <a @click.stop.prevent="toggleBranchStatus(record)">
+                    {{ (record.status || 'inactive') === 'active' ? '暂停' : '执行' }}
+                  </a>
                   <a-divider type="vertical" />
                   <a @click.stop.prevent="editBranch(record)">编辑</a>
                   <a-divider type="vertical" />
                   <a @click.stop.prevent="deleteBranch(record)">删除</a>
-                </span>
-              </a-table>
+                </span></a-table>
             </div>
           </a-card>
         </a-col>
@@ -228,8 +227,8 @@ export default {
     return {
       // 主干
       columns: [
-        { title: '规则名称', dataIndex: 'ruleName', width: '170px' },
-        { title: '操作', dataIndex: 'action', width: '260px', scopedSlots: { customRender: 'action' } }
+        { title: '规则名称', dataIndex: 'ruleName', width: '30%' },
+        { title: '操作', dataIndex: 'action', width: '35%', scopedSlots: { customRender: 'action' } }
       ],
       data: [],
       queryParam: { status: 'all' },
@@ -242,9 +241,9 @@ export default {
 
       // 实例
       branchColumns: [
-        { title: '实例空间', dataIndex: 'branchName', width: 60, scopedSlots: { customRender: 'branchName' } },
-        { title: '状态', dataIndex: 'status', width: 50, scopedSlots: { customRender: 'status' } },
-        { title: '操作', dataIndex: 'action', width: 100, scopedSlots: { customRender: 'action' } }
+        { title: '实例空间', dataIndex: 'branchName', width: '30%', scopedSlots: { customRender: 'branchName' } },
+        { title: '状态', dataIndex: 'status', width: '25%', scopedSlots: { customRender: 'status' } },
+        { title: '操作', dataIndex: 'action', width: '35%', scopedSlots: { customRender: 'action' } }
       ],
       branches: [],
       filteredBranches: [],
@@ -840,6 +839,18 @@ export default {
       } catch (e) {
         console.error(e)
         message.error('推送 Node-RED 失败')
+      }
+    },
+
+    // 合并执行/暂停
+    toggleBranchStatus (record) {
+      const status = record.status || 'inactive'
+      if (status === 'active') {
+        // 当前运行中 -> 调用暂停逻辑（里面已有确认弹窗）
+        this.pauseBranch(record)
+      } else {
+        // 当前关闭 -> 执行
+        this.executeBranch(record)
       }
     },
 

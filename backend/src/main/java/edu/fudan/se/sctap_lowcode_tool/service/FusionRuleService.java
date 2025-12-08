@@ -279,6 +279,9 @@ public class FusionRuleService {
                 .orElseThrow(() -> new IllegalArgumentException("Branch not found: " + branchId));
         int ruleId = branch.getRule().getRuleId();
 
+        branch.setStatus("active");
+        branchRepo.save(branch);
+
         runningFlags.compute(ruleId, (id, flag) -> {
             if (flag == null || !flag.get()) {
                 AtomicBoolean newFlag = new AtomicBoolean(true);
@@ -301,6 +304,8 @@ public class FusionRuleService {
         int ruleId = branch.getRule().getRuleId();
         AtomicBoolean flag = runningFlags.get(ruleId);
         if (flag != null) flag.set(false);
+        branch.setStatus("inactive");
+        branchRepo.save(branch);
         System.out.println("已暂停分支，branchId=" + branchId + ", ruleId=" + ruleId);
         return true;
     }
