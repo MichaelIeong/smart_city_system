@@ -64,7 +64,6 @@ public class SpaceService {
         SpaceNode node = new SpaceNode();
         node.setSpaceId(saved.getSpaceId());  // 直接使用 SpaceInfo 的 ID 作为 Neo4j 的 @Id
         node.setSpaceName(saved.getSpaceName());
-        node.setFixedProperties(saved.getFixedProperties());
         node.setDescription(saved.getDescription());
 
         spaceNodeRepository.save(node);
@@ -78,21 +77,18 @@ public class SpaceService {
         return spaceRepository.findById(id).map(existing -> {
             existing.setSpaceId(updated.getSpaceId());
             existing.setSpaceName(updated.getSpaceName());
-            existing.setFixedProperties(updated.getFixedProperties());
             existing.setDescription(updated.getDescription());
 
             SpaceInfo saved = spaceRepository.save(existing);
 
             spaceNodeRepository.findBySpaceId(saved.getSpaceId()).ifPresentOrElse(node -> {
                 node.setSpaceName(saved.getSpaceName());
-                node.setFixedProperties(saved.getFixedProperties());
                 node.setDescription(saved.getDescription());
                 spaceNodeRepository.save(node);
             }, () -> {
                 SpaceNode newNode = new SpaceNode();
                 newNode.setSpaceId(saved.getSpaceId());
                 newNode.setSpaceName(saved.getSpaceName());
-                newNode.setFixedProperties(saved.getFixedProperties());
                 newNode.setDescription(saved.getDescription());
                 spaceNodeRepository.save(newNode);
             });

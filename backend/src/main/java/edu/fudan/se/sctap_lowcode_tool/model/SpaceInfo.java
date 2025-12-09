@@ -32,8 +32,6 @@ public class SpaceInfo {
     @Column(nullable = false)
     private String spaceName;   // 空间的名称
 
-    private String fixedProperties;   // 空间的固定属性
-
     private String description;   // 空间的描述
 
     @OneToMany(mappedBy = "space", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -54,19 +52,4 @@ public class SpaceInfo {
     )
     private Set<SpaceInfo> adjacentSpaces = new HashSet<>();
 
-    public void addAdjacentSpace(SpaceInfo space) {
-        if (this.spaceId.equals(space.spaceId) || this.adjacentSpaces.contains(space)) {
-            return;
-        }
-        adjacentSpaces.add(space);
-        space.getAdjacentSpaces().add(this);
-    }
-
-    public void removeAdjacentSpace(SpaceInfo space) {
-        if (this.spaceId.equals(space.spaceId) || !this.adjacentSpaces.contains(space)) {
-            return;
-        }
-        adjacentSpaces.remove(space);
-        space.getAdjacentSpaces().remove(this);
-    }
 }

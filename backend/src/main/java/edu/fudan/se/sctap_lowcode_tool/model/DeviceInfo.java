@@ -48,6 +48,9 @@ public class DeviceInfo {
     private Set<ActuatingFunctionDevice> actuatingFunctions;   // 设备的执行功能
 
     @Column(nullable = true)
+    private String description;
+
+    @Column(nullable = true)
     private String fixedProperties; // 设备的固定属性，以JSON对象格式字符串存储，例如{"color":"red", "protocol":"zigbee"}
 
     @Column(nullable = true)

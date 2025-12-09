@@ -49,19 +49,6 @@ public class SpaceController {
                     .collect(Collectors.toList());
             result.put("properties", propertiesList);
 
-            String fixedProperties = spaceInfo.getFixedProperties();
-            if (fixedProperties != null && !fixedProperties.trim().isEmpty()) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                try {
-                    JsonNode fixedPropertiesJson = objectMapper.readTree(fixedProperties);
-                    result.put("fixedProperties", fixedPropertiesJson);
-                } catch (Exception e) {
-                    result.put("fixedProperties", "Invalid JSON format");
-                }
-            } else {
-                result.put("fixedProperties", null);
-            }
-
             List<Map<String, Object>> eventList = spaceInfo.getEvents().stream()
                     .map(event -> {
                         Map<String, Object> eventMap = new HashMap<>();
