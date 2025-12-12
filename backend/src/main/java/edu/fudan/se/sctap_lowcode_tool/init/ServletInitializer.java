@@ -1,5 +1,6 @@
-package edu.fudan.se.sctap_lowcode_tool;
+package edu.fudan.se.sctap_lowcode_tool.init;
 
+import edu.fudan.se.sctap_lowcode_tool.SctapLowCodeToolApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
