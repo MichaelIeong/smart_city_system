@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.repository;
 
+import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRuleBranch;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
@@ -50,4 +51,6 @@ public interface FusionRuleBranchRepository extends JpaRepository<FusionRuleBran
     @Modifying
     @Query("delete from FusionRuleBranch b where b.rule.ruleId = :ruleId")
     void deleteByRule_RuleId(@Param("ruleId") Integer ruleId);
+
+    List<FusionRuleBranch> findByRule(FusionRule rule);
 }

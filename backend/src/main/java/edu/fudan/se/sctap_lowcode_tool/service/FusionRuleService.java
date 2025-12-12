@@ -14,6 +14,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +47,9 @@ public class FusionRuleService {
     @Autowired
     private SpaceRepository spaceRepository;
 
-    // 每次执行过程中的全局节点状态（同一规则执行上下文内使用）
+    @Autowired
+    private MilvusUtil milvusUtil;  // RAG 向量库更新入口
+
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
 
     // 每条主干规则的执行旗标：ruleId -> 是否继续执行
@@ -59,41 +62,41 @@ public class FusionRuleService {
      * 主干规则相关
      * ========================= */
 
-    /**
-     * 返回主干规则列表（主表仅保留 id/project/name）
-     */
     public List<FusionRule> getRuleList() {
         return fusionRuleRepository.findAll();
     }
 
     /**
-     * 删除主干规则：先查出并逐条删除其分支，再删除主干本身。
-     * 全程不走批量 JPQL，避免 “Executing an update/delete query” 异常。
+     * 删除主干规则，同时删除向量库中的对应规则条目。
      */
     public boolean deleteRuleById(int ruleId) {
         if (!fusionRuleRepository.existsById(ruleId)) {
             return false;
         }
-        // 1) 先删子：逐条删分支（避免 @Modifying 批量更新需要事务）
+
+        // 先删 Milvus 中的规则向量
+        milvusUtil.deleteByObject("rule", String.valueOf(ruleId));
+
+        // 再逐条删除分支
         List<FusionRuleBranch> branches = branchRepo.findByRule_RuleId(ruleId);
         if (branches != null && !branches.isEmpty()) {
             for (FusionRuleBranch b : branches) {
-                // 用 deleteById 最稳妥（走实体删除）
                 branchRepo.deleteById(b.getBranchId());
             }
         }
-        // 2) 再删父：删除主干
+        // 最后删除主干
         fusionRuleRepository.deleteById(ruleId);
         return true;
     }
 
     /**
-     * 主干改名
+     * 主干改名后，同步更新 Milvus 中规则语义。
      */
     public boolean updateRuleName(int ruleId, String newName) {
         return fusionRuleRepository.findById(ruleId).map(r -> {
             r.setRuleName(newName);
-            fusionRuleRepository.save(r);
+            FusionRule saved = fusionRuleRepository.save(r);
+            milvusUtil.upsertRule(saved);  // ruleName 变更，规则描述需要刷新
             return true;
         }).orElse(false);
     }
@@ -102,6 +105,8 @@ public class FusionRuleService {
         return branchRepo.findById(branchId).map(b -> {
             b.setBranchName(newName);
             branchRepo.save(b);
+            // 分支名称也体现到规则语义里，这里顺带刷新一下规则向量
+            milvusUtil.upsertRuleByBranch(b);
             return true;
         }).orElse(false);
     }
@@ -110,9 +115,6 @@ public class FusionRuleService {
      * 分支 CRUD / 执行
      * ========================= */
 
-    /**
-     * 根据主干列出分支
-     */
     public List<FusionRuleBranch> listBranchesByRule(Integer ruleId) {
         return branchRepo.findByRule_RuleId(ruleId);
     }
@@ -125,7 +127,8 @@ public class FusionRuleService {
     }
 
     /**
-     * 按可执行空间创建分支；spaceIds == null 表示对全部可执行空间处理；
+     * 把主干规则应用到指定空间列表：为每个空间创建分支。
+     * 创建完成后，用新的分支集更新一次 Milvus 中的规则向量。
      */
     public Map<String, Object> applyRuleToExecutableSpaces(int ruleId,
                                                            boolean activateNewBranches,
@@ -240,7 +243,7 @@ public class FusionRuleService {
                 branch.setSpace(space);
                 String autoName = extractLocationName(ruleJsonForSpace);
                 branch.setBranchName(autoName);
-                branch.setFusionTarget(baseFusionTarget);              // 复制模板
+                branch.setFusionTarget(baseFusionTarget);
                 branch.setStatus(activateNewBranches ? "active" : "inactive");
                 branch.setRuleJson(ruleJsonForSpace);
                 branch.setFlowJson(flowJsonForSpace);
@@ -260,6 +263,9 @@ public class FusionRuleService {
                 ));
             }
         }
+
+        // 分支集发生了变化，更新一次规则向量
+        milvusUtil.upsertRule(rule);
 
         out.put("createdBranches", created.size());
         out.put("created", created);
@@ -311,12 +317,19 @@ public class FusionRuleService {
     }
 
     /**
-     * 删除分支
+     * 删除分支后，规则语义可能变化，触发一次规则向量更新。
      */
     public boolean deleteBranch(int branchId) {
-        if (!branchRepo.existsById(branchId)) return false;
-        branchRepo.deleteById(branchId);
-        return true;
+        return branchRepo.findById(branchId).map(branch -> {
+            FusionRule rule = branch.getRule();
+            int ruleId = rule != null ? rule.getRuleId() : -1;
+            branchRepo.delete(branch);
+            if (rule != null) {
+                milvusUtil.upsertRule(rule);
+            }
+            System.out.println("已删除分支，branchId=" + branchId + ", ruleId=" + ruleId);
+            return true;
+        }).orElse(false);
     }
 
     /**
@@ -557,8 +570,8 @@ public class FusionRuleService {
     }
 
     /**
-     * 更新分支的 ruleJson / flowJson
-     * 允许只更新其中一个；传 null 表示不改该字段
+     * 上传 / 修改某个分支的 ruleJson / flowJson 后，同步刷新对应规则的向量。
+     * 这就是你说的“upload 一条 rule 时触发更新 Milvus”的关键入口。
      */
     public boolean updateBranchJson(int branchId, String ruleJson, String flowJson) {
         return branchRepo.findById(branchId).map(b -> {
@@ -568,7 +581,8 @@ public class FusionRuleService {
             if (flowJson != null) {
                 b.setFlowJson(flowJson);
             }
-            branchRepo.save(b);
+            FusionRuleBranch saved = branchRepo.save(b);
+            milvusUtil.upsertRuleByBranch(saved);  // 上传规则后立即更新 Milvus
             return true;
         }).orElse(false);
     }
@@ -591,9 +605,7 @@ public class FusionRuleService {
             });
 
             if (locations.isEmpty()) return "未命名实例";
-
             return String.join(" + ", locations);
-
         } catch (Exception e) {
             return "未命名实例";
         }

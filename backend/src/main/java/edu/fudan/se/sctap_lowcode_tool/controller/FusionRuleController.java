@@ -4,6 +4,7 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.BranchDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.RuleWithCountDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleService;
+import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,10 @@ public class FusionRuleController {
 
     @Autowired
     private FusionRuleService fusionRuleService;
+
+    // ======== Milvus RAG 工具 ========
+    @Autowired
+    private MilvusUtil milvusUtil;
 
     // ========= 规则（主干）接口 =========
 
@@ -215,5 +220,28 @@ public class FusionRuleController {
         boolean ok = fusionRuleService.updateBranchJson(branchId, ruleJsonStr, flowJsonStr);
         return ok ? ResponseEntity.ok("更新分支 JSON 成功")
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
+    }
+
+    @Operation(
+            summary = "RAG 规则检索（用于规则推荐与生成）",
+            description = """
+                    基于 Milvus + bge 的规则语义检索接口：
+                    - q: 自然语言需求 / 规则描述
+                    - k: 返回 Top K 条相似规则
+                    
+                    说明：
+                    - 仅检索 object_type = rule
+                    - 设备 / 空间向量仅用于 LLM 上下文，不直接返回
+                    """
+    )
+    @GetMapping("/rag/search")
+    public ResponseEntity<List<MilvusUtil.RagRecord>> ragSearch(
+            @RequestParam("q") String query,
+            @RequestParam(value = "k", defaultValue = "5") int k) {
+
+        List<MilvusUtil.RagRecord> results =
+                milvusUtil.searchRules(query, k);
+
+        return ResponseEntity.ok(results);
     }
 }
