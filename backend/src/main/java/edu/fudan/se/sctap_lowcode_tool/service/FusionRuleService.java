@@ -14,7 +14,6 @@ import edu.fudan.se.sctap_lowcode_tool.repository.FusionRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.KafkaConsumerUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.OperatorUtil;
-import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -48,7 +47,7 @@ public class FusionRuleService {
     private SpaceRepository spaceRepository;
 
     @Autowired
-    private MilvusUtil milvusUtil;  // RAG 向量库更新入口
+    private FusionRuleRecommendService fusionRuleRecommendService;
 
     private final Map<String, Map<String, Object>> globalState = new HashMap<>();
 
@@ -75,7 +74,7 @@ public class FusionRuleService {
         }
 
         // 先删 Milvus 中的规则向量
-        milvusUtil.deleteByObject("rule", String.valueOf(ruleId));
+        fusionRuleRecommendService.deleteRuleVector(ruleId);
 
         // 再逐条删除分支
         List<FusionRuleBranch> branches = branchRepo.findByRule_RuleId(ruleId);
@@ -96,7 +95,7 @@ public class FusionRuleService {
         return fusionRuleRepository.findById(ruleId).map(r -> {
             r.setRuleName(newName);
             FusionRule saved = fusionRuleRepository.save(r);
-            milvusUtil.upsertRule(saved);  // ruleName 变更，规则描述需要刷新
+            fusionRuleRecommendService.upsertRule(saved);
             return true;
         }).orElse(false);
     }
@@ -106,7 +105,7 @@ public class FusionRuleService {
             b.setBranchName(newName);
             branchRepo.save(b);
             // 分支名称也体现到规则语义里，这里顺带刷新一下规则向量
-            milvusUtil.upsertRuleByBranch(b);
+            fusionRuleRecommendService.upsertRuleByBranch(b);
             return true;
         }).orElse(false);
     }
@@ -265,7 +264,7 @@ public class FusionRuleService {
         }
 
         // 分支集发生了变化，更新一次规则向量
-        milvusUtil.upsertRule(rule);
+        fusionRuleRecommendService.upsertRule(rule);
 
         out.put("createdBranches", created.size());
         out.put("created", created);
@@ -325,7 +324,7 @@ public class FusionRuleService {
             int ruleId = rule != null ? rule.getRuleId() : -1;
             branchRepo.delete(branch);
             if (rule != null) {
-                milvusUtil.upsertRule(rule);
+                fusionRuleRecommendService.upsertRule(rule);
             }
             System.out.println("已删除分支，branchId=" + branchId + ", ruleId=" + ruleId);
             return true;
@@ -582,7 +581,7 @@ public class FusionRuleService {
                 b.setFlowJson(flowJson);
             }
             FusionRuleBranch saved = branchRepo.save(b);
-            milvusUtil.upsertRuleByBranch(saved);  // 上传规则后立即更新 Milvus
+            fusionRuleRecommendService.onBranchRuleUploaded(saved);
             return true;
         }).orElse(false);
     }

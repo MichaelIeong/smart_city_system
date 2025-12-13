@@ -1,6 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.init;
 
-import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
+import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleRecommendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -10,14 +10,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MilvusRagInitializer implements ApplicationRunner {
 
-    private final MilvusUtil milvusUtil;
+    private final FusionRuleRecommendService fusionRuleRecommendService;
 
     @Override
     public void run(ApplicationArguments args) {
-        // 启动时全量同步一次
-        milvusUtil.syncDevicesToMilvus();
-        milvusUtil.syncSpacesToMilvus();
-        milvusUtil.syncRulesToMilvus();
+        fusionRuleRecommendService.syncAllToMilvus();
         System.out.println("Milvus RAG 初始化完成");
     }
 }

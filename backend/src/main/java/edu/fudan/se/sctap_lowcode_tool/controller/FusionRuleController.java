@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.BranchDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.fusion.RuleWithCountDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
+import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleRecommendService;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionRuleService;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,9 +26,8 @@ public class FusionRuleController {
     @Autowired
     private FusionRuleService fusionRuleService;
 
-    // ======== Milvus RAG 工具 ========
     @Autowired
-    private MilvusUtil milvusUtil;
+    private FusionRuleRecommendService fusionRuleRecommendService;
 
     // ========= 规则（主干）接口 =========
 
@@ -222,26 +222,16 @@ public class FusionRuleController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).body("分支未找到");
     }
 
-    @Operation(
-            summary = "RAG 规则检索（用于规则推荐与生成）",
-            description = """
-                    基于 Milvus + bge 的规则语义检索接口：
-                    - q: 自然语言需求 / 规则描述
-                    - k: 返回 Top K 条相似规则
-                    
-                    说明：
-                    - 仅检索 object_type = rule
-                    - 设备 / 空间向量仅用于 LLM 上下文，不直接返回
-                    """
-    )
-    @GetMapping("/rag/search")
-    public ResponseEntity<List<MilvusUtil.RagRecord>> ragSearch(
-            @RequestParam("q") String query,
-            @RequestParam(value = "k", defaultValue = "5") int k) {
+    @Operation(summary = "规则推荐（基于最新上传分支 ruleJson）")
+    @GetMapping("/rag/recommend/latest-uploaded-rules")
+    public ResponseEntity<?> recommendLatestUploadedRules(
+            @RequestParam(name = "seed", defaultValue = "5") int seedN,
+            @RequestParam(name = "k", defaultValue = "5") int k,
+            @RequestParam(name = "showQ", defaultValue = "true") boolean showQ
+    ) {
+        return ResponseEntity.ok(
+                fusionRuleRecommendService.getLatestRuleRecommendationsWithQ(seedN, k, showQ)
+        );
 
-        List<MilvusUtil.RagRecord> results =
-                milvusUtil.searchRules(query, k);
-
-        return ResponseEntity.ok(results);
     }
 }

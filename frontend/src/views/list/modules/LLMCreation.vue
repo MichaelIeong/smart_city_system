@@ -9,15 +9,38 @@
   >
     <a-spin :spinning="loading">
       <a-form :form="form" v-bind="formLayout">
+        <!-- 空间筛选 -->
+        <a-form-item label="空间">
+          <a-select
+            placeholder="请选择空间"
+            v-decorator="[
+              'location',
+              { rules: [{ required: true, message: '请选择空间!' }] }
+            ]"
+            @change="handleLocationChange"
+          >
+            <a-select-option
+              v-for="loc in locations"
+              :key="loc"
+              :value="loc"
+            >
+              {{ loc }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
         <!-- 多选设备 -->
         <a-form-item label="选择参与的设备">
           <a-select
             mode="multiple"
-            v-decorator="['selectedDevice', { rules: [{ required: true, message: '请选择参与的设备!' }] }]"
-            placeholder="请选择参与的设备"
+            :disabled="!form.getFieldValue('location')"
+            placeholder="请先选择空间"
+            v-decorator="[
+              'selectedDevice',
+              { rules: [{ required: true, message: '请选择参与的设备!' }] }
+            ]"
           >
             <a-select-option
-              v-for="device in devices"
+              v-for="device in filteredDevices"
               :key="device.sensorId"
               :value="device.deviceName"
             >
@@ -25,7 +48,6 @@
             </a-select-option>
           </a-select>
         </a-form-item>
-
         <!-- 用户需求输入 -->
         <a-form-item label="请输入你的需求">
           <a-textarea
@@ -71,7 +93,17 @@ export default {
     return {
       form: this.$form.createForm(this),
       response: '',
-      devices: []
+      devices: [], // 全量 sensors
+      filteredDevices: [], // 根据 location 过滤后的设备
+      locations: [] // 所有空间
+    }
+  },
+  watch: {
+    modelModalVisible (val) {
+      if (val) {
+        // 每次打开弹窗都清空
+        this.resetModalState()
+      }
     }
   },
   computed: {
@@ -86,25 +118,58 @@ export default {
     this.loadDevices()
   },
   methods: {
+    handleLocationChange (location) {
+      // 清空已选设备（避免跨空间脏数据）
+      this.form.setFieldsValue({ selectedDevice: [] })
+      if (!location) {
+        // 清空 location → 显示全部设备
+        this.filteredDevices = []
+        return
+      }
+      // 选择空间 → 显示该空间下的设备
+      this.filteredDevices = this.devices.filter(
+        device => device.location === location
+      )
+    },
+
+    handleCancelModal () {
+      this.$emit('update:modelModalVisible', false)
+    },
+
+    handleOk () {
+    },
+
+    resetModalState () {
+      this.form.resetFields()
+      this.response = ''
+      this.filteredDevices = []
+    },
+
     loadDevices () {
       getSensors(1)
         .then(res => {
+          let data = []
+
           if (Array.isArray(res)) {
-            this.devices = res
+            data = res
           } else if (res && Array.isArray(res.data)) {
-            this.devices = res.data
-          } else {
-            this.devices = []
+            data = res.data
           }
+
+          this.devices = data
+
+          // 提取唯一 location
+          this.locations = Array.from(
+            new Set(data.map(item => item.location).filter(Boolean))
+          )
+          // 未选空间前，不显示任何设备
+          this.filteredDevices = []
         })
         .catch(error => {
           console.error('加载设备失败：', error)
         })
     },
-    handleCancelModal () {
-      this.$emit('update:modelModalVisible', false)
-    },
-    handleOk () {},
+
     sendQuestion () {
       this.form.validateFields((errors, values) => {
         if (errors) {
