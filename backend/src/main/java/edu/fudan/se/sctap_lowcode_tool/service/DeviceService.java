@@ -5,7 +5,6 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionDevice;
 import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.*;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.ActuatingFunctionNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
@@ -14,13 +13,9 @@ import edu.fudan.se.sctap_lowcode_tool.repository.DeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.SpaceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -190,6 +185,7 @@ public class DeviceService {
         // 这里暂时跳过，后面再细化
         return req;
     }
+
     /**
      * 创建设备（推荐：只用主键构建 stub，另做存在性校验）
      */
@@ -237,7 +233,6 @@ public class DeviceService {
 //
 //        return deviceNodeRepository.save(d);
 //    }
-
     public Set<String> getActuatingFunctionNamesBySpace(Integer spaceId) {
         // 取得該空間內所有 device
         List<DeviceInfo> devicesInSpace = deviceRepository.findAll().stream()
@@ -256,5 +251,23 @@ public class DeviceService {
             }
         }
         return functionNames;
+    }
+
+    public Optional<Integer> pickSensorIdBySpace(Integer spaceId) {
+        if (spaceId == null) return Optional.empty();
+
+        return deviceRepository.findDeviceIdBySpaceSpaceId(spaceId).stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(s -> {
+                    try {
+                        return Integer.parseInt(s);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .findFirst();
     }
 }

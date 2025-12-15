@@ -109,12 +109,12 @@
       :confirmLoading="branchModal.loading"
     >
       <a-form :form="branchForm">
-        <!-- 实例空间 -->
-        <a-form-item label="实例空间" :labelCol="{span:5}" :wrapperCol="{span:19}">
+        <!-- 实例 -->
+        <a-form-item label="实例" :labelCol="{span:5}" :wrapperCol="{span:19}">
           <a-input
             v-decorator="[
               'branchName',
-              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入实例空间'}]}
+              { initialValue: branchModal.model.branchName, rules:[{ required:true, message:'请输入实例'}]}
             ]"
             @pressEnter.prevent
           />
@@ -240,7 +240,7 @@ export default {
 
       // 实例
       branchColumns: [
-        { title: '实例空间', dataIndex: 'branchName', width: '30%', scopedSlots: { customRender: 'branchName' } },
+        { title: '实例', dataIndex: 'branchName', width: '30%', scopedSlots: { customRender: 'branchName' } },
         { title: '状态', dataIndex: 'status', width: '25%', scopedSlots: { customRender: 'status' } },
         { title: '操作', dataIndex: 'action', width: '35%', scopedSlots: { customRender: 'action' } }
       ],
@@ -762,7 +762,7 @@ export default {
         const branchId = this.branchModal.model.branchId
 
         try {
-          // 1) 更新实例空间
+          // 1) 更新实例
           await axios.put(`${BASE}/api/fusion/branches/${branchId}`, {
             branchName: values.branchName
           })

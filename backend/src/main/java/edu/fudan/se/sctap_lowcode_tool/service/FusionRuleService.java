@@ -140,7 +140,6 @@ public class FusionRuleService {
         List<Map<String, Object>> created = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>();
 
-        // 1) 主干 & 模板分支（优先 active，否则按 branchId 最小）
         FusionRule rule = fusionRuleRepository.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException("规则未找到: " + ruleId));
 
@@ -151,10 +150,8 @@ public class FusionRuleService {
         final String baseFusionTarget = template.getFusionTarget();
         final String baseRuleJson = template.getRuleJson();
         final String baseFlowJson = template.getFlowJson();
-
         final ObjectMapper mapper = new ObjectMapper();
 
-        // 2) 逐空间创建
         for (Integer sid : spaceIds) {
             try {
                 SpaceInfo space = spaceRepository.findById(sid)
@@ -163,80 +160,123 @@ public class FusionRuleService {
                 String spaceName = Optional.ofNullable(space.getSpaceName()).orElse("").trim();
                 if (spaceName.isEmpty()) spaceName = "空间#" + sid;
 
-                // —— 就地替换：把所有键名为 "location" 的文本值替换为当前 spaceName —— //
                 String ruleJsonForSpace = baseRuleJson;
                 String flowJsonForSpace = baseFlowJson;
 
+                // 1) 替换 ruleJson 里的 location
                 if (ruleJsonForSpace != null && !ruleJsonForSpace.isBlank()) {
+                    JsonNode root;
                     try {
-                        JsonNode root = mapper.readTree(ruleJsonForSpace);
-                        // 用一个栈做深度遍历，避免额外方法
-                        Deque<JsonNode> stack = new ArrayDeque<>();
-                        stack.push(root);
-                        while (!stack.isEmpty()) {
-                            JsonNode cur = stack.pop();
-                            if (cur.isObject()) {
-                                ObjectNode obj = (ObjectNode) cur;
-                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
-                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
-                                it.forEachRemaining(snapshot::add);
-                                for (Map.Entry<String, JsonNode> e : snapshot) {
-                                    String key = e.getKey();
-                                    JsonNode val = e.getValue();
-                                    if ("location".equals(key) && val != null && val.isTextual()) {
-                                        obj.put(key, spaceName);
-                                    } else {
-                                        stack.push(val);
-                                    }
-                                }
-                            } else if (cur.isArray()) {
-                                ArrayNode arr = (ArrayNode) cur;
-                                for (int i = 0; i < arr.size(); i++) {
-                                    stack.push(arr.get(i));
+                        root = mapper.readTree(ruleJsonForSpace);
+                    } catch (Exception e) {
+                        throw new IllegalStateException("ruleJson 解析失败，无法套用到空间: " + sid, e);
+                    }
+
+                    // 1) 深度遍历：替换所有 key=location 的文本值为当前 spaceName（你原逻辑保留）
+                    Deque<JsonNode> stack = new ArrayDeque<>();
+                    stack.push(root);
+                    while (!stack.isEmpty()) {
+                        JsonNode cur = stack.pop();
+                        if (cur.isObject()) {
+                            ObjectNode obj = (ObjectNode) cur;
+                            Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                            List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                            it.forEachRemaining(snapshot::add);
+                            for (Map.Entry<String, JsonNode> e : snapshot) {
+                                String key = e.getKey();
+                                JsonNode val = e.getValue();
+                                if ("location".equals(key) && val != null && val.isTextual()) {
+                                    obj.put(key, spaceName);
+                                } else {
+                                    stack.push(val);
                                 }
                             }
+                        } else if (cur.isArray()) {
+                            ArrayNode arr = (ArrayNode) cur;
+                            for (int i = 0; i < arr.size(); i++) stack.push(arr.get(i));
                         }
-                        ruleJsonForSpace = mapper.writeValueAsString(root);
-                    } catch (Exception ignore) {
-                        // 解析失败则保持原样
                     }
-                }
 
+                    // 2) 关键：按 space 重映射所有 Sensor.sensorId
+                    //    A) 最简单：该 space 取一个 sensorId，所有 Sensor 节点都用它
+                    Integer mappedSensorId = deviceService.pickSensorIdBySpace(sid)
+                            .orElseThrow(() -> new IllegalStateException("空间 " + sid + " 下找不到任何传感器设备，无法重映射 sensorId"));
+
+                    root.fields().forEachRemaining(entry -> {
+                        String k = entry.getKey();
+                        if ("steps".equals(k) || "rulename".equals(k)) return;
+
+                        JsonNode node = entry.getValue();
+                        if (!(node instanceof ObjectNode obj)) return;
+
+                        String type = obj.path("type").asText("");
+                        if ("Sensor".equalsIgnoreCase(type)) {
+                            obj.put("sensorId", mappedSensorId);
+                        }
+                    });
+
+                    ruleJsonForSpace = mapper.writeValueAsString(root);
+                }
+                // 3) 替换 flowJson 里的 location（如你之前逻辑），并尝试重映射（可选但建议）
                 if (flowJsonForSpace != null && !flowJsonForSpace.isBlank()) {
+                    JsonNode root;
                     try {
-                        JsonNode root = mapper.readTree(flowJsonForSpace);
-                        Deque<JsonNode> stack = new ArrayDeque<>();
-                        stack.push(root);
-                        while (!stack.isEmpty()) {
-                            JsonNode cur = stack.pop();
-                            if (cur.isObject()) {
-                                ObjectNode obj = (ObjectNode) cur;
-                                Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
-                                List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
-                                it.forEachRemaining(snapshot::add);
-                                for (Map.Entry<String, JsonNode> e : snapshot) {
-                                    String key = e.getKey();
-                                    JsonNode val = e.getValue();
-                                    if ("location".equals(key) && val != null && val.isTextual()) {
-                                        obj.put(key, spaceName);
-                                    } else {
-                                        stack.push(val);
-                                    }
-                                }
-                            } else if (cur.isArray()) {
-                                ArrayNode arr = (ArrayNode) cur;
-                                for (int i = 0; i < arr.size(); i++) {
-                                    stack.push(arr.get(i));
+                        root = mapper.readTree(flowJsonForSpace);
+                    } catch (Exception e) {
+                        throw new IllegalStateException("flowJson 解析失败，无法套用到空间: " + sid, e);
+                    }
+
+                    Deque<JsonNode> stack = new ArrayDeque<>();
+                    stack.push(root);
+                    while (!stack.isEmpty()) {
+                        JsonNode cur = stack.pop();
+                        if (cur.isObject()) {
+                            ObjectNode obj = (ObjectNode) cur;
+                            Iterator<Map.Entry<String, JsonNode>> it = obj.fields();
+                            List<Map.Entry<String, JsonNode>> snapshot = new ArrayList<>();
+                            it.forEachRemaining(snapshot::add);
+
+                            // 替换 location
+                            for (Map.Entry<String, JsonNode> e : snapshot) {
+                                String key = e.getKey();
+                                JsonNode val = e.getValue();
+                                if ("location".equals(key) && val != null && val.isTextual()) {
+                                    obj.put(key, spaceName);
+                                } else {
+                                    stack.push(val);
                                 }
                             }
+
+                            // 尝试重映射：如果 flow 里也带有 type/sensingFunction/function/id
+                            String type = obj.path("type").asText("");
+                            if ("Sensor".equalsIgnoreCase(type)) {
+                                String sensingFunc = obj.path("sensingFunction").asText(null);
+                                if (sensingFunc != null && !sensingFunc.isBlank()) {
+                                    deviceService.pickSensorIdBySpace(sid)
+                                            .ifPresent(mid -> obj.put("sensorId", mid));
+                                }
+                            }
+                            if ("Actuator".equalsIgnoreCase(type)) {
+                                String func = obj.path("function").asText(null);
+                                if (func != null && !func.isBlank()) {
+                                    deviceService.pickSensorIdBySpace(sid)
+                                            .ifPresent(mid -> {
+                                                if (obj.has("deviceId")) obj.put("deviceId", mid);
+                                                else if (obj.has("actuatorId")) obj.put("actuatorId", mid);
+                                                else obj.put("deviceId", mid);
+                                            });
+                                }
+                            }
+                        } else if (cur.isArray()) {
+                            ArrayNode arr = (ArrayNode) cur;
+                            for (int i = 0; i < arr.size(); i++) stack.push(arr.get(i));
                         }
-                        flowJsonForSpace = mapper.writeValueAsString(root);
-                    } catch (Exception ignore) {
-                        // 解析失败则保持原样
                     }
+
+                    flowJsonForSpace = mapper.writeValueAsString(root);
                 }
 
-                // 3) 组装并保存新分支
+                // 4) 保存新分支
                 FusionRuleBranch branch = new FusionRuleBranch();
                 branch.setRule(rule);
                 branch.setSpace(space);
@@ -255,7 +295,6 @@ public class FusionRuleService {
                         "spaceName", spaceName
                 ));
             } catch (Exception ex) {
-                // 唯一约束冲突/其他异常直接记录为错误项（executableSpaces 已过滤过已存在）
                 errors.add(Map.of(
                         "spaceId", sid,
                         "error", ex.getClass().getSimpleName() + ": " + ex.getMessage()
@@ -263,7 +302,6 @@ public class FusionRuleService {
             }
         }
 
-        // 分支集发生了变化，更新一次规则向量
         fusionRuleRecommendService.upsertRule(rule);
 
         out.put("createdBranches", created.size());
@@ -271,7 +309,6 @@ public class FusionRuleService {
         out.put("errors", errors);
         return out;
     }
-
     /* =========================
      * 分支规则相关
      * ========================= */
