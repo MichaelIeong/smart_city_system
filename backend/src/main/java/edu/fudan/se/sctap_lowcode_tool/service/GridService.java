@@ -51,6 +51,19 @@ public class GridService {
     }
 
     /**
+     * 获取系统中所有网格列表（全局资源，不区分项目）
+     */
+    public List<Map<String, Object>> getAllGridList() {
+        try {
+            // 直接查询 grid_list 表中所有的网格编号和名称
+            String sql = "SELECT id, mesh_no, mesh_name FROM grid_list";
+            return jdbcTemplate.queryForList(sql);
+        } catch (Exception e) {
+            System.err.println("获取全量网格列表失败：" + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    /**
      * 【新增】：根据网格ID (meshId) 从本地 tsl_devices 表中获取设备列表
      */
     private List<Map<String, String>> fetchLocalDevices(String meshId) {
