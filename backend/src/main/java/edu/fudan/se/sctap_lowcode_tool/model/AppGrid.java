@@ -18,4 +18,7 @@ public class AppGrid {
 
     @Column(name = "app_rule_id", nullable = false)
     private Integer appRuleId;
+
+    @Column(nullable = false)
+    private Boolean enabled = true; // 是否启用
 }

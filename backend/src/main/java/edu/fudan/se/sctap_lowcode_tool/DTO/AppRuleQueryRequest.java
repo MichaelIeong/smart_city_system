@@ -8,4 +8,6 @@ public class AppRuleQueryRequest {
     private String description;
     private int pageNo = 1;
     private int pageSize = 20;
+    private String sortField;
+    private String sortOrder;
 }

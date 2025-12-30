@@ -15,7 +15,7 @@ public class AppGridService {
     @Resource
     private AppRuleRepository appRuleRepository;
 
-    public List<AppRuleInfo> findByGridId(String gridId) {
+    public List<AppRuleInfo> getAppList(String gridId) {
         return appRuleRepository.findByGridId(gridId);
     }
 }

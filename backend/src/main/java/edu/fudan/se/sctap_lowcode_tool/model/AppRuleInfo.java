@@ -34,9 +34,6 @@ public class AppRuleInfo {
     @Column(columnDefinition = "LONGTEXT")
     private String flowJson; // Node-Red流的JSON格式
 
-    @Column(nullable = false)
-    private Boolean enabled = true; // 是否启用
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

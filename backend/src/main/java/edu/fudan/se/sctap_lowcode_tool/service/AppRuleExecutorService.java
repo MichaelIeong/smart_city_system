@@ -124,7 +124,7 @@ public class AppRuleExecutorService {
         // 获取全部该事件类型的应用规则
         Integer projectId = eventTriggerRequest.getProjectId();
         String eventType = eventTriggerRequest.getEventType();
-        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndProjectId(eventType, projectId, true);
+        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndProjectId(eventType, projectId);
         // 提交线程池执行
         for (AppRuleInfo appRuleInfo : appRules) {
             appRuleExecutor.execute(() -> executeAppRule(eventTriggerRequest, appRuleInfo));

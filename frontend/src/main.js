@@ -23,6 +23,7 @@ import './global.less' // global style
 import 'element-ui/lib/theme-chalk/index.css'
 import Element from 'element-ui'
 import JsonViewer from 'vue-json-viewer'
+import { message } from 'ant-design-vue'
 
 Vue.config.productionTip = false
 
@@ -36,6 +37,7 @@ Vue.use(JsonViewer)
 Vue.component('pro-layout', ProLayout)
 Vue.component('page-container', PageHeaderWrapper)
 Vue.component('page-header-wrapper', PageHeaderWrapper)
+Vue.prototype.$message = message
 
 window.umi_plugin_ant_themeVar = themePluginConfig.theme
 

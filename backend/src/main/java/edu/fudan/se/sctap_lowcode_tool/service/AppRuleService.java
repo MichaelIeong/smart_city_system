@@ -11,8 +11,12 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.*;
 import edu.fudan.se.sctap_lowcode_tool.constant.SystemPrompt;
+import edu.fudan.se.sctap_lowcode_tool.model.AppGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.repository.AppGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.ProjectRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
@@ -27,8 +31,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -41,7 +47,22 @@ public class AppRuleService {
     private ProjectRepository projectRepository;
 
     @Resource
+    private EnvServiceService envServiceService;
+
+    @Resource
+    private EnvPropertyService envPropertyService;
+
+    @Resource
+    private EnvEventService envEventService;
+
+    @Resource
     private MilvusUtil milvusUtil;
+
+    @Resource
+    private GridMeshRepository gridMeshRepository;
+
+    @Resource
+    private AppGridRepository appGridRepository;
 
     private final ChatLanguageModel chatLanguageModel;
 
@@ -89,6 +110,14 @@ public class AppRuleService {
     }
 
     public void deleteRulesByIds(Iterable<Integer> ruleIds) {
+        // 删除边缘应用
+        for(Integer ruleId : ruleIds) {
+            List<AppGrid> appGrids = appGridRepository.findByAppRuleId(ruleId);
+            if(!appGrids.isEmpty()) {
+                appGridRepository.deleteAll(appGrids);
+            }
+            // TODO 下发删除命令
+        }
         appRuleRepository.deleteAllById(ruleIds);
         // 从向量数据库中删除
         for (Integer id : ruleIds) {
@@ -96,9 +125,10 @@ public class AppRuleService {
         }
     }
 
-    public boolean createRule(AppRuleSaveRequest appRuleSaveRequest) {
+    public Integer createRule(AppRuleSaveRequest appRuleSaveRequest) {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
+        String gridId = appRuleSaveRequest.getGridId();
         // 如果是大模型创建应用
         if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
@@ -106,7 +136,6 @@ public class AppRuleService {
                 var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
                 // 设置事件类型
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
-                appRuleInfo.setEnabled(true);
                 // 插入数据库
                 appRuleInfo = appRuleRepository.save(appRuleInfo);
                 // 插入向量数据库
@@ -118,22 +147,21 @@ public class AppRuleService {
                         log.error("No api key");
                     }
                 }
-                return true;
+                return appRuleInfo.getId();
             }
-            return false;
+            return 0;
         }
         // 如果是通过Node-RED创建应用
         if(flowJson!=null&&!flowJson.isBlank()) {
             // 转换为JSON
-            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
             if(jsonRule==null||jsonRule.isBlank()) {
-                return false;
+                return 0;
             }
             var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
             appRuleInfo.setRuleJson(jsonRule);
             var appRule = parseJsonRule(jsonRule);
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
-            appRuleInfo.setEnabled(true);
             // 插入数据库
             appRuleInfo = appRuleRepository.save(appRuleInfo);
             // 插入向量数据库
@@ -145,14 +173,15 @@ public class AppRuleService {
                     log.error("No api key");
                 }
             }
-            return true;
+            return appRuleInfo.getId();
         }
-        return false;
+        return 0;
     }
 
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
         // 首先判断应用是否存在
         AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
+        String gridId = "6b2b5be61c60401aa4c6da9828a7df68";
         if(appRuleInfo==null) {
             return false;
         }
@@ -162,7 +191,7 @@ public class AppRuleService {
             // 更新 flowJson 和 ruleJson
             if(!flowJson.equals(appRuleInfo.getFlowJson())) {
                 // 转换JSON
-                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson);
+                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
                 if(jsonRule==null||jsonRule.isBlank()) {
                     return false;
                 }
@@ -210,8 +239,33 @@ public class AppRuleService {
     }
 
     public PageDTO<AppRuleInfo> list(Integer projectId, AppRuleQueryRequest appRuleQueryRequest) {
-        Pageable pageable = PageRequest.of(appRuleQueryRequest.getPageNo() - 1, appRuleQueryRequest.getPageSize(), Sort.by("id").ascending());
-        Page<AppRuleInfo> repoResult = appRuleRepository.searchByProjectWithFilters(projectId, appRuleQueryRequest.getEventType(), appRuleQueryRequest.getDescription(), pageable);
+        // 1. 动态创建 Sort 对象
+        Sort sort;
+        if (appRuleQueryRequest.getSortField() != null && !appRuleQueryRequest.getSortField().isEmpty()) {
+            // 映射排序方向
+            Sort.Direction direction = Sort.Direction.ASC;
+            if ("descend".equals(appRuleQueryRequest.getSortOrder())) {
+                direction = Sort.Direction.DESC;
+            }
+            sort = Sort.by(direction, appRuleQueryRequest.getSortField());
+        } else {
+            // 如果没有排序字段，默认按 id 升序
+            sort = Sort.by("id").ascending();
+        }
+        // 2. 使用动态创建的 sort 对象
+        Pageable pageable = PageRequest.of(
+                appRuleQueryRequest.getPageNo() - 1,
+                appRuleQueryRequest.getPageSize(),
+                sort // 传入动态排序对象
+        );
+        // 3. 执行查询
+        Page<AppRuleInfo> repoResult = appRuleRepository.searchByProjectWithFilters(
+                projectId,
+                appRuleQueryRequest.getEventType(),
+                appRuleQueryRequest.getDescription(),
+                pageable
+        );
+        // 4. 返回结果
         return new PageDTO<>(
                 appRuleQueryRequest.getPageNo(), appRuleQueryRequest.getPageSize(),
                 repoResult.getTotalElements(), repoResult.getTotalPages(),
@@ -220,25 +274,36 @@ public class AppRuleService {
     }
 
     public boolean updateEnabledStatus(Integer id, Boolean enabled) {
-        AppRuleInfo appRuleInfo = appRuleRepository.findById(id).orElse(null);
-        if(appRuleInfo==null) {
+        AppGrid appGrid = appGridRepository.findById(id).orElse(null);
+        if(appGrid==null) {
             return false;
         }
-        appRuleInfo.setEnabled(enabled);
-        appRuleRepository.save(appRuleInfo);
+        appGrid.setEnabled(enabled);
+        appGridRepository.save(appGrid);
+        // TODO 需要下发边缘端
         return true;
     }
 
     public ResponseEntity<String> generateNaturalRule(RuleGenerateRequest ruleGenerateRequest) {
         String uuid = ruleGenerateRequest.getUuid();
         String message = ruleGenerateRequest.getMessage();
+        String gridId = ruleGenerateRequest.getGridId();
         // 更新 uuid 的对话时间
         uuidUpdateTimeMap.put(uuid, System.currentTimeMillis());
         // 获取对话历史
         List<ChatMessage> messages = uuidMessageHistoryMap.getOrDefault(uuid, new ArrayList<>());
         // 如果是第一次对话，构造系统消息
         if(messages.isEmpty()) {
-            messages.add(new SystemMessage(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT));
+            // 根据网格ID获取环境级事件、属性、服务列表
+            List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+            List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+            List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
+            String envEventsStr = String.join("\n", envEvents);
+            String envPropertiesStr = String.join("\n", envProperties);
+            String envServicesStr = String.join("\n", envServices);
+            String systemPrompt = String.format(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
+            System.out.println(systemPrompt);
+            messages.add(new SystemMessage(systemPrompt));
         }
         // 加入用户消息
         messages.add(new UserMessage(message));
@@ -257,9 +322,20 @@ public class AppRuleService {
 
     public ResponseEntity<String> generateJsonRule(RuleGenerateRequest ruleGenerateRequest) {
         String message = ruleGenerateRequest.getMessage();
+        String gridId = ruleGenerateRequest.getGridId();
         // 构造系统消息和用户消息
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new SystemMessage(SystemPrompt.JSON_RULE_GENERATE_PROMPT));
+        // 构造系统提示词
+        // 根据网格ID获取环境级事件、属性、服务列表
+        List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
+        String envEventsStr = String.join("\n", envEvents);
+        String envPropertiesStr = String.join("\n", envProperties);
+        String envServicesStr = String.join("\n", envServices);
+        String systemPrompt = String.format(SystemPrompt.JSON_RULE_GENERATE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
+        System.out.println(systemPrompt);
+        messages.add(new SystemMessage(systemPrompt));
         messages.add(new UserMessage(message));
         // 调用大模型
         ChatResponse response = chatLanguageModel.chat(messages);
@@ -351,10 +427,18 @@ public class AppRuleService {
     /**
      * 将Node-RED Flow 转换成 AppRuleJson
      * */
-    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson) {
+    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson, String gridId) {
         // 构造系统消息和用户消息
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new SystemMessage(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT));
+        // 根据网格ID获取环境级事件、属性、服务列表
+        List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
+        String envEventsStr = String.join("\n", envEvents);
+        String envPropertiesStr = String.join("\n", envProperties);
+        String envServicesStr = String.join("\n", envServices);
+        String systemPrompt = String.format(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
+        messages.add(new SystemMessage(systemPrompt));
         messages.add(new UserMessage(nodeRedFlowJson));
         // 最多重试一次
         final int MAX_RETRY = 1;
@@ -440,5 +524,137 @@ public class AppRuleService {
                 log.info("清理 uuid 对应的数据: {}", uuid);
             }
         }
+    }
+
+    /**
+     * 同步应用规则
+     * */
+    public List<AppRuleSyncResponse> syncAppRule(AppRuleSyncRequest appRuleSyncRequest) {
+        Integer appId = appRuleSyncRequest.getAppId();
+        List<String> gridIdList = appRuleSyncRequest.getGridIdList();
+        // 获取应用规则
+        AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
+        if (appRuleInfo == null) {
+            throw new BadRequestException("400", "应用规则不存在",  null);
+        }
+        // 解析应用规则，提取需要的环境级事件和服务
+        AppRule appRule = parseJsonRule(appRuleInfo.getRuleJson());
+        if(appRule == null) {
+            throw new BadRequestException("400", "应用规则解析失败",  null);
+        }
+        String envEvent = appRule.getTrigger().getEvent_type();
+        Set<String> envServiceSet = extractEnvService(appRule);
+        // 使用多线程并行检查每个 gridId 是否支持 envEvent 和 envServiceSet
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(gridIdList.size(), 5));
+        List<Future<AppRuleSyncResponse>> futures = new ArrayList<>();
+        for(String gridId : gridIdList) {
+            Callable<AppRuleSyncResponse> task = () -> {
+                try {
+                    return checkGridIdSupport(gridId, appId, envEvent, envServiceSet);
+                } catch (Exception e) {
+                    return new AppRuleSyncResponse(gridId, null, null, 0, e.getMessage());
+                }
+            };
+            futures.add(executor.submit(task));
+        }
+        // 收集所有线程结果
+        List<AppRuleSyncResponse> responses = new ArrayList<>();
+        for (Future<AppRuleSyncResponse> future : futures) {
+            try {
+                responses.add(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                responses.add(new AppRuleSyncResponse(null, null, null, 0, e.getMessage()));
+            }
+        }
+        // 关闭线程池
+        executor.shutdown();
+        return responses;
+    }
+
+    // 从AppRule中提取环境级服务
+    private Set<String> extractEnvService(AppRule appRule) {
+        Set<String> envServiceSet = new HashSet<>();
+        if (appRule == null || appRule.getResponse() == null) {
+            return envServiceSet;
+        }
+        Response response = appRule.getResponse();
+        if (response.isChainType()) {
+            extractFromChain(response.getChain(), envServiceSet);
+        } else if (response.isBranchType()) {
+            for (BranchNode branchNode : response.getBranch()) {
+                extractFromChain(branchNode.getChain(), envServiceSet);
+            }
+        }
+        return envServiceSet;
+    }
+
+    private void extractFromChain(List<ChainStep> chain, Set<String> envServiceSet) {
+        if (chain == null || chain.isEmpty()) {
+            return;
+        }
+        for (ChainStep step : chain) {
+            if (step instanceof ActionStep actionStep) {
+                if (actionStep.getAction() != null && actionStep.getAction().getAction_name() != null) {
+                    envServiceSet.add(actionStep.getAction().getAction_name());
+                }
+            } else if (step instanceof BranchStep branchStep) {
+                if (branchStep.getBranch() != null) {
+                    for (BranchNode branchNode : branchStep.getBranch()) {
+                        extractFromChain(branchNode.getChain(), envServiceSet);
+                    }
+                }
+            }  // WaitStep 不包含 action_name，跳过
+        }
+    }
+
+    //检查环境级事件和服务是否支持
+    private AppRuleSyncResponse checkGridIdSupport(String gridId, Integer appId, String envEvent, Set<String> envServiceSet) {
+        GridMesh gridMesh = gridMeshRepository.findById(gridId).orElse(null);
+        if(gridMesh == null) {
+            return new AppRuleSyncResponse(gridId, null, null, 0, "网格不存在");
+        }
+        List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
+        List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
+        // 检查 envEvent 是否在 envEventTypeList 中
+        if (!envEventTypeList.contains(envEvent)) {
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "不支持环境级事件："+envEvent);
+        }
+        // 检查 envServiceSet 中的所有元素是否都在 envServiceNameList 中
+        for (String envService : envServiceSet) {
+            if (!envServiceNameList.contains(envService)) {
+                return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "不支持环境级服务：" + envService);
+            }
+        }
+        // 保存到数据库
+        AppGrid appGrid = new AppGrid();
+        appGrid.setAppRuleId(appId);
+        appGrid.setGridId(gridId);
+        appGrid.setEnabled(false);
+        appGrid = appGridRepository.save(appGrid);
+        if(appGrid.getId()==null) {
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "保存到数据库失败");
+        }
+        // TODO 下发到边端服务器
+        // 所有检查通过
+        return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "下发成功");
+    }
+
+    /**
+     * 获取应用执行详情
+     * */
+    public List<AppRuleExecuteDetail> getAppRuleExecuteDetail(Integer appId) {
+        List<AppGrid> appGridList = appGridRepository.findByAppRuleId(appId);
+        return appGridList.stream().map(appGrid -> {
+            AppRuleExecuteDetail appRuleExecuteDetail = new AppRuleExecuteDetail();
+            appRuleExecuteDetail.setId(appGrid.getId());
+            appRuleExecuteDetail.setGridId(appGrid.getGridId());
+            appRuleExecuteDetail.setEnabled(appGrid.getEnabled());
+            GridMesh gridMesh = gridMeshRepository.findById(appGrid.getGridId()).orElse(null);
+            if(gridMesh != null) {
+                appRuleExecuteDetail.setMeshNo(gridMesh.getMeshNo());
+                appRuleExecuteDetail.setMeshName(gridMesh.getMeshName());
+            }
+            return appRuleExecuteDetail;
+        }).collect(Collectors.toList());
     }
 }

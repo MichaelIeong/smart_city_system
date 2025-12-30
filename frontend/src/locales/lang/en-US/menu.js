@@ -13,7 +13,6 @@ export default {
     'menu.form.step-form.confirm': 'Step Form(confirm transfer information)',
     'menu.form.step-form.result': 'Step Form(finished)',
     'menu.form.advanced-form': 'Advanced Form',
-    'menu.tap.list': 'Overview',
     'menu.tap.detail': 'Details',
     'menu.list': 'List',
     'menu.list.table-list': 'Search Table',
@@ -46,8 +45,8 @@ export default {
     'menu.space-scene': 'Scene Display',
     'menu.event-fusion': 'Event Fusion',
     'menu.service-group': 'Service Group',
-    'menu.tap.recommend': 'App Recommendation',
-    'menu.tap.construct': 'Application Construction',
+    'menu.tap.create': 'App Construction',
+    'menu.tap.list': 'Application List',
     'menu.tap.board': 'Application Dashboard',
     'menu.panel': 'City Panel',
     'menu.tap.monitor': 'Application Monitor'

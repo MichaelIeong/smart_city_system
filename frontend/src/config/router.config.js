@@ -107,15 +107,15 @@ export const asyncRouterMap = [{
       path: 'tap/list',
       name: 'tap-list',
       component: () => import('@/views/recommend/TapList'),
-      meta: { title: 'menu.tap.construct', keepAlive: true, icon: 'tool', permission: ['table'] }
+      meta: { title: 'menu.tap.list', keepAlive: true, icon: 'tool', permission: ['table'] }
     },
     // 应用推荐
     {
-      path: '/tap/recommend',
-      name: 'tap-recommend',
-      component: () => import('@/views/recommend/TapRecommend'),
+      path: '/tap/create',
+      name: 'tap-create',
+      component: () => import('@/views/recommend/TapCreate'),
       hidden: true,
-      meta: { title: 'menu.tap.recommend', keepAlive: true, icon: 'star', permission: ['table'] }
+      meta: { title: 'menu.tap.create', keepAlive: true, icon: 'tool', permission: ['table'] }
     },
     // 应用看板
     // {

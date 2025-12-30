@@ -19,12 +19,10 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     @Query("""
         SELECT a FROM AppRuleInfo a WHERE a.eventType = :eventType
             AND a.project.projectId = :projectId
-            ANd a.enabled = :enabled
     """)
     List<AppRuleInfo> findByEventTypeAndProjectId(
             @Param("eventType") String eventType,
-            @Param("projectId") Integer projectId,
-            @Param("enabled") Boolean enabled);
+            @Param("projectId") Integer projectId);
 
 
     @Query("""
@@ -33,7 +31,6 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
           AND (:eventType IS NULL OR :eventType = '' OR a.eventType = :eventType)
           AND (:description IS NULL OR :description = ''
                OR LOWER(a.description) LIKE LOWER(CONCAT('%', :description, '%')))
-        ORDER BY a.id ASC
     """)
     Page<AppRuleInfo> searchByProjectWithFilters(
             @Param("projectId") Integer projectId,

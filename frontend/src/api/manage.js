@@ -20,7 +20,8 @@ const api = {
   fusionExecute: '/api/fusion/executeRule',
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
-  sensors: '/api/node-red/sensors'
+  sensors: '/api/node-red/sensors',
+  grid: '/api/grid'
 }
 
 export default api
@@ -331,7 +332,7 @@ export function getSensors (projectId) {
   })
 }
 
-export function listTapRule ({ projectId, eventType, description, pageNo, pageSize }) {
+export function listTapRule ({ projectId, eventType, description, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: `${api.tap}/list/${projectId}`,
@@ -340,7 +341,9 @@ export function listTapRule ({ projectId, eventType, description, pageNo, pageSi
       eventType,
       description,
       pageNo,
-      pageSize
+      pageSize,
+      sortField,
+      sortOrder
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -349,14 +352,15 @@ export function listTapRule ({ projectId, eventType, description, pageNo, pageSi
 }
 
 // 生成自然语言描述 tap 规则
-export function generateNaturalRule (uuid, message) {
+export function generateNaturalRule (uuid, message, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/recommend/generateNaturalRule`,
     method: 'post',
     data: {
       uuid,
-      message
+      message,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -381,14 +385,15 @@ export function findSimilarRules (message) {
 }
 
 // 生成 json 形式的 tap 规则
-export function generateJsonRule (uuid, message) {
+export function generateJsonRule (uuid, message, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/recommend/generateJsonRule`,
     method: 'post',
     data: {
       uuid,
-      message
+      message,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -414,7 +419,7 @@ export function convertJsonRule (ruleJson) {
 }
 
 // 保存tap规则
-export function createTapRule (projectId, description, ruleJson, flowJson) {
+export function createTapRule (projectId, description, ruleJson, flowJson, gridId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/create`,
@@ -423,7 +428,8 @@ export function createTapRule (projectId, description, ruleJson, flowJson) {
       projectId,
       description,
       ruleJson,
-      flowJson
+      flowJson,
+      gridId
     },
     headers: {
       'Authorization': `Bearer ${token}`
@@ -451,10 +457,10 @@ export function updateTapRule (id, description, flowJson) {
 }
 
 // 修改应用状态
-export function setTapEnabled (id, enabled) {
+export function setExecuteTapEnabled (id, enabled) {
   const token = store.state.token
   return request({
-    url: `${api.tap}/${id}/enabled?enabled=${enabled}`,
+    url: `${api.tap}/execute/enabled/${id}?enabled=${enabled}`,
     method: 'post',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -491,6 +497,58 @@ export function getLog (eventType, waitValue) {
   const token = store.state.token
   return request({
     url: `${api.tapExector}/getLog?eventType=${eventType}&waitValue=${waitValue}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据网格Id获取网格数据
+export function getGridById (gridId) {
+  const token = store.state.token
+  return request({
+    url: `${api.grid}/base/${gridId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取同类型的网格列表
+export function getGridListByType (gridId) {
+  const token = store.state.token
+  return request({
+    url: `${api.grid}/type/${gridId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 应用下发
+export function syncAppRule (appId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      appId,
+      gridIdList
+    }
+  })
+}
+
+// 查看应用执行详情
+export function getAppExecuteDetail (appId) {
+  const token = store.state.token
+  return request({
+    url: `${api.tap}/execute/detail/${appId}`,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
