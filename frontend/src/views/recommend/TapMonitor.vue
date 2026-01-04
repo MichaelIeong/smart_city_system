@@ -15,8 +15,15 @@
         </div>
         <div class="log-list">
           <div v-for="(item, index) in eventLogs" :key="index" class="log-item">
-            <div class="log-time">{{ item.time }}</div>
-            <div class="log-content">{{ item.content }}</div>
+            <div class="log-content-wrapper">
+              <div class="log-info">
+                <div class="log-time">{{ item.time }}</div>
+                <div class="log-content">{{ item.content }}</div>
+              </div>
+              <div class="log-actions" v-if="item.content.includes('执行') && item.content.includes('应用')">
+                <span class="detail-btn" @click="handleDetail(item)">查看详情</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -36,9 +43,12 @@ export default {
       polygons: [],
       // 新增：模拟日志数据
       eventLogs: [
-        { time: '2025-12-20 15:29', content: '永德城区02网格发生渣土车严重掉渣事件' },
-        { time: '2025-12-20 15:20', content: '永德城区03网格发生渣土车轻度掉渣事件' },
-        { time: '2025-12-20 15:10', content: '永德城区04网格发生渣土车轻度掉渣事件' }
+        { time: '2025-12-20 15:30', content: '永德城区02网格执行跨区域渣土车抛洒处理应用' },
+        { time: '2025-12-20 15:29', content: '永德城区02网格发生跨区域渣土车抛洒事件' },
+        { time: '2025-12-20 15:21', content: '永德城区03网格执行渣土车抛洒处理应用' },
+        { time: '2025-12-20 15:20', content: '永德城区03网格发生渣土车抛洒事件' },
+        { time: '2025-12-20 15:11', content: '永德城区04网格执行渣土车抛洒处理应用' },
+        { time: '2025-12-20 15:10', content: '永德城区04网格发生渣土车抛洒事件' }
       ]
     }
   },
@@ -65,6 +75,11 @@ export default {
           coords: gridList.map(p => [Number(p.x), Number(p.y)])
         }
       })
+    },
+    handleDetail(item) {
+      console.log('查看详情:', item);
+      // 这里可以添加弹窗逻辑或跳转逻辑
+      this.$message.info(`正在查看：${item.content}`);
     },
     drawSvg() {
       const svgEl = d3.select(this.$refs.svg)
@@ -115,9 +130,9 @@ export default {
 
       // --- 修改：区分掉渣程度的配置 ---
       const alertConfig = {
-        '永德城区02网格': { text: '渣土车严重掉渣事件'}, // 红色
-        '永德城区03网格': { text: '渣土车轻度掉渣事件'}, // 橙黄色
-        '永德城区04网格': { text: '渣土车轻度掉渣事件'}  // 橙黄色
+        '永德城区02网格': { text: '跨区域渣土车抛洒事件'}, // 红色
+        '永德城区03网格': { text: '渣土车抛洒事件'}, // 橙黄色
+        '永德城区04网格': { text: '渣土车抛洒事件'}  // 橙黄色
       }
 
       const alertTargets = Object.keys(alertConfig)
@@ -254,6 +269,7 @@ export default {
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-thumb { background: rgba(0, 191, 255, 0.2); border-radius: 10px; }
 
+    /* --- 修改后的日志项样式 --- */
     .log-item {
       padding: 10px;
       margin-bottom: 8px;
@@ -266,17 +282,48 @@ export default {
         background: rgba(255, 255, 255, 0.07);
       }
 
+      .log-content-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end; // 按钮对齐到底部，或者 center 对齐居中
+      }
+
+      .log-info {
+        flex: 1;
+        padding-right: 10px;
+      }
+
       .log-time {
-        font-size: 11px; /* 缩小时间字体 */
+        font-size: 11px;
         color: #8c8c8c;
         margin-bottom: 4px;
         font-family: 'Helvetica', sans-serif;
       }
 
       .log-content {
-        font-size: 12px; /* 缩小内容字体 */
+        font-size: 12px;
         color: #d9d9d9;
         line-height: 1.4;
+      }
+
+      .log-actions {
+        flex-shrink: 0; // 防止按钮被压缩
+        
+        .detail-btn {
+          font-size: 12px;
+          color: #1890ff; // 科技蓝
+          cursor: pointer;
+          padding: 2px 4px;
+          border-radius: 4px;
+          transition: all 0.3s;
+          border: 1px solid transparent;
+
+          &:hover {
+            color: #40a9ff;
+            background: rgba(24, 144, 255, 0.1);
+            border-color: rgba(24, 144, 255, 0.3);
+          }
+        }
       }
     }
   }
