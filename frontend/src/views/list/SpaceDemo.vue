@@ -110,7 +110,7 @@
               :pagination="false"
               size="small"
             />
-            <a-button type="primary" size="small" @click="addApplication">
+            <a-button type="primary" size="small" @click="routeToRecommendApplication">
               添加应用
             </a-button>
           </el-tab-pane>
@@ -438,10 +438,10 @@ export default {
         this.$message.warning('未选择网格 ID')
         return
       }
-      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
 
     showServiceModal () {
@@ -450,17 +450,16 @@ export default {
         this.$message.warning('未选择网格 ID')
         return
       }
-      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
-
-    addApplication () {
+    routeToRecommendApplication () {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
       } else {
-        this.$message.success('选择网格：' + this.gridId)
+        this.$router.push(`/tap/create?gridId=${this.gridId}`)
       }
     }
   },

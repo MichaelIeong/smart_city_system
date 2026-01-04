@@ -1,10 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvProperty;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 // 移除不必要的导入，如 SignUtil, Http*, RestTemplate
+import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import jakarta.annotation.Resource;
 // 移除 @Value
 import org.springframework.stereotype.Service;
@@ -32,6 +30,8 @@ public class GridService {
     private EnvPropertyService envPropertyService;
     @Resource
     private AppGridService appGridService;
+    @Resource
+    private GridMeshRepository gridMeshRepository;
 
     // 移除 RestTemplate
 
@@ -135,19 +135,19 @@ public class GridService {
             result.put("devices", devices);
 
             // 5️. 获取环境级事件列表 (保留，依赖其他 Service)
-            List<EnvEvent> envEvents = envEventService.findByGridId(meshId);
+            List<EnvEvent> envEvents = envEventService.getEnvEventList(meshId);
             result.put("events", envEvents);
 
             // 6. 获取环境级服务列表 (保留，依赖其他 Service)
-            List<EnvService> envServices = envServiceService.findByGridId(meshId);
+            List<EnvService> envServices = envServiceService.getEnvServiceList(meshId);
             result.put("services", envServices);
 
             // 7. 获取环境级属性列表 (保留，依赖其他 Service)
-            List<EnvProperty> envProperties = envPropertyService.findByGridId(meshId);
+            List<EnvProperty> envProperties = envPropertyService.getEnvPropertyList(meshId);
             result.put("properties", envProperties);
 
             // 8. 获取应用级信息 (保留，依赖其他 Service)
-            List<AppRuleInfo> appRules = appGridService.findByGridId(meshId);
+            List<AppRuleInfo> appRules = appGridService.getAppList(meshId);
             result.put("applications", appRules);
 
         } catch (Exception e) {
@@ -156,5 +156,26 @@ public class GridService {
         }
 
         return result;
+    }
+
+    /**
+     * 获取网格信息
+     * */
+    public GridMesh getGridById(String gridId) {
+        return gridMeshRepository.findById(gridId).orElse(null);
+    }
+
+    /**
+     * 根据类型获取网格列表
+     * */
+    public List<GridMesh> getGridListByType(String gridId) {
+        // 获取网格信息
+        GridMesh gridMesh = getGridById(gridId);
+        if(gridMesh==null) {
+            return null;
+        }
+        String meshNature = gridMesh.getMeshNature();
+        String meshType = gridMesh.getMeshType();
+        return gridMeshRepository.findByMeshNatureAndMeshType(meshNature, meshType);
     }
 }
