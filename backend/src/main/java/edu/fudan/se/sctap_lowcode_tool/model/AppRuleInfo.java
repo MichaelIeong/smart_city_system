@@ -34,6 +34,8 @@ public class AppRuleInfo {
     @Column(columnDefinition = "LONGTEXT")
     private String flowJson; // Node-Red流的JSON格式
 
+    private String appName; // 应用名称
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

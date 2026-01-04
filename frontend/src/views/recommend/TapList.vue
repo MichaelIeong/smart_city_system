@@ -147,6 +147,7 @@ export default {
         const columns = [
             { title: '序号', dataIndex: 'id' },
             { title: '事件类型', dataIndex: 'eventTypeLabel' },
+            { title: '应用名称', dataIndex: 'appName' },
             {
                 title: '描述',
                 dataIndex: 'description',
