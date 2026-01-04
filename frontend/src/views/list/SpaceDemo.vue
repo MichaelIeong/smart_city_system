@@ -2,7 +2,7 @@
   <div class="space-demo-container">
     <!-- 左侧网格图容器 -->
     <div class="left-section">
-      <!-- ✅ 动态绑定背景图 -->
+      <!-- 动态绑定背景图 -->
       <div
         class="background-layer"
         :style="{
@@ -46,39 +46,35 @@
 
         <div style="height: 30px;"></div>
 
-        <!-- 四张表格 -->
-        <div class="table-container">
-          <!-- 网格元信息 -->
-          <div class="table-wrapper">
-            <a-table
-              :columns="metaColumns"
-              :dataSource="metaData"
-              :pagination="false"
-              size="small"
-            />
+        <!-- 网格元信息 -->
+        <div class="table-wrapper">
+          <div class="table-header">
+            <span class="table-title">网格元信息</span>
           </div>
+          <a-table
+            :columns="metaColumns"
+            :dataSource="metaData"
+            :pagination="false"
+            size="small"
+          />
+        </div>
 
+        <div style="height: 20px;"></div>
+
+        <!-- 标签页容器 -->
+        <el-tabs type="border-card">
           <!-- 设备 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">设备</span>
-            </div>
+          <el-tab-pane label="设备">
             <a-table
               :columns="deviceColumns"
               :dataSource="deviceData"
               :pagination="false"
               size="small"
             />
-          </div>
+          </el-tab-pane>
 
           <!-- 事件 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级事件</span>
-              <a-button type="primary" size="small" @click="showEventModal">
-                添加环境级事件
-              </a-button>
-            </div>
+          <el-tab-pane label="环境级事件">
             <a-table
               :columns="eventColumns"
               :dataSource="eventData"
@@ -86,16 +82,13 @@
               :pagination="false"
               size="small"
             />
-          </div>
+            <a-button type="primary" size="small" @click="showEventModal">
+              添加环境级事件
+            </a-button>
+          </el-tab-pane>
 
           <!-- 服务 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级服务</span>
-              <a-button type="primary" size="small" @click="showServiceModal">
-                添加环境级服务
-              </a-button>
-            </div>
+          <el-tab-pane label="环境级服务">
             <a-table
               :columns="serviceColumns"
               :dataSource="serviceData"
@@ -103,33 +96,13 @@
               :pagination="false"
               size="small"
             />
-          </div>
-
-          <!-- 属性 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">环境级属性</span>
-              <a-button type="primary" size="small" @click="showPropertyModal">
-                添加环境级属性
-              </a-button>
-            </div>
-            <a-table
-              :columns="propertyColumns"
-              :dataSource="propertyData"
-              :rowKey="record => record.id || record.propertyName"
-              :pagination="false"
-              size="small"
-            />
-          </div>
+            <a-button type="primary" size="small" @click="showServiceModal">
+              添加环境级服务
+            </a-button>
+          </el-tab-pane>
 
           <!-- 应用 -->
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">应用</span>
-              <a-button type="primary" size="small" @click="routeToRecommendApplication">
-                添加应用
-              </a-button>
-            </div>
+          <el-tab-pane label="应用">
             <a-table
               :columns="applicationColumns"
               :dataSource="applicationData"
@@ -137,73 +110,14 @@
               :pagination="false"
               size="small"
             />
-          </div>
-        </div>
+            <a-button type="primary" size="small" @click="addApplication">
+              添加应用
+            </a-button>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
 
-    <!-- 事件弹窗 -->
-    <a-modal
-      v-model="eventModalVisible"
-      title="添加事件"
-      @ok="handleEventOk"
-      @cancel="handleEventCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="事件名称">
-          <a-input v-model="eventForm.name" placeholder="请输入事件名称" />
-        </a-form-item>
-        <a-form-item label="事件描述">
-          <a-textarea
-            v-model="eventForm.description"
-            placeholder="请输入事件描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 服务弹窗 -->
-    <a-modal
-      v-model="serviceModalVisible"
-      title="添加服务"
-      @ok="handleServiceOk"
-      @cancel="handleServiceCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="服务名称">
-          <a-input v-model="serviceForm.name" placeholder="请输入服务名称" />
-        </a-form-item>
-        <a-form-item label="服务描述">
-          <a-textarea
-            v-model="serviceForm.description"
-            placeholder="请输入服务描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 属性弹窗 -->
-    <a-modal
-      v-model="propertyModalVisible"
-      title="添加属性"
-      @ok="handlePropertyOk"
-      @cancel="handlePropertyCancel"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="属性名称">
-          <a-input v-model="propertyForm.name" placeholder="请输入属性名称" />
-        </a-form-item>
-        <a-form-item label="属性描述">
-          <a-textarea
-            v-model="propertyForm.description"
-            placeholder="请输入属性描述"
-            :rows="4"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
@@ -216,7 +130,7 @@ import FCity from './F-city.json'
 import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
-// ✅ 导入三种背景图片
+// 导入三种背景图片
 import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
@@ -227,24 +141,24 @@ export default {
     return {
       isLoading: false,
       selectedType: 'F-city', // 默认类型
-      backgroundImage: CityImg, // ✅ 默认背景
+      backgroundImage: CityImg, // 默认背景
       backgroundOffset: 'calc(50% - 180px) center',
 
-      // ✅ 网格类型映射
+      // 网格类型映射
       meshTypeOptions: {
         'F-city': '城区网格',
         'F-community': '社区网格',
         'F-park': '园区网格'
       },
 
-      // ✅ JSON 映射
+      // JSON 映射
       meshFiles: {
         'F-city': FCity,
         'F-community': FCommunity,
         'F-park': FPark
       },
 
-      // ✅ 背景图映射
+      // 背景图映射
       backgroundMap: {
         'F-city': CityImg,
         'F-community': CommunityImg,
@@ -257,9 +171,33 @@ export default {
       metaColumns: [{ title: '网格元信息', dataIndex: 'info', key: 'info' }],
       gridId: null,
       metaData: [],
+      // 优化后的设备表格列定义
       deviceColumns: [
-        { title: '设备名称', dataIndex: 'name', key: 'name' },
-        { title: '设备功能', dataIndex: 'info', key: 'info' }
+        {
+          title: '设备名称',
+          dataIndex: 'name',
+          key: 'name',
+          width: 150, // 设定一个固定宽度
+          align: 'center' // 内容居中
+        },
+        {
+          title: '设备功能',
+          dataIndex: 'info',
+          key: 'info',
+          align: 'left', // 描述性内容左对齐
+          // 添加自定义渲染，优化长文本显示，并提供 Tooltip
+          customRender: (text) => {
+            const value = text || '无功能描述'
+            // 如果文本长度超过 20 个字符，则进行截断
+            const shortText = value.length > 20 ? value.substring(0, 18) + '...' : value
+
+            return (
+              <a-tooltip placement="topLeft" title={value}>
+                <span>{shortText}</span>
+              </a-tooltip>
+            )
+          }
+        }
       ],
       deviceData: [],
       eventColumns: [
@@ -348,19 +286,38 @@ export default {
       propertyForm: { name: '', description: '' }
     }
   },
+  created () {
+    // 1. 从 URL 路由参数中读取我们从 ProjectSelection 传递过来的值
+    const initialMeshType = this.$route.query.initialMeshType
+
+    // 2. 如果参数存在且是有效的网格类型，则覆盖默认的 selectedType
+    if (initialMeshType && this.meshFiles[initialMeshType]) {
+      this.selectedType = initialMeshType
+
+      // 调试：确认参数被读取
+      console.log('Router param detected. Initializing with:', initialMeshType)
+    }
+  },
 
   methods: {
-    // ✅ 切换网格类型 + 更新背景图
+    // 切换网格类型 + 更新背景图
     handleMeshTypeChange (type) {
       if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       if (type === 'F-community') this.backgroundOffset = 'center center'
       if (type === 'F-park') this.backgroundOffset = 'center center'
+      // 2. 切换 selectedType (防止手动切换时 data 不更新，但此处在 created/mounted 阶段调用时无需修改 data)
+      this.selectedType = type
+
       this.$message.info(`切换到 ${this.meshTypeOptions[type]} 数据`)
+
+      // 3. 设置背景图片
       this.backgroundImage = this.backgroundMap[type] || CityImg
+
+      // 4. 加载网格数据
       this.loadMeshData(type)
     },
 
-    // ✅ 加载指定网格类型数据
+    // 加载指定网格类型数据
     async loadMeshData (meshType) {
       this.isLoading = true
       this.drawSvg(meshType)
@@ -377,7 +334,7 @@ export default {
       this.isLoading = false
     },
 
-    // ✅ 绘制SVG网格
+    // 绘制SVG网格
     drawSvg (meshType) {
       const svgEl = d3.select(this.$refs.svg)
       svgEl.selectAll('*').remove()
@@ -387,7 +344,7 @@ export default {
         .attr('viewBox', '0 0 3000 1600')
 
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
-      // ✅ 根据背景图片尺寸与坐标系调整缩放和平移
+      // 根据背景图片尺寸与坐标系调整缩放和平移
       // 示例参数：scale=1.8 表示放大，translate 正数表示向右/下平移，负数向左/上偏移
       let scale = 2.7; let offsetX = -3830; let offsetY = -1230
       if (meshType === 'F-community') { scale = 1.8; offsetX = -20; offsetY = -750 }
@@ -424,22 +381,22 @@ export default {
           // 打印调试信息
           console.log('点击网格:', d.id)
 
-          // 仅当当前为城区网格时启用跳转逻辑
-          if (this.selectedType === 'F-city') {
-            // 判断点击的网格编号
-            if (d.id.includes('f-city-11')) {
-              this.$message.success('进入社区网格页面')
-              this.selectedType = 'F-community'
-              this.handleMeshTypeChange('F-community')
-              return
-            }
-            if (d.id.includes('f-city-7')) {
-              this.$message.success('进入园区网格页面')
-              this.selectedType = 'F-park'
-              this.handleMeshTypeChange('F-park')
-              return
-            }
-          }
+          // // 仅当当前为城区网格时启用跳转逻辑
+          // if (this.selectedType === 'F-city') {
+          //   // 判断点击的网格编号
+          //   if (d.id.includes('f-city-11')) {
+          //     this.$message.success('进入社区网格页面')
+          //     this.selectedType = 'F-community'
+          //     this.handleMeshTypeChange('F-community')
+          //     return
+          //   }
+          //   if (d.id.includes('f-city-7')) {
+          //     this.$message.success('进入园区网格页面')
+          //     this.selectedType = 'F-park'
+          //     this.handleMeshTypeChange('F-park')
+          //     return
+          //   }
+          // }
 
           // 其他网格：正常加载详情
           this.$message.info(`加载网格 ID：${d.id}`)
@@ -456,7 +413,7 @@ export default {
         .text(d => d.name)
     },
 
-    // ✅ 获取单个网格信息
+    // 获取单个网格信息
     async fetchGridInfo (gridId) {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
@@ -475,56 +432,41 @@ export default {
     },
 
     // 弹窗控制逻辑
-    showEventModal () { this.eventModalVisible = true },
-    handleEventOk () {
-      if (!this.eventForm.name || !this.eventForm.description) {
-        this.$message.warning('请填写完整事件信息')
+    showEventModal () {
+      const gridId = this.gridId // 获取当前网格的 ID
+      if (!gridId) {
+        this.$message.warning('未选择网格 ID')
         return
       }
-      this.eventData.push({ ...this.eventForm })
-      this.eventForm = { name: '', description: '' }
-      this.eventModalVisible = false
-      this.$message.success('环境级事件添加成功')
-    },
-    handleEventCancel () { this.eventModalVisible = false },
+      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
 
-    showServiceModal () { this.serviceModalVisible = true },
-    handleServiceOk () {
-      if (!this.serviceForm.name || !this.serviceForm.description) {
-        this.$message.warning('请填写完整服务信息')
+      // 弹出新的 Node-RED 窗口
+      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
+    },
+
+    showServiceModal () {
+      const gridId = this.gridId // 获取当前网格的 ID
+      if (!gridId) {
+        this.$message.warning('未选择网格 ID')
         return
       }
-      this.serviceData.push({ ...this.serviceForm })
-      this.serviceForm = { name: '', description: '' }
-      this.serviceModalVisible = false
-      this.$message.success('环境级服务添加成功')
-    },
-    handleServiceCancel () { this.serviceModalVisible = false },
+      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
 
-    showPropertyModal () { this.propertyModalVisible = true },
-    handlePropertyOk () {
-      if (!this.propertyForm.name || !this.propertyForm.description) {
-        this.$message.warning('请填写完整属性信息')
-        return
-      }
-      this.propertyData.push({ ...this.propertyForm })
-      this.propertyForm = { name: '', description: '' }
-      this.propertyModalVisible = false
-      this.$message.success('环境级属性添加成功')
+      // 弹出新的 Node-RED 窗口
+      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
     },
-    handlePropertyCancel () { this.propertyModalVisible = false },
 
-    routeToRecommendApplication () {
+    addApplication () {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
       } else {
-        this.$router.push(`/tap/create?gridId=${this.gridId}`)
+        this.$message.success('选择网格：' + this.gridId)
       }
     }
   },
 
   mounted () {
-    this.loadMeshData(this.selectedType)
+    this.handleMeshTypeChange(this.selectedType)
   }
 }
 </script>
@@ -539,6 +481,14 @@ export default {
 .left-section {
   flex: 0 0 70%;
   position: relative;
+  height: 100%;  /* 确保左侧容器的高度为100% */
+}
+.right-section {
+  flex: 0 0 30%;
+  background: #f5f5f5;
+  overflow-y: auto;
+  border-left: 1px solid #ddd;
+  height: 100%;  /* 确保右侧容器的高度为100% */
 }
 .background-layer {
   position: absolute;
@@ -566,12 +516,6 @@ export default {
   width: 100%;
   height: 100%;
 }
-.right-section {
-  flex: 0 0 30%;
-  background: #f5f5f5;
-  overflow-y: auto;
-  border-left: 1px solid #ddd;
-}
 .form-container {
   background-color: #fff;
   width: 100%;
@@ -581,6 +525,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.table-wrapper {
+  margin-bottom: 10px; /* 适当调整表格之间的间距 */
 }
 .table-header {
   display: flex;

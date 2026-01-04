@@ -5,6 +5,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceTypeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -64,5 +65,25 @@ public class DeviceTypeController {
                 "product_function AS deviceTypeFunction " +
                 "FROM tsl_product";
         return jdbcTemplate.queryForList(sql);
+    }
+    /**
+     * 新增设备类型
+     * POST /api/deviceTypes
+     * 接收前端 Map<String, String> 数据
+     */
+    @PostMapping("/add")
+    public ResponseEntity<?> addDeviceTypeFromMap(@RequestBody Map<String, String> deviceTypeData) {
+        try {
+            // 调用新的 Service 方法
+            Map<String, Object> result = deviceTypeService.addDeviceType(deviceTypeData);
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "请求参数错误：" + e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "新增设备类型失败：" + e.getMessage()));
+        }
     }
 }
