@@ -1,6 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.constant.CommandConstant;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -8,10 +8,9 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -39,13 +38,26 @@ public class WebSocketConnectionListener {
             // ==========================
             // ① 推送真实正在执行的规则（如果有）
             // ==========================
-            Map<String, Map<String, List<String>>> snapshot = new HashMap<>(appRuleExecutorService.getAppRuleLogMap());
-            if (!snapshot.isEmpty()) {
-                snapshot.forEach((eventType, waitMap) -> waitMap.forEach((waitValue, logs) -> {
-                    webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_START);
-                }));
-                log.info("✅ 已向新连接推送 {} 条正在执行的应用规则", snapshot.size());
+            Map<String, Map<String, List<AlertMessage>>> snapshot = new HashMap<>(appRuleExecutorService.getAppRuleLogPushMap());
+            if (snapshot.isEmpty()) {
+                return;
             }
+            // 收集所有 AlertMessage
+            List<AlertMessage> allMessages = snapshot.values().stream()
+                    .flatMap(gridMap -> gridMap.values().stream())
+                    .flatMap(List::stream)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (allMessages.isEmpty()) {
+                return;
+            }
+            // 按时间戳从早到晚排序
+            allMessages.sort(Comparator.comparing(AlertMessage::getTimestamp));
+            // 依次推送到前端
+            for (AlertMessage message : allMessages) {
+                webSocketPushService.sendAlert(message);
+            }
+            log.info("✅ 已向新连接推送 {} 条历史执行中的应用规则消息", allMessages.size());
         });
     }
 }

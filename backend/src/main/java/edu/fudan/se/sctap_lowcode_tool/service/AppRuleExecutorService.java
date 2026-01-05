@@ -12,9 +12,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.*;
+import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCompleteRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
-import edu.fudan.se.sctap_lowcode_tool.constant.CommandConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,38 +80,75 @@ public class AppRuleExecutorService {
     private String appToken;
 
     // 记录执行中的应用规则的日志
-    @Getter
     Map<String, Map<String, List<String>>> appRuleLogMap = new ConcurrentHashMap<>();
+
+    // 记录推送到前端的日志
+    @Getter
+    Map<String, Map<String, List<AlertMessage>>> appRuleLogPushMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void initMockData() {
         log.info("✅ 初始化模拟应用规则数据...");
-
         String eventType = "ill_parking";
-        Map<String, List<String>> meshMap = new ConcurrentHashMap<>();
         Set<String> locations = new HashSet<>();
-
-        for (int i = 1; i <= 10; i++) {
-            String location = String.format("%08d", 2*i);
-            locations.add(location);
+        locations.add("6b2b5be61c60401aa4c6da9828a7df68");
+        locations.add("d920d10793e64b04a4467276337fd0dd");
+        locations.add("e730178505d54b5d98cbbd2bbc01f176");
+        Map<String, List<String>> logMap = new HashMap<>();
+        Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
+        LocalDateTime base = LocalDateTime.now();
+        for (String location : locations) {
+            // 1) 日志（你这段没问题）
             List<String> logs = new ArrayList<>();
-
             logs.add("应用开始执行...");
             logs.add("检测到车辆违章停车");
-            logs.add("AI 识别车牌号：沪A" + (1000 + i));
+            logs.add("AI 识别车牌号：沪A1001");
             logs.add("推送至交通管理部门处理中...");
             logs.add("等待人工确认...");
+            logMap.put(location, logs);
 
-            meshMap.put(location, logs);
+            // 2) 每个 location 的消息列表
+            List<AlertMessage> alertMessages = new ArrayList<>();
+            int eventOffsetMin = ThreadLocalRandom.current().nextInt(0, 11); // 0~10
+            LocalDateTime eventTime = base.plusMinutes(eventOffsetMin);
+            // event message（每次循环都 new）
+            AlertMessage eventMessage = new AlertMessage();
+            eventMessage.setType("event");
+            eventMessage.setTimestamp(eventTime);
+            eventMessage.setLocation(location);
+
+            Map<String, Object> eventMessageData = new HashMap<>();
+            eventMessageData.put("eventType", eventType);
+            eventMessageData.put("waitValue", location);
+            eventMessage.setData(eventMessageData);
+
+            alertMessages.add(eventMessage);
+
+            // application message（每次循环都 new）
+            LocalDateTime appTime = eventTime.plusMinutes(1);
+            AlertMessage appMessage = new AlertMessage();
+            appMessage.setType("application");
+            appMessage.setTimestamp(appTime);
+            appMessage.setLocation(location);
+
+            Map<String, Object> appMessageData = new HashMap<>();
+            appMessageData.put("eventType", eventType);
+            appMessageData.put("waitValue", location);
+            appMessageData.put("appName", "机动车违章停车处理应用");
+            appMessageData.put("status", "start");
+            appMessage.setData(appMessageData);
+
+            alertMessages.add(appMessage);
+
+            logPushMap.put(location, alertMessages);
         }
 
-        appRuleLogMap.put(eventType, meshMap);
+        appRuleLogMap.put(eventType, logMap);
+        appRuleLogPushMap.put(eventType, logPushMap);
         appRuleWaitMap.put(eventType, locations);
 
-        log.info("✅ 模拟数据已加入 appRuleLogMap，共 {} 个事件类型，{} 条位置记录",
-                appRuleLogMap.size(), meshMap.size());
+        log.info("✅ 模拟数据已加入");
     }
-
 
     // 记录处于等待中的应用规则
     Map<String, Set<String>> appRuleWaitMap = new ConcurrentHashMap<>();
@@ -121,24 +159,27 @@ public class AppRuleExecutorService {
      * 事件上报入口
      * */
     public void triggerAppRule(EventTriggerRequest eventTriggerRequest) {
-        // 获取全部该事件类型的应用规则
-        Integer projectId = eventTriggerRequest.getProjectId();
-        String eventType = eventTriggerRequest.getEventType();
-        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndProjectId(eventType, projectId);
         // 提交线程池执行
-        for (AppRuleInfo appRuleInfo : appRules) {
-            appRuleExecutor.execute(() -> executeAppRule(eventTriggerRequest, appRuleInfo));
-        }
+        appRuleExecutor.execute(() -> executeAppRule(eventTriggerRequest));
     }
 
     /**
      * 应用执行逻辑
      * */
-    public void executeAppRule(EventTriggerRequest eventTriggerRequest, AppRuleInfo appRuleInfo) {
-        // 解析JSON规则
-        AppRule appRule = parseJsonRule(appRuleInfo.getRuleJson());
-        // 提取事件类型和事件参数
+    public void executeAppRule(EventTriggerRequest eventTriggerRequest) {
+        // 获取全部该事件类型的应用规则
+        Integer projectId = eventTriggerRequest.getProjectId();
         String eventType = eventTriggerRequest.getEventType();
+        String location = eventTriggerRequest.getParams().get("location");
+        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndLocationAndProjectId(eventType, location, projectId);
+        if(appRules == null || appRules.isEmpty()) {
+            return;
+        }
+        // 选择最新的一条执行
+        AppRuleInfo latestRule = appRules.get(0);
+        // 解析JSON规则
+        AppRule appRule = parseJsonRule(latestRule.getRuleJson());
+        // 提取事件参数
         Map<String, Object> eventParams = extractEventParams(appRule, eventTriggerRequest.getParams());
         String waitKey = extractWaitKey(appRule);
         String waitValue = eventParams.get(waitKey).toString();
@@ -146,12 +187,40 @@ public class AppRuleExecutorService {
         if(isAppRuleWaiting(eventType, waitValue)) {
             return;
         }
+        // 向前端推送事件触发消息
+        AlertMessage eventMessage = new AlertMessage();
+        eventMessage.setType("event");
+        eventMessage.setLocation(location);
+        eventMessage.setTimestamp(LocalDateTime.now());
+        Map<String, Object> eventMessageData = new HashMap<>();
+        eventMessageData.put("eventType", eventType);
+        eventMessageData.put("waitValue", waitValue);
+        eventMessage.setData(eventMessageData);
+        webSocketPushService.sendAlert(eventMessage);
+        appRuleLogPushMap
+                .computeIfAbsent(eventType, k -> new HashMap<>())
+                .computeIfAbsent(waitValue, k -> new ArrayList<>())
+                .add(eventMessage);
+        // 将事件加入数据库历史事件中
+        storeEventHistory(eventType, eventParams, waitValue);
         // 增加开始执行日志
         addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行...");
         // 向前端推送应用开始消息
-        webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_START);
-        // 将事件加入数据库历史事件中
-        storeEventHistory(eventType, eventParams, waitValue);
+        AlertMessage appMessage = new AlertMessage();
+        appMessage.setType("application");
+        appMessage.setLocation(location);
+        appMessage.setTimestamp(LocalDateTime.now());
+        Map<String, Object> appMessageData = new HashMap<>();
+        appMessageData.put("eventType", eventType);
+        appMessageData.put("waitValue", waitValue);
+        appMessageData.put("appName", latestRule.getAppName());
+        appMessageData.put("status", "start");
+        appMessage.setData(appMessageData);
+        webSocketPushService.sendAlert(appMessage);
+        appRuleLogPushMap
+                .computeIfAbsent(eventType, k -> new HashMap<>())
+                .computeIfAbsent(waitValue, k -> new ArrayList<>())
+                .add(appMessage);
         // 处理response
         Response response = appRule.getResponse();
         handleResponse(response, eventType, eventParams, waitValue);
@@ -733,7 +802,20 @@ public class AppRuleExecutorService {
         addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
         addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
         // 向前端推送应用结束消息
-        webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_END);
+        List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
+        AlertMessage appMessage;
+        for(AlertMessage message : messages) {
+            if(message.getType().equals("application")) {
+                appMessage = message;
+                Map<String, Object> data = appMessage.getData();
+                data.put("status", "end");
+                appMessage.setData(data);
+                appMessage.setTimestamp(LocalDateTime.now());
+                webSocketPushService.sendAlert(appMessage);
+            }
+        }
+        // 删除日志
+        appRuleLogPushMap.get(eventType).remove(waitValue);
         // 将日志存入数据库
         saveLog(eventType, waitValue);
     }
@@ -829,7 +911,19 @@ public class AppRuleExecutorService {
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
                     // 向前端推送应用结束消息
-                    webSocketPushService.sendAlert(eventType, waitValue, CommandConstant.COMMAND_END);
+                    List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
+                    AlertMessage appMessage;
+                    for(AlertMessage message : messages) {
+                        if(message.getType().equals("application")) {
+                            appMessage = message;
+                            Map<String, Object> data = appMessage.getData();
+                            data.put("status", "end");
+                            appMessage.setData(data);
+                            webSocketPushService.sendAlert(appMessage);
+                        }
+                    }
+                    // 删除日志
+                    appRuleLogPushMap.get(eventType).remove(waitValue);
                     // 存储日志
                     saveLog(eventType, waitValue);
                 }

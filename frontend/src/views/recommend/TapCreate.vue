@@ -118,9 +118,9 @@
           <a-form-item label="应用名称" name="appName">
             <a-input
               v-model="manualSaveForm.appName"
-              placeholder="请输入应用名称（建议 1-50 字）"
+              placeholder="请输入应用名称，不能超过 30 字"
               allow-clear
-              :max-length="50"
+              :max-length="30"
             />
             <span
               style="
@@ -131,7 +131,7 @@
                 color: #999;
               "
             >
-              {{ manualSaveForm.appName.length }} / 50
+              {{ manualSaveForm.appName.length }} / 30
             </span>
           </a-form-item>
           <a-form-item label="应用描述" name="description">
@@ -180,9 +180,9 @@
           <a-form-item label="应用名称" required>
             <a-input
               v-model="appNameInput"
-              placeholder="请输入应用名称（1-50 字）"
+              placeholder="请输入应用名称，不能超过 30 字"
               allow-clear
-              :max-length="50"
+              :max-length="30"
             />
             <div
               style="
@@ -192,7 +192,7 @@
                 text-align: right;
               "
             >
-              {{ appNameInput.length }} / 50
+              {{ appNameInput.length }} / 30
             </div>
           </a-form-item>
         </a-form>
@@ -222,7 +222,7 @@ import {
 // --- 1. 常量和配置 ---
 const UNIQUE_CHAT_ID = uuidv4()
 const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
-const MAX_APP_NAME_LENGTH = 50
+const MAX_APP_NAME_LENGTH = 30
 const MAX_DESCRIPTION_LENGTH = 300
 
 // --- 2. 响应式状态：聊天与规则详情 ---
@@ -405,8 +405,8 @@ async function handleConfirmCreateApp() {
   if (!appName) {
     return message.error('请输入应用名称')
   }
-  if (appName.length > 50) {
-    return message.error('应用名称不能超过 50 个字符')
+  if (appName.length > MAX_APP_NAME_LENGTH) {
+    return message.error(`应用名称不能超过 ${MAX_APP_NAME_LENGTH} 个字符`)
   }
 
   try {

@@ -17,11 +17,17 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     Optional<AppRuleInfo> findById(int id);
 
     @Query("""
-        SELECT a FROM AppRuleInfo a WHERE a.eventType = :eventType
-            AND a.project.projectId = :projectId
+        SELECT DISTINCT a FROM AppRuleInfo a
+        JOIN AppGrid g ON g.appRuleId = a.id
+        WHERE a.eventType = :eventType
+        AND a.project.projectId = :projectId
+        AND g.gridId = :location
+        AND g.enabled = TRUE
+        ORDER BY a.updateTime DESC
     """)
-    List<AppRuleInfo> findByEventTypeAndProjectId(
+    List<AppRuleInfo> findByEventTypeAndLocationAndProjectId(
             @Param("eventType") String eventType,
+            @Param("location") String location,
             @Param("projectId") Integer projectId);
 
 
