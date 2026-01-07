@@ -168,10 +168,9 @@ public class AppRuleExecutorService {
      * */
     public void executeAppRule(EventTriggerRequest eventTriggerRequest) {
         // 获取全部该事件类型的应用规则
-        Integer projectId = eventTriggerRequest.getProjectId();
-        String eventType = eventTriggerRequest.getEventType();
-        String location = eventTriggerRequest.getParams().get("location");
-        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndLocationAndProjectId(eventType, location, projectId);
+        String eventType = eventTriggerRequest.getEvent_type();
+        String location = eventTriggerRequest.getEvent_params().get("location").toString();
+        List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndLocation(eventType, location);
         if(appRules == null || appRules.isEmpty()) {
             return;
         }
@@ -180,7 +179,7 @@ public class AppRuleExecutorService {
         // 解析JSON规则
         AppRule appRule = parseJsonRule(latestRule.getRuleJson());
         // 提取事件参数
-        Map<String, Object> eventParams = extractEventParams(appRule, eventTriggerRequest.getParams());
+        Map<String, Object> eventParams = eventTriggerRequest.getEvent_params();
         String waitKey = extractWaitKey(appRule);
         String waitValue = eventParams.get(waitKey).toString();
         // 判断应用是否处于等待中，如果不是则继续执行
@@ -243,30 +242,30 @@ public class AppRuleExecutorService {
     /**
      * 提取事件参数
      * */
-    private Map<String, Object> extractEventParams(AppRule appRule, Map<String, String> params) {
-        Map<String, Object> eventParams = new HashMap<>();
-        for(Map.Entry<String, String> entry: appRule.getTrigger().getEvent_params().entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if(params.containsKey(key)) {
-                switch (value) {
-                    case "string":
-                        eventParams.put(key, params.get(key));
-                        break;
-                    case "number":
-                        eventParams.put(key, Integer.parseInt(params.get(key)));
-                        break;
-                    case "bool":
-                        eventParams.put(key, Boolean.parseBoolean(params.get(key)));
-                        break;
-                    default:
-                        eventParams.put(key, params.get(key));
-                        log.warn("未知类型：{}", value);
-                }
-            }
-        }
-        return eventParams;
-    }
+//    private Map<String, Object> extractEventParams(AppRule appRule, Map<String, String> params) {
+//        Map<String, Object> eventParams = new HashMap<>();
+//        for(Map.Entry<String, String> entry: appRule.getTrigger().getEvent_params().entrySet()) {
+//            String key = entry.getKey();
+//            String value = entry.getValue();
+//            if(params.containsKey(key)) {
+//                switch (value) {
+//                    case "string":
+//                        eventParams.put(key, params.get(key));
+//                        break;
+//                    case "number":
+//                        eventParams.put(key, Integer.parseInt(params.get(key)));
+//                        break;
+//                    case "bool":
+//                        eventParams.put(key, Boolean.parseBoolean(params.get(key)));
+//                        break;
+//                    default:
+//                        eventParams.put(key, params.get(key));
+//                        log.warn("未知类型：{}", value);
+//                }
+//            }
+//        }
+//        return eventParams;
+//    }
 
     /**
      * 提取wait key
@@ -1023,12 +1022,10 @@ public class AppRuleExecutorService {
 
     public EventTriggerRequest parseEventTriggerRequest(Map<String, Object> eventData) {
         EventTriggerRequest eventTriggerRequest = new EventTriggerRequest();
-        // 这里先设定 projectId = 1
-        eventTriggerRequest.setProjectId(1);
         // 获取事件类型和事件参数
         String eventType = eventData.get("eventType").toString();
-        eventTriggerRequest.setEventType(eventType);
-        Map<String, String> params = new HashMap<>();
+        eventTriggerRequest.setEvent_type(eventType);
+        Map<String, Object> params = new HashMap<>();
         // params.put("location", eventData.get("address").toString());
         // TODO, 先暂时使用 00000060 作为测试
         params.put("location", "00000060");
@@ -1042,7 +1039,7 @@ public class AppRuleExecutorService {
             Map<String, Object> words = (Map<String, Object>) eventData.get("words");
             params.put("plate_number", words.get("plate_number").toString());
         }
-        eventTriggerRequest.setParams(params);
+        eventTriggerRequest.setEvent_params(params);
         return eventTriggerRequest;
     }
 

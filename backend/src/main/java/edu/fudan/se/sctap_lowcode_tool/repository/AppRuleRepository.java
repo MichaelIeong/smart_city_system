@@ -20,15 +20,13 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
         SELECT DISTINCT a FROM AppRuleInfo a
         JOIN AppGrid g ON g.appRuleId = a.id
         WHERE a.eventType = :eventType
-        AND a.project.projectId = :projectId
         AND g.gridId = :location
         AND g.enabled = TRUE
         ORDER BY a.updateTime DESC
     """)
-    List<AppRuleInfo> findByEventTypeAndLocationAndProjectId(
+    List<AppRuleInfo> findByEventTypeAndLocation(
             @Param("eventType") String eventType,
-            @Param("location") String location,
-            @Param("projectId") Integer projectId);
+            @Param("location") String location);
 
 
     @Query("""
