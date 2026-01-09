@@ -1,5 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,10 +17,10 @@ import java.util.List;
  * @param publish 事件发布配置。
  */
 public record EventFusionRule(
-	@NotNull String ruleName,
-	@NotNull List<Trigger> triggers,
-	@NotNull List<Step> steps,
-	@NotNull Publish publish
+	@NotBlank String ruleName,
+	@Valid @NotNull List<Trigger> triggers,
+	@Valid @NotNull List<Step> steps,
+	@Valid @NotNull Publish publish
 ) {
 
 	/**
@@ -28,7 +30,7 @@ public record EventFusionRule(
 	 */
 	public record Trigger(
 		@NotNull EventSource eventSource,
-		@NotNull String eventId
+		@NotBlank String eventId
 	) { }
 
 	/**
@@ -46,15 +48,15 @@ public record EventFusionRule(
 	 * @param output 算子出参定义，使用 Var 描述。
 	 */
 	public record Step(
-		@NotNull String stepId,
+		@NotBlank String stepId,
 		@Nullable String condition,
 		@NotNull List<String> next,
-		@NotNull List<Param> input,
+		@Valid @NotNull List<Param> input,
 		@NotNull OperatorType operatorType,
 		@Nullable String operatorName,
 		@Nullable String operatorUrl,
 		@Nullable HttpMethod operatorHttpMethod,
-		@NotNull List<Var> output
+		@Valid @NotNull List<Var> output
 	) { }
 
 	/**
@@ -68,11 +70,11 @@ public record EventFusionRule(
 	 * @param output 事件载荷，使用 Param 描述。
 	 */
 	public record Publish(
-		@NotNull String spaceEventId,
-		@NotNull String spaceEventName,
+		@NotBlank String spaceEventId,
+		@NotBlank String spaceEventName,
 		@Nullable String spaceEventDesc,
 		@Nullable String condition,
-		@NotNull List<Param> output
+		@Valid @NotNull List<Param> output
 	) { }
 
 	/**
