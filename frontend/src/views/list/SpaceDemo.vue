@@ -140,8 +140,8 @@ export default {
   data () {
     return {
       isLoading: false,
-      selectedType: 'F-city',
-      backgroundImage: null,
+      selectedType: 'F-city', // 默认类型
+      backgroundImage: CityImg, // 默认背景
       backgroundOffset: 'calc(50% - 180px) center',
 
       // 网格类型映射
@@ -287,9 +287,15 @@ export default {
     }
   },
   created () {
+    // 1. 从 URL 路由参数中读取我们从 ProjectSelection 传递过来的值
     const initialMeshType = this.$route.query.initialMeshType
+
+    // 2. 如果参数存在且是有效的网格类型，则覆盖默认的 selectedType
     if (initialMeshType && this.meshFiles[initialMeshType]) {
       this.selectedType = initialMeshType
+
+      // 调试：确认参数被读取
+      console.log('Router param detected. Initializing with:', initialMeshType)
     }
   },
 
@@ -432,10 +438,10 @@ export default {
         this.$message.warning('未选择网格 ID')
         return
       }
-      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
 
     showServiceModal () {
@@ -444,12 +450,11 @@ export default {
         this.$message.warning('未选择网格 ID')
         return
       }
-      const nodeRedUrl = `http://10.176.65.202:1880?gridId=${gridId}`
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
-
     routeToRecommendApplication () {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
@@ -460,7 +465,6 @@ export default {
   },
 
   mounted () {
-// 直接调用切换方法，这样背景图、偏移量、数据加载会一并执行
     this.handleMeshTypeChange(this.selectedType)
   }
 }

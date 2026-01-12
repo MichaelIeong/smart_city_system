@@ -2,15 +2,11 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
-import edu.fudan.se.sctap_lowcode_tool.service.AppRuleExecutorService;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
-import edu.fudan.se.sctap_lowcode_tool.service.EventHistoryService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController

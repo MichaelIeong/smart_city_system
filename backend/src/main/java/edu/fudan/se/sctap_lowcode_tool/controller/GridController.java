@@ -10,12 +10,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/grid")
-@CrossOrigin
 public class GridController {
 
     @Autowired
     private GridService gridService;
 
+    /**
+     * 获取网格的全部信息，包括元信息、设备信息、环境级事件、属性、服务、应用
+     * */
     @GetMapping("/{meshId}")
     public Map<String, Object> getGridInfo(@PathVariable String meshId) {
         return gridService.getGridDetail(meshId);
@@ -35,19 +37,5 @@ public class GridController {
     @GetMapping("/type/{gridId}")
     public ResponseEntity<List<GridMesh>> getGridListByType(@PathVariable String gridId) {
         return ResponseEntity.ok(gridService.getGridListByType(gridId));
-    }
-
-    @RestController
-    @RequestMapping("/api/meshes")
-    public class MeshController {
-
-        @Autowired
-        private GridService gridService;
-
-        @GetMapping("/all")
-        public ResponseEntity<List<Map<String, Object>>> getAllGrids() {
-            List<Map<String, Object>> grids = gridService.getAllGridList();
-            return ResponseEntity.ok(grids);
-        }
     }
 }

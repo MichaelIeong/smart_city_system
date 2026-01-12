@@ -9,4 +9,5 @@ public class AppRuleSaveRequest {
     private String ruleJson;
     private String flowJson;
     private String gridId;
+    private String appName;
 }
