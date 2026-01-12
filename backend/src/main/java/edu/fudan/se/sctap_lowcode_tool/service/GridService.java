@@ -1,10 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvProperty;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 // 移除不必要的导入，如 SignUtil, Http*, RestTemplate
+import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import jakarta.annotation.Resource;
 // 移除 @Value
 import org.springframework.stereotype.Service;
@@ -32,6 +30,9 @@ public class GridService {
     private EnvPropertyService envPropertyService;
     @Resource
     private AppGridService appGridService;
+    @Resource
+    private GridMeshRepository gridMeshRepository;
+
 
     // 移除 RestTemplate
 
@@ -156,5 +157,25 @@ public class GridService {
         }
 
         return result;
+    }
+    /**
+     * 获取网格信息
+     * */
+    public GridMesh getGridById(String gridId) {
+        return gridMeshRepository.findById(gridId).orElse(null);
+    }
+
+    /**
+     * 根据类型获取网格列表
+     * */
+    public List<GridMesh> getGridListByType(String gridId) {
+        // 获取网格信息
+        GridMesh gridMesh = getGridById(gridId);
+        if(gridMesh==null) {
+            return null;
+        }
+        String meshNature = gridMesh.getMeshNature();
+        String meshType = gridMesh.getMeshType();
+        return gridMeshRepository.findByMeshNatureAndMeshType(meshNature, meshType);
     }
 }

@@ -110,7 +110,7 @@
               :pagination="false"
               size="small"
             />
-            <a-button type="primary" size="small" @click="addApplication">
+            <a-button type="primary" size="small" @click="routeToRecommendApplication">
               添加应用
             </a-button>
           </el-tab-pane>
@@ -140,8 +140,8 @@ export default {
   data () {
     return {
       isLoading: false,
-      selectedType: 'F-city', // 默认类型
-      backgroundImage: CityImg, // 默认背景
+      selectedType: 'F-city',
+      backgroundImage: null,
       backgroundOffset: 'calc(50% - 180px) center',
 
       // 网格类型映射
@@ -287,15 +287,9 @@ export default {
     }
   },
   created () {
-    // 1. 从 URL 路由参数中读取我们从 ProjectSelection 传递过来的值
     const initialMeshType = this.$route.query.initialMeshType
-
-    // 2. 如果参数存在且是有效的网格类型，则覆盖默认的 selectedType
     if (initialMeshType && this.meshFiles[initialMeshType]) {
       this.selectedType = initialMeshType
-
-      // 调试：确认参数被读取
-      console.log('Router param detected. Initializing with:', initialMeshType)
     }
   },
 
@@ -456,16 +450,17 @@ export default {
       window.open(nodeRedUrl, '_blank') // '_blank' 会在新标签页中打开链接
     },
 
-    addApplication () {
+    routeToRecommendApplication () {
       if (this.gridId === null) {
         this.$message.warning('请选择网格')
       } else {
-        this.$message.success('选择网格：' + this.gridId)
+        this.$router.push(`/tap/create?gridId=${this.gridId}`)
       }
     }
   },
 
   mounted () {
+// 直接调用切换方法，这样背景图、偏移量、数据加载会一并执行
     this.handleMeshTypeChange(this.selectedType)
   }
 }

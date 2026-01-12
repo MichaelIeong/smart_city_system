@@ -31,4 +31,8 @@ public class EnvPropertyService {
     public List<EnvProperty> getEnvPropertyList(String gridId) {
         return envPropertyRepository.findByGridId(gridId);
     }
+
+    public List<EnvProperty> findByGridId(String meshId) {
+        return List.of();
+    }
 }
