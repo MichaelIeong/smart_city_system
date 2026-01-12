@@ -6,9 +6,7 @@ import java.util.Map;
 
 @Data
 public class EventTriggerRequest {
-    private Integer projectId;
+    private String event_type;
 
-    private String eventType;
-
-    private Map<String, String> params;
+    private Map<String, Object> event_params;
 }

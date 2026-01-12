@@ -18,14 +18,9 @@ public class WebSocketPushService {
     /**
      * 向前端推送消息
      * */
-    public void sendAlert(String eventType, String location, String command) {
-        AlertMessage alertMessage = new AlertMessage();
-        alertMessage.setEventType(eventType);
-        alertMessage.setLocation(location);
-        alertMessage.setCommand(command);
-        alertMessage.setTime(LocalDateTime.now().toString());
+    public void sendAlert(AlertMessage message) {
         // 推送到前端订阅的 topic
-        simpMessagingTemplate.convertAndSend("/topic/alerts", alertMessage);
-        log.info("✅ 推送至前端 -> 事件类型: {}, 位置: {}", eventType, location);
+        simpMessagingTemplate.convertAndSend("/topic/alerts", message);
+        log.info("✅ 推送至前端 -> 类型: {}, 位置: {}, 时间: {}, 额外信息: {}", message.getType(), message.getLocation(), message.getTimestamp(), message.getData());
     }
 }

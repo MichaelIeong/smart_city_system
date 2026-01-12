@@ -18,4 +18,8 @@ public class AppGridService {
     public List<AppRuleInfo> getAppList(String gridId) {
         return appRuleRepository.findByGridId(gridId);
     }
+
+    public List<AppRuleInfo> findByGridId(String meshId) {
+        return List.of();
+    }
 }

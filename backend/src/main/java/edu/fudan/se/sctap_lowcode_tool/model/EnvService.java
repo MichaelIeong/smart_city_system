@@ -12,9 +12,6 @@ public class EnvService {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "grid_id", nullable = false)
-    private String gridId;
-
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 

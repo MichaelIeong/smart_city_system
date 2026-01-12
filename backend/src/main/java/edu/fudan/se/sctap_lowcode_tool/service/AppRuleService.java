@@ -129,6 +129,7 @@ public class AppRuleService {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
         String gridId = appRuleSaveRequest.getGridId();
+        String appName = appRuleSaveRequest.getAppName();
         // 如果是大模型创建应用
         if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
@@ -231,6 +232,7 @@ public class AppRuleService {
                             "rule.projectId", appRuleSaveRequest.getProjectId().toString(), "projectId not found"
                     );
                 });
+        appRuleInfo.setAppName(appRuleSaveRequest.getAppName());
         appRuleInfo.setDescription(appRuleSaveRequest.getDescription());
         appRuleInfo.setRuleJson(appRuleSaveRequest.getRuleJson());
         appRuleInfo.setFlowJson(appRuleSaveRequest.getFlowJson());

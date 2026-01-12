@@ -115,6 +115,25 @@
           :model="manualSaveForm"
           layout="vertical"
         >
+          <a-form-item label="应用名称" name="appName">
+            <a-input
+              v-model="manualSaveForm.appName"
+              placeholder="请输入应用名称，不能超过 30 字"
+              allow-clear
+              :max-length="30"
+            />
+            <span
+              style="
+                position: absolute;
+                right: 8px;
+                bottom: -26px;
+                font-size: 12px;
+                color: #999;
+              "
+            >
+              {{ manualSaveForm.appName.length }} / 30
+            </span>
+          </a-form-item>
           <a-form-item label="应用描述" name="description">
             <a-textarea
               :rows="4"
@@ -149,6 +168,35 @@
           <a-button type="primary" :loading="isManualSaveLoading" @click="handleManualSaveApp">保存</a-button>
         </template>
       </a-modal>
+      <a-modal
+        :visible="isAppNameModalVisible"
+        title="请输入应用名称"
+        @ok="handleConfirmCreateApp"
+        @cancel="closeAppNameModal"
+        :confirm-loading="isCreateAppLoading"
+        destroy-on-close
+      >
+        <a-form layout="vertical">
+          <a-form-item label="应用名称" required>
+            <a-input
+              v-model="appNameInput"
+              placeholder="请输入应用名称，不能超过 30 字"
+              allow-clear
+              :max-length="30"
+            />
+            <div
+              style="
+                margin-top: 4px;
+                font-size: 12px;
+                color: #999;
+                text-align: right;
+              "
+            >
+              {{ appNameInput.length }} / 30
+            </div>
+          </a-form-item>
+        </a-form>
+      </a-modal>
     </a-card>
   </page-header-wrapper>
 </template>
@@ -174,6 +222,7 @@ import {
 // --- 1. 常量和配置 ---
 const UNIQUE_CHAT_ID = uuidv4()
 const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
+const MAX_APP_NAME_LENGTH = 30
 const MAX_DESCRIPTION_LENGTH = 300
 
 // --- 2. 响应式状态：聊天与规则详情 ---
@@ -214,9 +263,15 @@ const isManualSaveModalVisible = ref(false) // 对应原 saveVisible
 const isManualSaveLoading = ref(false) // 对应原 saveLoading
 const manualSaveFormRef = ref(null) // 对应原 saveFormRef
 const manualSaveForm = reactive({ // 对应原 saveForm
+  appName: '',
   description: '',
   flowJson: ''
 })
+
+// —— 创建应用名称弹窗 ——
+const isAppNameModalVisible = ref(false)
+const isCreateAppLoading = ref(false)
+const appNameInput = ref('')
 
 // --- 5. 生命周期钩子 ---
 onMounted(() => {
@@ -339,33 +394,62 @@ async function handleCreateAppFromChat() {
     return message.warning('请先匹配或生成正确的 JSON 应用规则。')
   }
   if (!gridId.value) return message.warning('请先选择网格。')
+  // 重置名称并打开弹窗
+  appNameInput.value = ''
+  isAppNameModalVisible.value = true
+}
+
+async function handleConfirmCreateApp() {
+  const appName = appNameInput.value.trim()
+
+  if (!appName) {
+    return message.error('请输入应用名称')
+  }
+  if (appName.length > MAX_APP_NAME_LENGTH) {
+    return message.error(`应用名称不能超过 ${MAX_APP_NAME_LENGTH} 个字符`)
+  }
 
   try {
-    const projectId = localStorage.getItem('project_id')
-    const jsonRuleString = JSON.stringify(ruleDetails.value.jsonRule, null, 2)
+    isCreateAppLoading.value = true
 
+    const projectId = localStorage.getItem('project_id')
+    const jsonRuleString = JSON.stringify(
+      ruleDetails.value.jsonRule,
+      null,
+      2
+    )
     const appIdNew = await createTapRule(
-      projectId,
+      projectId,                      
       ruleDetails.value.naturalContent,
       jsonRuleString,
-      "", // flowJson 留空
-      gridId.value
+      "",
+      gridId.value,
+      appName
     )
 
     if (appIdNew !== 0) {
       appId.value = appIdNew
       message.success('应用创建成功')
-      
+
+      isAppNameModalVisible.value = false
+
       // 准备同步
       const gridListData = await getGridListByType(gridId.value)
       gridList.value = gridListData
-      isGridSelectionModalVisible.value = true // 显示网格选择弹窗
+      isGridSelectionModalVisible.value = true
     } else {
-      message.error('应用创建失败，请稍后重试')
+      message.error('应用创建失败')
     }
-  } catch (error) {
-    message.error('应用创建失败: ' + error.message)
+  } catch (e) {
+    message.error('应用创建失败：' + e.message)
+  } finally {
+    isCreateAppLoading.value = false
   }
+}
+
+function closeAppNameModal() {
+  isAppNameModalVisible.value = false
+  appNameInput.value = ''
 }
 
 /** 打开手动创建应用的模态框 (对应原 handleCreate) */
@@ -377,6 +461,7 @@ function handleOpenManualCreate () {
 function closeManualSaveModal () {
   isManualSaveModalVisible.value = false
   // 重置表单
+  manualSaveForm.appName = ''
   manualSaveForm.description = ''
   manualSaveForm.flowJson = ''
 }
@@ -384,11 +469,16 @@ function closeManualSaveModal () {
 /** 手动创建应用 (对应原 submitSave) */
 async function handleManualSaveApp () {
   if (!gridId.value) return message.warning('请先选择网格。')
-
   try {
     isManualSaveLoading.value = true
     
     // --- 手动校验 ---
+    if (!manualSaveForm.appName || manualSaveForm.appName.trim() === '') {
+      return message.error('请输入应用名称')
+    }
+    if (manualSaveForm.appName.length > MAX_APP_NAME_LENGTH) {
+      return message.error(`应用名称不能超过 ${MAX_APP_NAME_LENGTH} 个字符`)
+    }
     if (!manualSaveForm.description || manualSaveForm.description.trim() === '') {
       return message.error('请输入应用描述')
     }
@@ -414,7 +504,8 @@ async function handleManualSaveApp () {
         manualSaveForm.description, 
         "", // jsonRule 留空
         JSON.stringify(flowJsonObj, null, 2), 
-        gridId.value
+        gridId.value,
+        manualSaveForm.appName
       )
 
       if (appIdNew !== 0) {

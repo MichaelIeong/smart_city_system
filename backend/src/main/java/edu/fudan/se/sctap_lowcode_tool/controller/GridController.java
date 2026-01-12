@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/grid")
-@CrossOrigin
 public class GridController {
 
     @Autowired

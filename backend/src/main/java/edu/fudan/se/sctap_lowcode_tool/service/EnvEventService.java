@@ -44,4 +44,7 @@ public class EnvEventService {
         return envEventRepository.findByGridId(gridId);
     }
 
+    public List<EnvEvent> findByGridId(String meshId) {
+        return null;
+    }
 }
