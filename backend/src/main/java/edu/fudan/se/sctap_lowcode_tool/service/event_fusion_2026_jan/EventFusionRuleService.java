@@ -1,10 +1,10 @@
-package edu.fudan.se.sctap_lowcode_tool.service;
+package edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.Param;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.Var;
-import edu.fudan.se.sctap_lowcode_tool.model.EventFusionRuleEntity;
+import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.EventFusionRuleEntity;
 import edu.fudan.se.sctap_lowcode_tool.repository.EventFusionRuleRepository;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;

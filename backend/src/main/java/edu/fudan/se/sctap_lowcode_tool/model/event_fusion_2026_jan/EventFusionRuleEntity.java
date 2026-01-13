@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.model;
+package edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import jakarta.persistence.*;
