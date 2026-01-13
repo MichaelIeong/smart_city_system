@@ -21,7 +21,9 @@ const api = {
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
   sensors: '/api/node-red/sensors',
-  grid: '/api/grid'
+  grid: '/api/grid',
+  sceneAdd: '/api/scene/add',
+  isResources: '/api/is_resources'
 }
 
 export default api
@@ -550,6 +552,43 @@ export function getAppExecuteDetail (appId) {
   const token = store.state.token
   return request({
     url: `${api.tap}/execute/detail/${appId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function addScene (sceneType) {
+  const token = store.state.token
+
+  return request({
+    url: api.sceneAdd,
+    method: 'post',
+    data: {
+      sceneType: sceneType
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getEnvInformationResources () {
+  const token = store.state.token
+  return request({
+    url: api.isResources + '/information',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getEnvSocialResources () {
+  const token = store.state.token
+  return request({
+    url: api.isResources + '/social',
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`

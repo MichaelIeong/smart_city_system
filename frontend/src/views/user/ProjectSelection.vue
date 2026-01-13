@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { addScene } from '@/api/manage'
 import { getProjects } from '@/api/login'
 import DefaultSceneImg from '@/assets/DefaultSceneImg.png'
 
@@ -177,18 +177,35 @@ export default {
 
       this.loading = true
       try {
-        const res = await axios.post('/api/scene/add', {
-          sceneType: this.selectedSceneType
-        })
+        // 调用接口
+        const res = await addScene(this.selectedSceneType)
+        let isSuccess = false
+        let dataList = []
 
-        if (res.data.success) {
-          const rawList = res.data.data
+        if (res && res.success === true) {
+          // 情况A: res 就是响应体
+          isSuccess = true
+          dataList = res.data
+        } else if (res && res.data && res.data.success === true) {
+          // 情况B: res 是 Axios 原始对象
+          isSuccess = true
+          dataList = res.data.data
+        }
+
+        if (isSuccess) {
+          const rawList = dataList || []
 
           this.previewData = rawList.map(item => {
             const pointList = this.parseRemarksPoints(item.remarks)
+            let img = DefaultSceneImg
+            if (item.meshNature === 'F-city') img = require('@/assets/commercial.jpg')
+            else if (item.meshNature === 'F-community') img = require('@/assets/residential.jpg')
+            else if (item.meshNature === 'F-park') img = require('@/assets/Park.jpg')
+
             return {
               projectId: item.id,
               projectName: item.meshName,
+              image: img,
               rawAddress: item.address,
               meshData: {
                 points: pointList,
@@ -201,7 +218,7 @@ export default {
           this.showTypeModal = false
           this.showPreviewModal = true
         } else {
-          alert('获取数据失败，请稍后重试')
+          alert('获取数据失败: 状态不正确')
         }
       } catch (error) {
         console.error('API Error:', error)
