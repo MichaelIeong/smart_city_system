@@ -1,0 +1,102 @@
+[
+    {
+        "id": "4b46d8cfdcac1e7a",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "6647f3ca070b28fd",
+        "type": "Operator",
+        "z": "4b46d8cfdcac1e7a",
+        "operatorName": "温度大于20度",
+        "value": "20",
+        "operator": "Greater than",
+        "output": "Boolean",
+        "x": 720,
+        "y": 380,
+        "wires": [
+            [
+                "0c53393282d602d7"
+            ]
+        ]
+    },
+    {
+        "id": "87e4ec7c57203b0c",
+        "type": "Sensor",
+        "z": "4b46d8cfdcac1e7a",
+        "location": "Ai Park",
+        "deviceName": "湿度传感器",
+        "deviceType": null,
+        "sensingFunction": "humidity",
+        "sensorId": "6",
+        "x": 370,
+        "y": 220,
+        "wires": [
+            [
+                "bd3998b67e605caa"
+            ]
+        ]
+    },
+    {
+        "id": "6a6566b5851c475b",
+        "type": "Sensor",
+        "z": "4b46d8cfdcac1e7a",
+        "location": "Ai Park",
+        "deviceName": "温度传感器2",
+        "deviceType": null,
+        "sensingFunction": "temperature",
+        "sensorId": "4",
+        "x": 360,
+        "y": 380,
+        "wires": [
+            [
+                "6647f3ca070b28fd"
+            ]
+        ]
+    },
+    {
+        "id": "bd3998b67e605caa",
+        "type": "Operator",
+        "z": "4b46d8cfdcac1e7a",
+        "operatorName": "湿度大于250%",
+        "value": "50",
+        "operator": "Greater than",
+        "output": "Boolean",
+        "x": 710,
+        "y": 220,
+        "wires": [
+            [
+                "0c53393282d602d7"
+            ]
+        ]
+    },
+    {
+        "id": "6166ba10ad992374",
+        "type": "Publish",
+        "z": "4b46d8cfdcac1e7a",
+        "name": "",
+        "rulename": "温湿度过高 ",
+        "x": 1560,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "0c53393282d602d7",
+        "type": "Operator",
+        "z": "4b46d8cfdcac1e7a",
+        "operatorName": "时序相差不超过20秒",
+        "value": null,
+        "operator": "AND",
+        "output": "Boolean",
+        "x": 1150,
+        "y": 300,
+        "wires": [
+            [
+                "6166ba10ad992374"
+            ]
+        ]
+    }
+]
