@@ -42,4 +42,8 @@ public class EnvServiceService {
     public List<EnvService> getEnvServiceList(String gridId) {
         return  envServiceRepository.findByGridId(gridId);
     }
+
+    public List<EnvService> findByGridId(String meshId) {
+        return List.of();
+    }
 }

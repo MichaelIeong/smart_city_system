@@ -1,8 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
-import edu.fudan.se.sctap_lowcode_tool.model.EventFusionRuleEntity;
-import edu.fudan.se.sctap_lowcode_tool.service.EventFusionRuleService;
+import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.EventFusionRuleEntity;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

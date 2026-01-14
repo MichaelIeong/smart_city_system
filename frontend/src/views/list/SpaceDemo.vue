@@ -441,7 +441,7 @@ export default {
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?type=2&gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
 
     showServiceModal () {
@@ -453,7 +453,7 @@ export default {
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 
       // 弹出新的 Node-RED 窗口
-      window.open(`${NODE_RED_URL}?gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
+      window.open(`${NODE_RED_URL}?type=3&gridId=${gridId}`, '_blank') // '_blank' 会在新标签页中打开链接
     },
     routeToRecommendApplication () {
       if (this.gridId === null) {
