@@ -6,5 +6,5 @@ import lombok.Data;
 public class AppRuleCompleteRequest {
     private String eventType;
 
-    private String value;
+    private String eventParam;
 }
