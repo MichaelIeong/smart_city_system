@@ -1,0 +1,131 @@
+{
+    "node-red": {
+        "name": "node-red",
+        "version": "4.0.2",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "a_event": {
+                "name": "a_event",
+                "types": [
+                    "Event"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Application Construction\\a_event.js"
+            },
+            "b_switch": {
+                "name": "b_switch",
+                "types": [
+                    "Switch"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Application Construction\\b_switch.js"
+            },
+            "c_wait": {
+                "name": "c_wait",
+                "types": [
+                    "Wait"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Application Construction\\c_wait.js"
+            },
+            "d_action": {
+                "name": "d_action",
+                "types": [
+                    "Action"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Application Construction\\d_action.js"
+            },
+            "a_sensor": {
+                "name": "a_sensor",
+                "types": [
+                    "Sensor"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Event Fusion\\a_sensor.js"
+            },
+            "b_operator": {
+                "name": "b_operator",
+                "types": [
+                    "Operator"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Event Fusion\\b_operator.js"
+            },
+            "c_publish": {
+                "name": "c_publish",
+                "types": [
+                    "Publish"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Event Fusion\\c_publish.js"
+            },
+            "a_device_service": {
+                "name": "a_device_service",
+                "types": [
+                    "Device Service"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Service Composition\\a_device_service.js"
+            },
+            "b_social_service": {
+                "name": "b_social_service",
+                "types": [
+                    "Social Service"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Service Composition\\b_social_service.js"
+            },
+            "c_info_service": {
+                "name": "c_info_service",
+                "types": [
+                    "Information Service"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Service Composition\\c_info_service.js"
+            },
+            "d_composition": {
+                "name": "d_composition",
+                "types": [
+                    "Composition"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red",
+                "file": "D:\\Desktop\\Code\\smart_city_system\\node-red\\packages\\node_modules\\@node-red\\nodes\\core\\Service Composition\\d_composition.js"
+            }
+        }
+    }
+}

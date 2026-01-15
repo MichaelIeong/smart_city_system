@@ -31,9 +31,14 @@ public class SocialResourceInfo {
 
     private String resourceType;   // 资源类型
 
+    @Column(name = "description")
     private String description;   // 资源描述
 
+    @Column(name = "details")
     private String details;
+
+    @Column(name = "input")
+    private String socialResourceJson;
 
     private String state;  // 资源状态
 

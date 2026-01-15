@@ -4,7 +4,22 @@
       <div class="mesh-container">
         <svg ref="svg" class="svg-container"></svg>
       </div>
-
+      <div class="log-filter-header">
+        <div class="filter-box">
+          <span class="filter-label">事件过滤</span>
+          <a-select
+            v-model="selectedEventType"
+            placeholder="全部类型"
+            class="filter-select"
+            @change="handleFilterChange"
+          >
+            <a-select-option value="all">显示全部类型</a-select-option>
+            <a-select-option v-for="(label, value) in eventTypeLabelMap" :key="value" :value="value">
+              {{ label }}
+            </a-select-option>
+          </a-select>
+        </div>
+      </div>
       <div class="event-log-panel">
         <div class="panel-header">
           <div class="header-left">
@@ -15,7 +30,11 @@
         </div>
 
         <div class="log-list">
-          <div v-for="(item, index) in eventLogs" :key="index" class="log-item">
+          <div
+            v-for="(item, index) in eventLogs"
+            :key="index"
+            v-if="selectedEventType === 'all' || item.eventType === selectedEventType"
+            class="log-item">
             <div class="log-content-wrapper">
               <div class="log-info">
                 <div class="log-time">{{ item.time }}</div>
@@ -35,19 +54,22 @@
       :footer="null"
       :width="800"
       :destroyOnClose="true"
+      :bodyStyle="{ height: '500px', padding: '0' }"
     >
-      <a-spin :spinning="logModalLoading">
-        <a-empty
-          v-if="!logModalLoading && logModalLogs.length === 0"
-          description="暂无日志"
-        />
-        <div v-else style="max-height: 600px; overflow-y: auto;">
-          <div
-            v-for="(line, index) in logModalLogs"
-            :key="index"
-            style="padding: 6px 0; border-bottom: 1px solid #f0f0f0;"
-          >
-            {{ line }}
+      <a-spin :spinning="logModalLoading" wrapperClassName="full-height-spin">
+        <div class="modal-content-container">
+          <div v-if="!logModalLoading && logModalLogs.length === 0" class="empty-wrapper">
+            <a-empty description="暂无日志" />
+          </div>
+
+          <div v-else-if="logModalLogs.length > 0" class="log-scroll-area">
+            <div
+              v-for="(line, index) in logModalLogs"
+              :key="index"
+              class="log-line"
+            >
+              {{ line }}
+            </div>
           </div>
         </div>
       </a-spin>
@@ -63,14 +85,18 @@ import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 import data from './F-city.json'
 import { getLog } from '@/api/manage'
-import { Str } from 'prelude-ls'
+import { Empty } from 'ant-design-vue'
 
 export default {
   name: 'TapMonitor',
+  components: {
+    'a-empty': Empty
+  },
   data () {
     return {
       polygons: [],
       stompClient: null,
+      selectedEventType: 'all', // 默认为显示全部
       // 模拟日志数据
       eventLogs: [],
       // eventType -> label（气泡显示）
@@ -218,7 +244,11 @@ export default {
       const layer = this.__d3.bubbleLayer
       const bubbles = []
       this.__bubbleMap.forEach((arr, location) => {
-        (arr || []).forEach((b, idx) => {
+        const filteredArr = (arr || []).filter(b => {
+          return this.selectedEventType === 'all' || String(b.eventType) === String(this.selectedEventType)
+        })
+
+        filteredArr.forEach((b, idx) => {
           bubbles.push({ ...b, stackIndex: idx })
         })
       })
@@ -355,7 +385,7 @@ export default {
         this.logModalLoading = true
         this.logModalLogs = []
         const logs = await getLog(item.eventType, item.waitValue)
-        this.logModalLogs = logs
+        this.logModalLogs = Array.isArray(logs) ? logs : []
       } catch (e) {
         console.error('获取日志失败', e)
         this.$message.error('获取日志失败')
@@ -382,7 +412,8 @@ export default {
       this.eventLogs.push({
         time: timeText,
         content: `${meshName}发生${eventLabel}事件`,
-        type: type
+        type: type,
+        eventType: eventType
       })
     },
     handleApplicationMessage(payload) {
@@ -411,7 +442,8 @@ export default {
       if(status === 'end') {
         this.eventLogs.push({
           time: timeText,
-          content: `${meshName}${appName}执行结束`
+          content: `${meshName}${appName}执行结束`,
+          eventType: eventType
         })
         const et = String(eventType || '')
         if (et && this.__bubbleMap) {
@@ -422,6 +454,10 @@ export default {
           this.renderBubbles()
         }
       }
+    },
+    handleFilterChange() {
+      // 立即重新触发气泡渲染，隐藏或显示对应的气泡
+      this.renderBubbles()
     },
     formatLogTime(ts) {
       if (!ts) return ''
@@ -469,6 +505,47 @@ export default {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* 过滤框容器 */
+.log-filter-header {
+  position: absolute;
+  right: 30px; /* 与日志面板对齐 */
+  top: 20px;    /* 放在日志面板上方（日志面板目前是 80px） */
+  width: 450px; /* 与日志面板宽度一致 */
+  z-index: 101;
+
+  .filter-box {
+    display: flex;
+    align-items: center;
+    background: rgba(33, 48, 65, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 191, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 6px; /* 保持圆角一致 */
+    
+    .filter-label {
+      color: #e6f7ff;
+      font-weight: 600;
+      font-size: 14px;
+      margin-right: 15px;
+      white-space: nowrap;
+    }
+
+    .filter-select {
+      flex: 1;
+
+      /* 深度适配 Ant Design 选择器样式 */
+      /deep/ .ant-select-selection {
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(0, 191, 255, 0.2);
+        color: #fff;
+      }
+      /deep/ .ant-select-arrow {
+        color: #1890ff;
+      }
+    }
+  }
 }
 
 /* --- 优化后的日志面板样式 --- */
@@ -599,5 +676,45 @@ export default {
   0% { opacity: 1; }
   50% { opacity: 0.4; }
   100% { opacity: 1; }
+}
+
+/deep/ .full-height-spin,
+/deep/ .full-height-spin .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2. 内容容器 */
+.modal-content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 3. 居中显示暂无数据 */
+.empty-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* 确保填满父容器 */
+}
+
+/* 4. 日志列表区域 */
+.log-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #f9f9f9;
+
+  .log-line {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-family: monospace;
+    color: #333;
+  }
 }
 </style>

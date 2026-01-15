@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 1880
 
 # 运行 Node-RED
-CMD ["npm", "start"]
+CMD ["npm", "start", "--", "--userDir", "/usr/src/app/storage"]

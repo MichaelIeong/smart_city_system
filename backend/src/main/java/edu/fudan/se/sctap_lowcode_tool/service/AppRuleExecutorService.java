@@ -305,7 +305,7 @@ public class AppRuleExecutorService {
      * 增加日志
      * */
     private void addLog(String level, String eventType, String waitValue, String message) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"));
         String logMessage = String.format("[%s]-[%s]-[%s]-[%s]: %s", level, timestamp, eventType, waitValue, message);
         // 根据 level 调用不同的 log 方法
         switch (level) {
@@ -790,18 +790,18 @@ public class AppRuleExecutorService {
      * */
     public void complete(AppRuleCompleteRequest appRuleCompleteRequest) {
         String eventType = appRuleCompleteRequest.getEventType();
-        String waitValue = appRuleCompleteRequest.getValue();
-        String redisKey = RedisConstant.ActionWait + eventType + ":" + waitValue;
+        String eventParam = appRuleCompleteRequest.getEventParam();
+        String redisKey = RedisConstant.ActionWait + eventType + ":" + eventParam;
         // 从 redis 中删除
         redisUtil.deleteSingle(redisKey);
         // 从等待中移除
         Set<String> waitSet = appRuleWaitMap.get(eventType);
-        waitSet.remove(waitValue);
+        waitSet.remove(eventParam);
         appRuleWaitMap.put(eventType, waitSet);
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
-        addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+        addLog(LogConstant.INFO, eventType, eventParam, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, eventParam));
+        addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束...");
         // 向前端推送应用结束消息
-        List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
+        List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(eventParam);
         AlertMessage appMessage;
         for(AlertMessage message : messages) {
             if(message.getType().equals("application")) {
@@ -814,9 +814,9 @@ public class AppRuleExecutorService {
             }
         }
         // 删除日志
-        appRuleLogPushMap.get(eventType).remove(waitValue);
+        appRuleLogPushMap.get(eventType).remove(eventParam);
         // 将日志存入数据库
-        saveLog(eventType, waitValue);
+        saveLog(eventType, eventParam);
     }
 
     /**

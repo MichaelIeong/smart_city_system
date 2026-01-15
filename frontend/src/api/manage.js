@@ -21,7 +21,10 @@ const api = {
   fusionPause: '/api/fusion/pauseRule',
   fusionDelete: '/api/fusion/deleteRule',
   sensors: '/api/node-red/sensors',
-  grid: '/api/grid'
+  grid: '/api/grid',
+  sceneAdd: '/api/scene/add',
+  isResources: '/api/is_resources',
+  sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498'
 }
 
 export default api
@@ -554,5 +557,49 @@ export function getAppExecuteDetail (appId) {
     headers: {
       'Authorization': `Bearer ${token}`
     }
+  })
+}
+
+export function addScene (sceneType) {
+  const token = store.state.token
+
+  return request({
+    url: api.sceneAdd,
+    method: 'post',
+    data: {
+      sceneType: sceneType
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getEnvInformationResources () {
+  const token = store.state.token
+  return request({
+    url: api.isResources + '/information',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getEnvSocialResources () {
+  const token = store.state.token
+  return request({
+    url: api.isResources + '/social',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+export function getSceneTypeDict () {
+  return request({
+    url: api.sceneTypeDict,
+    method: 'get'
   })
 }

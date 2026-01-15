@@ -312,7 +312,7 @@ function openNodeRED() {
   if (!gridId.value) {
     message.warning('请先选择网格')
   } else {
-    window.open(`${NODE_RED_URL}?gridId=${gridId.value}`, '_blank')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
   }
 }
 
@@ -554,7 +554,7 @@ async function handleViewInNodeRed() {
 
     hide()
     message.success('已成功推送至 Node-RED！')
-    window.open(`${NODE_RED_URL}?gridId=${gridId.value}`, '_blank')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
   } catch (error) {
     hide()
     message.error('推送失败，请稍后重试: ' + error.message)

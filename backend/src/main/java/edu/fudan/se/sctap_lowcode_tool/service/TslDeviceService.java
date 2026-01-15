@@ -1,126 +1,144 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.jdbc.core.JdbcTemplate;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeSummaryDTO;
+import edu.fudan.se.sctap_lowcode_tool.model.TslDevice;
+import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
+import edu.fudan.se.sctap_lowcode_tool.repository.TslDeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TslDeviceService {
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private TslDeviceRepository tslDeviceRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private TslProductRepository tslProductRepository;
 
-    // 移除所有外部接口相关私有方法
+    // ==========================================
+    // 1. 新增功能：聚合查询 (用于替换前端 Mock 数据)
+    // ==========================================
 
     /**
-     * 查询设备实例列表（从本地数据库 tsl_devices 获取）
+     * 获取场景下的全局设备统计
+     */
+    public List<DeviceTypeSummaryDTO> getGlobalDeviceSummary(String sceneType) {
+        return tslDeviceRepository.findGlobalSummaryByScene(sceneType);
+    }
+
+    /**
+     * 获取指定网格内的设备统计
+     */
+    public List<DeviceTypeSummaryDTO> getGridDeviceSummary(String gridId) {
+        return tslDeviceRepository.findGridSummaryByGridId(gridId);
+    }
+
+    // ==========================================
+    // 2. 原有功能重构：查询设备实例列表
+    // ==========================================
+
+    /**
+     * 查询设备实例列表
+     * 重构说明：保持原有 Map 返回结构，适配前端需求
      */
     public Map<String, Object> queryDeviceInstances(String prodId) {
         try {
-            // 1. 查询 tsl_product 中的指令信息 (保留原逻辑)
-            String productInstruction = "";
+            // 1. 获取产品指令信息 (对应原 JDBC 查询 tsl_product)
             String productOps = "无操作指令";
-            try {
-                String productSql = "SELECT product_instruction FROM tsl_product WHERE product_id = ?";
-                productInstruction = jdbcTemplate.queryForObject(productSql, String.class, prodId);
+            Optional<TslProduct> productOpt = tslProductRepository.findById(prodId);
 
-                if (productInstruction != null && productInstruction.startsWith("[")) {
-                    // 格式化指令字符串，例如: ["cmd1", "cmd2"] -> "cmd1，cmd2"
-                    productOps = productInstruction
+            if (productOpt.isPresent()) {
+                String instruction = productOpt.get().getProductInstruction(); // 假设 Entity 有此 getter
+                if (instruction != null && instruction.startsWith("[")) {
+                    // 保持原有的字符串清洗逻辑
+                    productOps = instruction
                             .replace("[", "")
                             .replace("]", "")
                             .replace("\"", "")
                             .replace(",", "，");
                 }
-            } catch (Exception e) {
-                // 忽略找不到指令的异常，使用默认值
             }
             final String finalProductOps = productOps;
 
-            // 2. 从 tsl_devices 表中查询设备实例列表
-            // 【关键修正】：FROM tsl_devices
-            String instanceSql = "SELECT device_id, device_name, product_id, status, mesh_name, created_at " +
-                    "FROM tsl_devices " +
-                    "WHERE product_id = ?";
+            // 2. 查询设备列表 (对应原 JDBC 查询 tsl_devices)
+            List<TslDevice> deviceList = tslDeviceRepository.findByProductProductId(prodId);
 
-            List<Map<String, Object>> datas = jdbcTemplate.query(instanceSql, (rs, rowNum) -> {
+            // 3. 数据转换 (Entity -> 前端需要的 Map 结构)
+            List<Map<String, Object>> datas = deviceList.stream().map(device -> {
                 Map<String, Object> devMap = new HashMap<>();
 
-                // 原始数据
-                String deviceId = rs.getString("device_id");
-                String deviceName = rs.getString("device_name");
-                String statusValue = String.valueOf(rs.getInt("status"));
-                String meshName = rs.getString("mesh_name");
-                String createdAtString = rs.getString("created_at");
+                // 基础字段映射
+                devMap.put("deviceId", String.valueOf(device.getDeviceId())); // Long 转 String 适配前端
+                devMap.put("deviceName", device.getDeviceName());
+                devMap.put("deviceTypeId", device.getProduct().getProductId());
+                devMap.put("deviceRegion", device.getMeshName());
+                devMap.put("deviceTime", device.getCreatedAt()); // 假设 Entity 中也是 String 或已格式化
 
-                // === 格式化和转换逻辑 ===
-
-                // 状态转换：1:离线, 2:在线
+                // 状态转换逻辑: int -> String
                 String statusLabel = "未知";
-                try {
-                    int s = Integer.parseInt(statusValue);
-                    statusLabel = (s == 1) ? "离线" : (s == 2) ? "在线" : "未知";
-                } catch (Exception ignored) {}
-
-                // 时间格式化：直接使用数据库中的字符串
-                String deviceTime = createdAtString;
-
-                // 构造前端需要的 Map 格式
-                devMap.put("deviceId", deviceId);
-                devMap.put("deviceName", deviceName);
-                devMap.put("deviceTypeId", rs.getString("product_id"));
-                devMap.put("deviceRegion", meshName);
-                // 状态字段：使用 List<Map> 格式
+                Integer status = device.getStatus();
+                if (status != null) {
+                    statusLabel = (status == 1) ? "离线" : (status == 2) ? "在线" : "未知";
+                }
+                // 保持原有的嵌套结构
                 devMap.put("states", List.of(Map.of("stateKey", "状态", "stateValue", statusLabel)));
-                devMap.put("deviceTime", deviceTime); // 返回给前端的字段名
+
+                // 操作指令
                 devMap.put("operation", finalProductOps);
 
                 return devMap;
-            }, prodId);
+            }).collect(Collectors.toList());
 
-            // 3. 构造返回结果 (模拟原接口成功的返回格式)
+            // 4. 构造标准返回结果
             return Map.of(
                     "code", "00000",
                     "success", true,
-                    "message", "从本地数据库查询成功",
+                    "message", "从数据库查询成功 (JPA)",
                     "data", datas
             );
 
         } catch (Exception e) {
             e.printStackTrace();
-            return Map.of("error", "本地数据库查询设备实例失败：" + e.getMessage());
+            return Map.of("error", "查询设备实例失败：" + e.getMessage());
         }
     }
-    // TslDeviceService.java (在现有代码中添加以下方法)
+
+    // ==========================================
+    // 3. 原有功能重构：新增设备实例
+    // ==========================================
 
     /**
-     * 新增设备实例到 tsl_devices 表
-     * @param instanceData 包含 deviceId, deviceName, deviceRegion, deviceTime, states, operation, deviceTypeId
-     * @return 成功信息
+     * 新增设备实例
      */
+    @Transactional
     public Map<String, Object> addDeviceInstance(Map<String, String> instanceData) {
-        String productId = instanceData.get("deviceTypeId");
+        // 1. 参数校验
+        String productId = instanceData.get("deviceTypeId"); // 前端传的是 deviceTypeId
         if (productId == null || productId.isEmpty()) {
             throw new IllegalArgumentException("设备实例必须关联一个设备类型 (deviceTypeId)。");
         }
 
-        String deviceId = instanceData.get("deviceId");
+        String deviceIdStr = instanceData.get("deviceId");
         String deviceName = instanceData.get("deviceName");
-        String deviceRegion = instanceData.get("deviceRegion"); // 映射到 mesh_name
-        String deviceTime = instanceData.get("deviceTime"); // 映射到 created_at
-        String states = instanceData.get("states");
 
-        if (deviceId == null || deviceId.isEmpty() || deviceName == null || deviceName.isEmpty()) {
+        if (deviceIdStr == null || deviceIdStr.isEmpty() || deviceName == null || deviceName.isEmpty()) {
             throw new IllegalArgumentException("设备序号和设备名称不能为空。");
         }
 
-        // 状态转换：前端输入可能是文字，我们将其转换为数据库的 int (1:离线, 2:在线)
-        int status = 2; // 默认假设新增设备为 '在线'
+        // 2. 查找关联产品 (外键约束)
+        TslProduct product = tslProductRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("无效的产品ID: " + productId));
+
+        // 3. 状态转换 logic (String -> int)
+        String states = instanceData.get("states");
+        int status = 2; // 默认在线
         if (states != null) {
             if (states.contains("离线") || states.contains("1")) {
                 status = 1;
@@ -129,29 +147,40 @@ public class TslDeviceService {
             }
         }
 
-        // created_at 字段：使用当前时间或前端传入的值
-        String createdAt = deviceTime != null && !deviceTime.isEmpty() ? deviceTime :
-                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+        // 4. 时间处理
+        String deviceTime = instanceData.get("deviceTime");
+        String createdAt = (deviceTime != null && !deviceTime.isEmpty()) ? deviceTime :
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
-        // project_id 假设使用默认值 1001 (与您的 CSV 文件中数据一致)
-        String projectId = "1001";
+        try {
+            // 5. 构建并保存实体
+            TslDevice device = new TslDevice();
+            device.setDeviceId(Long.parseLong(deviceIdStr)); // 将 String 转为 Long
+            device.setDeviceName(deviceName);
+            device.setProduct(product); // 设置关联关系
+            device.setStatus(status);
+            device.setMeshName(instanceData.get("deviceRegion")); // 映射 region -> meshName
+            // 注意：如果前端没传 mesh_id, mesh_no 等字段，这里可能需要设默认值或允许为空
+            // 这里假设前端主要关心 meshName 用于显示
+            device.setMeshId(instanceData.getOrDefault("meshId", UUID.randomUUID().toString())); // 随机生成防止非空报错
+            device.setMeshNo(instanceData.getOrDefault("meshNo", "unknown"));
+            device.setMeshNature("F-city"); // 默认值，或者从前端获取
+            device.setCreatedAt(createdAt);
+            device.setProjectId(1001L); // 默认项目ID
 
-        String sql = "INSERT INTO tsl_devices (device_id, device_name, product_id, status, mesh_name, created_at, project_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            tslDeviceRepository.save(device);
 
-        int updated = jdbcTemplate.update(sql,
-                deviceId,
-                deviceName,
-                productId,
-                status,
-                deviceRegion, // mesh_name
-                createdAt,
-                projectId);
+            return Map.of(
+                    "success", true,
+                    "message", "设备实例添加成功 (JPA)",
+                    "deviceId", deviceIdStr
+            );
 
-        if (updated > 0) {
-            return Map.of("success", true, "message", "设备实例添加成功", "deviceId", deviceId);
-        } else {
-            throw new RuntimeException("设备实例添加失败，数据库未更新。");
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("设备ID必须是数字格式");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("设备保存失败: " + e.getMessage());
         }
     }
 }
