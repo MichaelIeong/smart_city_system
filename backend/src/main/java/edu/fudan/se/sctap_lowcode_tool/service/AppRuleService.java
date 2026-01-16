@@ -615,6 +615,11 @@ public class AppRuleService {
         if(gridMesh == null) {
             return new AppRuleSyncResponse(gridId, null, null, 0, "网格不存在");
         }
+        // 判断是否已经存在
+        AppGrid oldAppGrid = appGridRepository.findByAppRuleIdAndGridId(appId, gridId);
+        if (oldAppGrid != null) {
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "该网格已部署本应用");
+        }
         List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
         List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
         // 检查 envEvent 是否在 envEventTypeList 中
