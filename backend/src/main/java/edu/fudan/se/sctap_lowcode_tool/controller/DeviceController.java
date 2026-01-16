@@ -5,11 +5,14 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
+import edu.fudan.se.sctap_lowcode_tool.service.ProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -19,6 +22,9 @@ public class DeviceController {
 
     @Autowired
     private DeviceService deviceService;
+
+    @Autowired
+    private ProductService productService;
 
     // Neo4j + MySQL 查询设备
     @GetMapping("/{deviceId}")
@@ -61,6 +67,24 @@ public class DeviceController {
     public ResponseEntity<Void> deleteDevice(@PathVariable Integer deviceId) {
         deviceService.deleteDevice(deviceId);  // MySQL & Neo4j
         return ResponseEntity.noContent().build();
+    }
+
+    // 获取设备类型列表
+    @GetMapping("/types")
+    public List<Map<String, String>> getTypes() {
+        return productService.getDeviceTypes();
+    }
+
+    // 根据设备类型获取功能列表
+    @GetMapping("/functions")
+    public List<String> getFunctions(@RequestParam String typeId) {
+        return productService.getFunctionList(typeId);
+    }
+
+    // 根据设备类型获取参数JSON（这里简化处理：直接根据设备类型获取参数）
+    @GetMapping("/params")
+    public String getParams(@RequestParam String typeId) {
+        return productService.getParamJson(typeId);
     }
 
 }

@@ -31,9 +31,14 @@ public class CyberResourceInfo {
 
     private String resourceType;   // 资源类型
 
+    @Column(name = "description")
     private String description;   // 资源描述
 
+    @Column(name = "details")
     private String details;
+
+    @Column(name = "input")
+    private String cyberResourceJson;
 
     private String state;  // 资源状态
 

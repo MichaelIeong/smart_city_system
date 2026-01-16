@@ -1,0 +1,46 @@
+{
+  "p_broadcast_ip": [
+    {
+      "name": "IP地址",
+      "type": "string",
+      "description": "设备的IP地址"
+    },
+    {
+      "name": "端口号",
+      "type": "int",
+      "description": "设备监听的端口号"
+    }
+  ],
+
+  "p_bracelet": [
+    {
+      "name": "设备ID",
+      "type": "string",
+      "description": "手环的唯一标识符"
+    },
+    {
+      "name": "电量百分比",
+      "type": "int",
+      "description": "当前剩余电量，范围0-100"
+    },
+    {
+      "name": "步数",
+      "type": "long",
+      "description": "今日累计步数"
+    }
+  ],
+
+  "p_vrv": [
+    {
+      "name": "温度",
+      "type": "double",
+      "description": "设定温度"
+    },
+    {
+      "name": "模式",
+      "type": "string",
+      "description": "运行模式：制冷/制热/除湿"
+    }
+  ]
+
+}
