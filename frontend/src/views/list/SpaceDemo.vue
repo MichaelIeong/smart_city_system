@@ -44,18 +44,57 @@
 
           <div style="height: 20px;"></div>
 
-          <div class="table-wrapper">
-            <div class="table-header">
-              <span class="table-title">场景内设备类型</span>
-            </div>
-            <a-table
-              :columns="globalDeviceColumns"
-              :dataSource="globalDeviceData"
-              :pagination="false"
-              size="small"
-              :rowKey="record => record.name"
-            />
-          </div>
+          <el-tabs type="border-card">
+
+            <el-tab-pane label="设备类型">
+              <a-table
+                :columns="globalDeviceColumns"
+                :dataSource="globalDeviceData"
+                :pagination="false"
+                size="small"
+                :rowKey="record => record.name"
+              />
+            </el-tab-pane>
+
+            <el-tab-pane label="全局事件">
+              <a-table
+                :columns="eventColumns"
+                :dataSource="globalEventData"
+                :rowKey="record => record.id || record.eventType"
+                :pagination="false"
+                size="small"
+              />
+              <a-button type="primary" size="small" @click="showGlobalEventModal" style="margin-top: 10px;">
+                添加全局事件
+              </a-button>
+            </el-tab-pane>
+
+            <el-tab-pane label="全局服务">
+              <a-table
+                :columns="serviceColumns"
+                :dataSource="globalServiceData"
+                :rowKey="record => record.id || record.serviceName"
+                :pagination="false"
+                size="small"
+              />
+              <a-button type="primary" size="small" @click="showGlobalServiceModal" style="margin-top: 10px;">
+                添加全局服务
+              </a-button>
+            </el-tab-pane>
+
+            <el-tab-pane label="全局应用">
+              <a-table
+                :columns="applicationColumns"
+                :dataSource="globalApplicationData"
+                :rowKey="record => record.id || record.eventType"
+                :pagination="false"
+                size="small"
+              />
+              <a-button type="primary" size="small" @click="routeToGlobalApplication" style="margin-top: 10px;">
+                添加全局应用
+              </a-button>
+            </el-tab-pane>
+          </el-tabs>
 
         </div>
 
@@ -88,7 +127,7 @@
               />
             </el-tab-pane>
 
-            <el-tab-pane label="环境级事件">
+            <el-tab-pane label="网格事件">
               <a-table
                 :columns="eventColumns"
                 :dataSource="eventData"
@@ -97,11 +136,11 @@
                 size="small"
               />
               <a-button type="primary" size="small" @click="showEventModal" style="margin-top: 10px;">
-                添加环境级事件
+                添加网格事件
               </a-button>
             </el-tab-pane>
 
-            <el-tab-pane label="环境级服务">
+            <el-tab-pane label="网格服务">
               <a-table
                 :columns="serviceColumns"
                 :dataSource="serviceData"
@@ -110,11 +149,11 @@
                 size="small"
               />
               <a-button type="primary" size="small" @click="showServiceModal" style="margin-top: 10px;">
-                添加环境级服务
+                添加网格服务
               </a-button>
             </el-tab-pane>
 
-            <el-tab-pane label="应用">
+            <el-tab-pane label="网格应用">
               <a-table
                 :columns="applicationColumns"
                 :dataSource="applicationData"
@@ -123,7 +162,7 @@
                 size="small"
               />
               <a-button type="primary" size="small" @click="routeToRecommendApplication" style="margin-top: 10px;">
-                添加应用
+                添加网格应用
               </a-button>
             </el-tab-pane>
           </el-tabs>
@@ -137,12 +176,12 @@
 import axios from 'axios'
 import * as d3 from 'd3'
 
-// 导入 JSON 数据 (确保路径正确)
+// 导入 JSON 数据
 import FCity from './F-city.json'
 import FCommunity from './F-community.json'
 import FPark from './F-park.json'
 
-// 导入背景图片 (确保路径正确)
+// 导入背景图片
 import CityImg from '@/assets/City.png'
 import CommunityImg from '@/assets/Community.jpg'
 import ParkImg from '@/assets/Park.jpg'
@@ -194,29 +233,14 @@ export default {
           key: 'info',
           align: 'left',
           customRender: (text) => {
-            // 1. 尝试解析 JSON 字符串 (去除中括号和引号)
             let cleanText = text || '无功能描述'
             try {
-              // 如果是 JSON 数组字符串，解析并用顿号连接
               if (cleanText.startsWith('[') || cleanText.startsWith('{')) {
                 const parsed = JSON.parse(cleanText)
-                if (Array.isArray(parsed)) {
-                  cleanText = parsed.join('、') // 用顿号分隔：功能A、功能B
-                } else if (typeof parsed === 'object') {
-                  // 如果是对象数组 [{"key":...}, {"key":...}]，尝试提取 desc 或其他字段，或者直接序列化
-                  // 这里针对你的数据特点（大部分是字符串数组）做简单处理
-                  cleanText = JSON.stringify(parsed)
-                }
+                if (Array.isArray(parsed)) cleanText = parsed.join('、')
               }
-            } catch (e) {
-              // 解析失败，说明可能本身就是普通字符串，不做处理
-              // 或者去除首尾的 " 符号
-              cleanText = cleanText.replace(/^"|"$/g, '')
-            }
-
-            // 2. 截断长文本用于显示
+            } catch (e) { cleanText = cleanText.replace(/^"|"$/g, '') }
             const shortText = cleanText.length > 15 ? cleanText.substring(0, 15) + '...' : cleanText
-
             return <a-tooltip placement="topLeft" title={cleanText}><span>{shortText}</span></a-tooltip>
           }
         },
@@ -230,23 +254,22 @@ export default {
         }
       ],
 
-      // 当前选中的网格ID (null表示全局视图)
+      // 全局 事件/服务/应用 数据
+      globalEventData: [],
+      globalServiceData: [],
+      globalApplicationData: [],
+
+      // 核心状态
       gridId: null,
 
       // 网格详情 - 区域信息
       metaColumns: [{ title: '属性内容', dataIndex: 'info', key: 'info' }],
       metaData: [],
 
-      // 网格详情 - 设备类型 (聚合数据)
+      // 网格详情 - 设备类型
       deviceTypeData: [],
       deviceTypeColumns: [
-        {
-          title: '设备类型',
-          dataIndex: 'name',
-          key: 'name',
-          width: 120,
-          align: 'center'
-        },
+        { title: '设备类型', dataIndex: 'name', key: 'name', width: 120, align: 'center' },
         {
           title: '设备功能',
           dataIndex: 'info',
@@ -257,20 +280,11 @@ export default {
             try {
               if (cleanText.startsWith('[') || cleanText.startsWith('{')) {
                 const parsed = JSON.parse(cleanText)
-                if (Array.isArray(parsed)) {
-                  cleanText = parsed.join('、')
-                }
+                if (Array.isArray(parsed)) cleanText = parsed.join('、')
               }
-            } catch (e) {
-              cleanText = cleanText.replace(/^"|"$/g, '')
-            }
-
+            } catch (e) { cleanText = cleanText.replace(/^"|"$/g, '') }
             const shortText = cleanText.length > 20 ? cleanText.substring(0, 18) + '...' : cleanText
-            return (
-              <a-tooltip placement="topLeft" title={cleanText}>
-                <span>{shortText}</span>
-              </a-tooltip>
-            )
+            return <a-tooltip placement="topLeft" title={cleanText}><span>{shortText}</span></a-tooltip>
           }
         },
         {
@@ -279,12 +293,11 @@ export default {
           key: 'count',
           width: 100,
           align: 'center',
-          customRender: (text) => {
-            return <span style="color: #1890ff; font-weight: bold;">{text}</span>
-          }
+          customRender: (text) => <span style="color: #1890ff; font-weight: bold;">{text}</span>
         }
       ],
 
+      // 公用列定义
       eventColumns: [
         { title: '事件名称', dataIndex: 'eventType', key: 'name' },
         {
@@ -335,7 +348,6 @@ export default {
     }
   },
   created () {
-    // 根据路由参数初始化场景
     const initialMeshType = this.$route.query.initialMeshType
     if (initialMeshType && this.meshFiles[initialMeshType]) {
       this.selectedType = initialMeshType
@@ -347,7 +359,6 @@ export default {
   },
 
   methods: {
-    // 切换场景
     handleMeshTypeChange (type) {
       if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       else this.backgroundOffset = 'center center'
@@ -357,60 +368,69 @@ export default {
       this.loadMeshData(type)
     },
 
-    // 加载场景数据 (几何数据来自JSON，设备数据来自后端API)
     async loadMeshData (meshType) {
       this.isLoading = true
-
-      // 1. 重置界面到全局视图
+      // 1. 重置视图
       this.resetToGlobal()
 
-      // 2. 获取几何数据 (多边形坐标)
+      // 2. 基础信息初始化
       const data = this.meshFiles[meshType]?.data || []
-
-      // 初始化基础信息
       this.globalInfo = {
         sceneName: this.meshTypeOptions[meshType],
         gridCount: data.length,
         deviceTotal: 0
       }
 
-      // 3. 调用后端 API 获取真实的全局设备统计
+      const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+
+      // 3. 【核心修改】并行请求 4 个后端接口
       try {
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        // 使用 Promise.all 同时发起请求，加快加载速度
+        const [deviceRes, eventRes, serviceRes, appRes] = await Promise.all([
+          // (1) 全局设备统计
+          axios.get(`${baseUrl}/api/devices/global-summary`, { params: { sceneType: meshType } }),
+          // (2) 全局事件 (grid_id = crossRegion)
+          axios.get(`${baseUrl}/api/devices/global-events`),
+          // (3) 全局服务 (grid_id = crossRegion)
+          axios.get(`${baseUrl}/api/devices/global-services`),
+          // (4) 全局应用 (grid_id = crossRegion)
+          axios.get(`${baseUrl}/api/devices/global-applications`)
+        ])
 
-        // 发起请求：sceneType 参数对应后端的 meshNature (如 F-city)
-        const res = await axios.get(`${baseUrl}/api/devices/global-summary`, {
-          params: { sceneType: meshType }
-        })
-
-        // 赋值给表格数据源
-        this.globalDeviceData = res.data
-
-        // 累加计算设备总数
-        if (this.globalDeviceData && this.globalDeviceData.length > 0) {
+        // --- 赋值设备数据 ---
+        this.globalDeviceData = deviceRes.data || []
+        // 计算设备总数
+        if (this.globalDeviceData.length > 0) {
           this.globalInfo.deviceTotal = this.globalDeviceData.reduce((sum, item) => sum + item.count, 0)
         }
+
+        // --- 赋值 全局事件/服务/应用 ---
+        this.globalEventData = eventRes.data || []
+        this.globalServiceData = serviceRes.data || []
+        this.globalApplicationData = appRes.data || [] // 这里已经是 AppRuleInfo 列表，包含 eventType 和 description
       } catch (err) {
-        console.error('获取全局设备数据失败', err)
-        this.globalDeviceData = []
+        console.error('加载全局数据失败', err)
+        // 容错处理：如果某个接口挂了，确保界面不会崩，给空数组
+        if (!this.globalDeviceData) this.globalDeviceData = []
+        this.globalEventData = []
+        this.globalServiceData = []
+        this.globalApplicationData = []
+        this.$message.warning('部分数据加载失败，请检查网络或后端服务')
       }
 
-      // 4. 处理多边形渲染
+      // 4. 渲染地图多边形 (保持不变)
       this.polygons = data.map(item => {
         const mesh = item.meshInfo
         return {
-          // 关键：ID 必须与数据库 mesh_no 一致
           id: mesh.meshCode,
           name: mesh.meshName,
           coords: mesh.meshGridList.map(p => [Number(p.x), Number(p.y)])
         }
       })
-
       this.drawSvg(meshType)
       this.isLoading = false
     },
 
-    // 重置到全局视图
     resetToGlobal () {
       this.gridId = null
       const svgEl = d3.select(this.$refs.svg)
@@ -420,17 +440,14 @@ export default {
         .attr('fill-opacity', 0.7)
     },
 
-    // 绘制地图
     drawSvg (meshType) {
       const svgEl = d3.select(this.$refs.svg)
       svgEl.selectAll('*').remove()
-
       svgEl
         .attr('preserveAspectRatio', 'xMidYMid meet')
         .attr('viewBox', '0 0 3000 1600')
 
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
-
       let scale = 2.7; let offsetX = -3830; let offsetY = -1230
       if (meshType === 'F-community') { scale = 1.8; offsetX = -20; offsetY = -750 }
       if (meshType === 'F-park') { scale = 1.5; offsetX = -50; offsetY = -700 }
@@ -483,17 +500,12 @@ export default {
         .text(d => d.name)
     },
 
-    // 获取网格详情
     async fetchGridInfo (gridId) {
       const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-
-      // 1. 获取网格元信息
       try {
         const response = await axios.get(`${baseUrl}/api/grid/${gridId}`)
         const data = response.data
-
         this.gridId = data.id
-
         this.metaData = Object.entries(data.meta || {}).map(([k, v]) => ({ info: `${k}: ${v}` }))
         this.eventData = data.events || []
         this.serviceData = data.services || []
@@ -503,13 +515,10 @@ export default {
         this.gridId = gridId
         this.metaData = []
       }
-
-      // 2. 调用后端 API 获取该网格的设备聚合统计
       try {
         const res = await axios.get(`${baseUrl}/api/devices/grid-summary`, {
           params: { gridId: gridId }
         })
-
         this.deviceTypeData = res.data
       } catch (err) {
         console.error('获取网格设备统计失败', err)
@@ -522,16 +531,29 @@ export default {
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
       window.open(`${NODE_RED_URL}?type=2&gridId=${this.gridId}`, '_blank')
     },
-
     showServiceModal () {
       if (!this.gridId) return this.$message.warning('未选择网格 ID')
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
       window.open(`${NODE_RED_URL}?type=3&gridId=${this.gridId}`, '_blank')
     },
-
     routeToRecommendApplication () {
       if (!this.gridId) return this.$message.warning('请选择网格')
       this.$router.push(`/tap/create?gridId=${this.gridId}`)
+    },
+
+    // 全局操作方法 (传递 crossRegion)
+    showGlobalEventModal () {
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
+      window.open(`${NODE_RED_URL}?type=2&gridId=crossRegion`, '_blank')
+    },
+
+    showGlobalServiceModal () {
+      const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
+      window.open(`${NODE_RED_URL}?type=3&gridId=crossRegion`, '_blank')
+    },
+
+    routeToGlobalApplication () {
+      this.$router.push(`/tap/create?gridId=crossRegion`)
     }
   }
 }

@@ -22,10 +22,6 @@ public class TslDeviceService {
     @Autowired
     private TslProductRepository tslProductRepository;
 
-    // ==========================================
-    // 1. 新增功能：聚合查询 (用于替换前端 Mock 数据)
-    // ==========================================
-
     /**
      * 获取场景下的全局设备统计
      */
@@ -39,10 +35,6 @@ public class TslDeviceService {
     public List<DeviceTypeSummaryDTO> getGridDeviceSummary(String gridId) {
         return tslDeviceRepository.findGridSummaryByGridId(gridId);
     }
-
-    // ==========================================
-    // 2. 原有功能重构：查询设备实例列表
-    // ==========================================
 
     /**
      * 查询设备实例列表
@@ -79,7 +71,7 @@ public class TslDeviceService {
                 devMap.put("deviceName", device.getDeviceName());
                 devMap.put("deviceTypeId", device.getProduct().getProductId());
                 devMap.put("deviceRegion", device.getMeshName());
-                devMap.put("deviceTime", device.getCreatedAt()); // 假设 Entity 中也是 String 或已格式化
+                devMap.put("deviceTime", device.getCreatedAt());
 
                 // 状态转换逻辑: int -> String
                 String statusLabel = "未知";
@@ -109,10 +101,6 @@ public class TslDeviceService {
             return Map.of("error", "查询设备实例失败：" + e.getMessage());
         }
     }
-
-    // ==========================================
-    // 3. 原有功能重构：新增设备实例
-    // ==========================================
 
     /**
      * 新增设备实例
@@ -160,8 +148,6 @@ public class TslDeviceService {
             device.setProduct(product); // 设置关联关系
             device.setStatus(status);
             device.setMeshName(instanceData.get("deviceRegion")); // 映射 region -> meshName
-            // 注意：如果前端没传 mesh_id, mesh_no 等字段，这里可能需要设默认值或允许为空
-            // 这里假设前端主要关心 meshName 用于显示
             device.setMeshId(instanceData.getOrDefault("meshId", UUID.randomUUID().toString())); // 随机生成防止非空报错
             device.setMeshNo(instanceData.getOrDefault("meshNo", "unknown"));
             device.setMeshNature("F-city"); // 默认值，或者从前端获取

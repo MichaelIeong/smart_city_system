@@ -179,6 +179,21 @@ public class AppRuleService {
         return 0;
     }
 
+    /**
+     * 绑定规则到网格
+     * 如果创建时指定了 gridId，则自动在 app_grid 表中创建关联
+     */
+    private void bindRuleToGrid(Integer ruleId, String gridId) {
+        if (ruleId != null && gridId != null && !gridId.isBlank()) {
+            // 简单处理：直接保存关联，默认启用
+            AppGrid appGrid = new AppGrid();
+            appGrid.setAppRuleId(ruleId);
+            appGrid.setGridId(gridId);
+            appGrid.setEnabled(true);
+            appGridRepository.save(appGrid);
+        }
+    }
+
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
         // 首先判断应用是否存在
         AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
@@ -658,5 +673,11 @@ public class AppRuleService {
             }
             return appRuleExecuteDetail;
         }).collect(Collectors.toList());
+    }
+    /**
+     * 根据网格ID获取应用规则列表
+     */
+    public List<AppRuleInfo> getAppRulesByGridId(String gridId) {
+        return appRuleRepository.findByGridId(gridId);
     }
 }
