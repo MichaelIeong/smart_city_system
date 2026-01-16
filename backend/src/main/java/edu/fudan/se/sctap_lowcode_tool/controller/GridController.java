@@ -38,4 +38,12 @@ public class GridController {
     public ResponseEntity<List<GridMesh>> getGridListByType(@PathVariable String gridId) {
         return ResponseEntity.ok(gridService.getGridListByType(gridId));
     }
+
+    /**
+     * 根据应用id获取同类型的网格
+     * */
+    @GetMapping("/typeOfApp/{appId}")
+    public ResponseEntity<List<GridMesh>> getGridListByAppId(@PathVariable Integer appId) {
+        return ResponseEntity.ok(gridService.getGridListByAppId(appId));
+    }
 }

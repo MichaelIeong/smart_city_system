@@ -532,6 +532,18 @@ export function getGridListByType (gridId) {
   })
 }
 
+// 根据应用Id获取同类型的网格
+export function getGridListByAppId (appId) {
+  const token = store.state.token
+  return request({
+    url: `${api.grid}/typeOfApp/${appId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
 // 应用下发
 export function syncAppRule (appId, gridIdList) {
   const token = store.state.token

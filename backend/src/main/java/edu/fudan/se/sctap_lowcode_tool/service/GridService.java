@@ -172,10 +172,23 @@ public class GridService {
         // 获取网格信息
         GridMesh gridMesh = getGridById(gridId);
         if(gridMesh==null) {
-            return null;
+            return List.of();
         }
         String meshNature = gridMesh.getMeshNature();
         String meshType = gridMesh.getMeshType();
         return gridMeshRepository.findByMeshNatureAndMeshType(meshNature, meshType);
+    }
+
+    /**
+     * 根据应用id获取同类型的网格
+     * */
+    public List<GridMesh> getGridListByAppId(Integer appId) {
+        // 获取该应用的一个网格id
+        List<AppGrid> appGrids = appGridService.findByAppRuleId(appId);
+        if(appGrids.isEmpty()) {
+            return List.of();
+        }
+        String gridId = appGrids.get(0).getGridId();
+        return getGridListByType(gridId);
     }
 }

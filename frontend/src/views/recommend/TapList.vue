@@ -57,7 +57,9 @@
         </span>
 
         <span slot="action" slot-scope="text, record">
-          <a @click="showDetail(record)">查看详情</a>
+          <a @click="appSync(record)">应用同步</a>
+          <a-divider type="vertical"/>
+          <a @click="showDetail(record)">部署详情</a>
           <a-divider type="vertical"/>
           <a @click="handleDelete(record)">删除</a>
         </span>
@@ -91,6 +93,61 @@
         </span>
       </a-table>
     </a-modal>
+
+    <a-modal
+      v-model="syncModalVisible"
+      title="应用同步下发"
+      :width="800"
+      @cancel="handleSyncCancel"
+      :bodyStyle="{ height: '500px', overflowY: 'auto' }"
+    >
+      <div style="margin-bottom: 16px">
+        <a-alert message="请选择需要同步下发的网格项" type="info" show-icon />
+      </div>
+      <a-table
+        rowKey="id"
+        :columns="gridColumns"
+        :data-source="syncGridData"
+        :loading="syncModalLoading"
+        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
+        :pagination="{ pageSize: 10 }"
+        size="small"
+      >
+      </a-table>
+      <template slot="footer">
+        <a-button @click="handleSyncCancel">取消</a-button>
+        <a-button
+          type="primary"
+          :loading="syncConfirmLoading"
+          :disabled="selectedRowKeys.length === 0"
+          @click="handleDoSync"
+        >
+          确认同步下发 (已选 {{ selectedRowKeys.length }} 项)
+        </a-button>
+      </template>
+    </a-modal>
+    <a-modal
+      v-model="resultModalVisible"
+      title="应用同步结果"
+      :width="800"
+      :footer="null"
+      @cancel="resultModalVisible = false"
+      :bodyStyle="{ height: '500px', overflowY: 'auto' }"
+    >
+      <a-table
+        rowKey="gridId"
+        :columns="syncResultColumns"
+        :data-source="syncResultData"
+        size="small"
+        :pagination="false"
+      >
+        <span slot="isSuccessSlot" slot-scope="text">
+          <a-tag :color="text === 1 ? 'green' : 'red'">
+            {{ text === 1 ? '成功' : '失败' }}
+          </a-tag>
+        </span>
+      </a-table>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
@@ -101,7 +158,7 @@
 import { message, Modal } from 'ant-design-vue';
 import { ref, reactive, onMounted } from 'vue';
 import dayjs from 'dayjs';
-import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled } from '@/api/manage';
+import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled, getGridListByAppId, syncAppRule } from '@/api/manage';
 
 export default {
     // 假设您在项目中启用了 setup 语法
@@ -162,7 +219,7 @@ export default {
             {
                 title: '操作',
                 dataIndex: 'action',
-                width: '200px',
+                width: '250px',
                 // ⚠️ Vue 2 兼容：使用 scopedSlots
                 scopedSlots: { customRender: 'action' }
             }
@@ -194,6 +251,38 @@ export default {
             // Vue 2 兼容：使用 scopedSlots
             scopedSlots: { customRender: 'action' }
           }
+        ];
+
+        // 同步下发
+        const syncModalVisible = ref(false);
+        const syncModalLoading = ref(false);
+        const syncConfirmLoading = ref(false);
+        const syncGridData = ref([]);
+        const selectedRowKeys = ref([]); // 存储选中的 ID
+        const currentSyncAppId = ref(null); // 记录是为哪个应用做同步
+        // 2. 定义列配置 (放在 setup 内部或外部均可)
+        const gridColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+          { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
+          { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
+        ];
+
+        // 同步结果
+        // 1. 新增结果弹窗相关的状态
+        const resultModalVisible = ref(false);
+        const syncResultData = ref([]);
+        // 2. 结果表格的列定义
+        const syncResultColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+          { 
+            title: '是否成功', 
+            dataIndex: 'isSuccess', 
+            key: 'isSuccess', 
+            scopedSlots: { customRender: 'isSuccessSlot' } // 对应 template 中的 slot
+          },
+          { title: '原因/备注', dataIndex: 'message', key: 'message' }
         ];
 
         // === 核心数据加载函数 ===
@@ -285,10 +374,11 @@ export default {
             loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
         });
 
+        // 显示部署详情
         async function showDetail(record) {
             detailModalVisible.value = true;
             detailModalLoading.value = true;
-            detailModalTitle.value = `应用执行详情 - ID: ${record.id}`;
+            detailModalTitle.value = `应用部署详情 - ID: ${record.id}`;
             currentDetailRuleId.value = record.id;
             
             try {
@@ -297,11 +387,57 @@ export default {
                 console.log('executeDetailData', res);
                 executeDetailData.value = res || []; 
             } catch (e) {
-                message.error('获取应用执行详情失败');
+                message.error('获取应用部署详情失败');
                 executeDetailData.value = [];
             } finally {
                 detailModalLoading.value = false;
             }
+        }
+
+        // 应用同步下发
+        async function appSync(record) {
+          currentSyncAppId.value = record.id;
+          syncModalVisible.value = true;
+          syncModalLoading.value = true;
+          selectedRowKeys.value = []; // 重置选中项
+          // 获取同类型的网格
+          try {
+            const res = await getGridListByAppId(record.id);
+            // 假设 res 就是你提供的数组数据
+            syncGridData.value = res || [];
+          } catch (e) {
+            message.error('获取应用网格列表失败');
+            syncGridData.value = [];
+          } finally {
+            syncModalLoading.value = false;
+          }
+        }
+
+        // 4. 处理选择变化
+        function onSelectChange(keys) {
+          selectedRowKeys.value = keys;
+        }
+
+        // 5. 取消操作
+        function handleSyncCancel() {
+          syncModalVisible.value = false;
+          selectedRowKeys.value = [];
+        }
+
+        async function handleDoSync() {
+          if (selectedRowKeys.value.length === 0) return
+          syncConfirmLoading.value = true;
+          try {
+            const res = await syncAppRule(currentSyncAppId.value, selectedRowKeys.value);
+            syncResultData.value = res || [];
+            syncModalVisible.value = false;
+            resultModalVisible.value = true;
+            selectedRowKeys.value = [];
+          } catch (e) {
+            message.error('同步下发失败：' + e.message);
+          } finally {
+            syncConfirmLoading.value = false;
+          }
         }
         
         // 弹窗关闭事件
@@ -371,7 +507,20 @@ export default {
           handleDetailModalClose,
           handleEnable,
           handleDisable,
-          showDetail
+          showDetail,
+          appSync,
+          syncModalVisible,
+          syncModalLoading,
+          syncConfirmLoading,
+          syncGridData,
+          gridColumns,
+          selectedRowKeys,
+          onSelectChange,
+          handleSyncCancel,
+          handleDoSync,
+          resultModalVisible,
+          syncResultData,
+          syncResultColumns
         }
     }
 }
