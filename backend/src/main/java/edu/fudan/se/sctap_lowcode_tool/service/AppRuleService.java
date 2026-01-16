@@ -129,7 +129,6 @@ public class AppRuleService {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
         String gridId = appRuleSaveRequest.getGridId();
-        String appName = appRuleSaveRequest.getAppName();
         // 如果是大模型创建应用
         if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
@@ -148,6 +147,12 @@ public class AppRuleService {
                         log.error("No api key");
                     }
                 }
+                // 绑定应用id和网格id
+                AppGrid appGrid = new AppGrid();
+                appGrid.setAppRuleId(appRuleInfo.getId());
+                appGrid.setGridId(gridId);
+                appGrid.setEnabled(false);
+                appGridRepository.save(appGrid);
                 return appRuleInfo.getId();
             }
             return 0;
@@ -174,6 +179,12 @@ public class AppRuleService {
                     log.error("No api key");
                 }
             }
+            // 绑定应用id和网格id
+            AppGrid appGrid = new AppGrid();
+            appGrid.setAppRuleId(appRuleInfo.getId());
+            appGrid.setGridId(gridId);
+            appGrid.setEnabled(false);
+            appGridRepository.save(appGrid);
             return appRuleInfo.getId();
         }
         return 0;
