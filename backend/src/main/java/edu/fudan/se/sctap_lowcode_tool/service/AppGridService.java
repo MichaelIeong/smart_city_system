@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import edu.fudan.se.sctap_lowcode_tool.model.AppGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
@@ -15,11 +16,14 @@ public class AppGridService {
     @Resource
     private AppRuleRepository appRuleRepository;
 
+    @Resource
+    private AppGridRepository appGridRepository;
+
     public List<AppRuleInfo> getAppList(String gridId) {
         return appRuleRepository.findByGridId(gridId);
     }
 
-    public List<AppRuleInfo> findByGridId(String meshId) {
-        return List.of();
+    public List<AppGrid> findByAppRuleId(Integer appRuleId) {
+        return appGridRepository.findByAppRuleId(appRuleId);
     }
 }

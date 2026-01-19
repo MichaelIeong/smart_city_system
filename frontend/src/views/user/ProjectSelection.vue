@@ -39,12 +39,28 @@
     <div v-if="showTypeModal" class="modal-mask">
       <div class="modal-box">
         <h3>第一步：选择场景</h3>
-        <select v-model="selectedSceneType" class="modal-select">
-          <option disabled value="">请选择场景类型</option>
-          <option v-for="opt in sceneOptions" :key="opt.value" :value="opt.value">
+        <select
+          v-model="selectedSceneType"
+          class="modal-select"
+          :disabled="dictLoading"
+        >
+          <option disabled value="">
+            {{ dictLoading ? '正在加载选项...' : '请选择场景类型' }}
+          </option>
+
+          <option
+            v-for="opt in sceneOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
             {{ opt.label }}
           </option>
         </select>
+
+        <div v-if="currentSelectionImage" class="preview-image-box">
+          <p class="preview-label">场景预览：</p>
+          <img :src="currentSelectionImage" alt="场景预览" class="scene-preview-img" />
+        </div>
 
         <div class="modal-actions">
           <button @click="showTypeModal = false" :disabled="loading">取消</button>
@@ -100,7 +116,7 @@
 </template>
 
 <script>
-import { addScene } from '@/api/manage'
+import { addScene, getSceneTypeDict } from '@/api/manage'
 import { getProjects } from '@/api/login'
 import DefaultSceneImg from '@/assets/DefaultSceneImg.png'
 
@@ -121,15 +137,21 @@ export default {
       previewData: [],
 
       // 静态选项
-      sceneOptions: [
-        { label: '永德城区', value: 'F-city' },
-        { label: '永德社区', value: 'F-community' },
-        { label: '永德园区', value: 'F-park' }
-      ]
+      sceneOptions: []
+    }
+  },
+  computed: {
+    // 获取当前选中场景的预览图
+    currentSelectionImage () {
+      if (!this.selectedSceneType) return null
+      const option = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
+      // 如果找到了选项且有图片，就返回图片；否则返回 null
+      return option ? option.image : null
     }
   },
 
   created () {
+    this.fetchSceneOptions()
     this.fetchProjects()
   },
 
@@ -145,6 +167,46 @@ export default {
         const parts = item.replace(/[[\]]/g, '').split(',')
         return parts.map(num => parseFloat(num))
       })
+    },
+
+    async fetchSceneOptions () {
+      this.dictLoading = true
+      try {
+        const res = await getSceneTypeDict()
+
+        // 兼容处理
+        const responseBody = res.success ? res : (res.data || {})
+
+        if (responseBody.success) {
+          const rootData = responseBody.data || {}
+          const dictList = rootData.items || []
+
+          // 定义名称映射关系
+          // Key 是接口里的 dictKey (F-city 等)
+          // Value 是在前端展示的名字
+          const nameMap = {
+            'F-city': '永德城区',
+            'F-park': '永德园区',
+            'F-community': '永德社区'
+          }
+
+          // 2. 数据映射
+          this.sceneOptions = dictList.map(item => ({
+            // 优先去 nameMap 里找新名字
+            // 如果找到了就用新名字，没找到就还用接口原本的 dictValue
+            label: nameMap[item.dictKey] || item.dictValue,
+
+            value: item.dictKey,
+            image: item.dictDesc
+          }))
+        } else {
+          console.error('字典数据获取失败:', responseBody.message)
+        }
+      } catch (error) {
+        console.error('字典接口请求异常:', error)
+      } finally {
+        this.dictLoading = false
+      }
     },
 
     getSceneNameByType (type) {
@@ -230,19 +292,25 @@ export default {
 
     confirmImportFinal () {
       const isExist = this.allProjects.some(p => p.meshData?.type === this.selectedSceneType)
-
       if (isExist) {
-        alert(`场景 "${this.getSceneNameByType(this.selectedSceneType)}" 已存在，请勿重复添加！`)
+        alert(`场景已存在，请勿重复添加！`)
         return
       }
 
       this.importing = true
 
       setTimeout(() => {
+        // 获取当前选中类型的详细信息（包含图片 URL）
+        const selectedOption = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
+
+        // 如果接口里有图片就用接口的，没有就回退到本地默认图
+        const dynamicImage = selectedOption ? selectedOption.image : this.getSceneImageByType(this.selectedSceneType)
+        const sceneName = selectedOption ? selectedOption.label : this.getSceneNameByType(this.selectedSceneType)
+
         const newScene = {
           projectId: `scene-${this.selectedSceneType}-${Date.now()}`,
-          projectName: this.getSceneNameByType(this.selectedSceneType),
-          image: this.getSceneImageByType(this.selectedSceneType),
+          projectName: sceneName,
+          image: dynamicImage, // 使用动态提取的图片
           meshData: {
             type: this.selectedSceneType,
             grids: this.previewData
@@ -534,6 +602,32 @@ button:disabled {
 }
 .data-table tr:hover {
   background-color: #f0f7ff;
+}
+
+.preview-image-box {
+  margin: 10px 0 20px 0;
+  text-align: center;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px dashed #ddd;
+}
+
+.preview-label {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.scene-preview-img {
+  max-width: 100%;       /* 限制最大宽度，防止撑开弹窗 */
+  max-height: 150px;     /* 限制高度 */
+  border-radius: 4px;
+  object-fit: cover;     /* 保持比例裁剪 */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: block;        /* 消除图片底部空隙 */
+  margin: 0 auto;        /* 居中 */
 }
 /* 滚动条 */
 .table-container::-webkit-scrollbar { width: 6px; }

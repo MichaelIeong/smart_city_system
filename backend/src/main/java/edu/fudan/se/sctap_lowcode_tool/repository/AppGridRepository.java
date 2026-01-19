@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface AppGridRepository extends JpaRepository<AppGrid, Integer> {
     List<AppGrid> findByAppRuleId(Integer appId);
+
+    AppGrid findByAppRuleIdAndGridId(Integer appId, String gridId);
 }

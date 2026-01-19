@@ -129,7 +129,6 @@ public class AppRuleService {
         String ruleJson = appRuleSaveRequest.getRuleJson();
         String flowJson = appRuleSaveRequest.getFlowJson();
         String gridId = appRuleSaveRequest.getGridId();
-        String appName = appRuleSaveRequest.getAppName();
         // 如果是大模型创建应用
         if(ruleJson!=null&&!ruleJson.isBlank()){
             AppRule appRule = parseJsonRule(ruleJson);
@@ -148,6 +147,12 @@ public class AppRuleService {
                         log.error("No api key");
                     }
                 }
+                // 绑定应用id和网格id
+                AppGrid appGrid = new AppGrid();
+                appGrid.setAppRuleId(appRuleInfo.getId());
+                appGrid.setGridId(gridId);
+                appGrid.setEnabled(false);
+                appGridRepository.save(appGrid);
                 return appRuleInfo.getId();
             }
             return 0;
@@ -174,9 +179,30 @@ public class AppRuleService {
                     log.error("No api key");
                 }
             }
+            // 绑定应用id和网格id
+            AppGrid appGrid = new AppGrid();
+            appGrid.setAppRuleId(appRuleInfo.getId());
+            appGrid.setGridId(gridId);
+            appGrid.setEnabled(false);
+            appGridRepository.save(appGrid);
             return appRuleInfo.getId();
         }
         return 0;
+    }
+
+    /**
+     * 绑定规则到网格
+     * 如果创建时指定了 gridId，则自动在 app_grid 表中创建关联
+     */
+    private void bindRuleToGrid(Integer ruleId, String gridId) {
+        if (ruleId != null && gridId != null && !gridId.isBlank()) {
+            // 简单处理：直接保存关联，默认启用
+            AppGrid appGrid = new AppGrid();
+            appGrid.setAppRuleId(ruleId);
+            appGrid.setGridId(gridId);
+            appGrid.setEnabled(true);
+            appGridRepository.save(appGrid);
+        }
     }
 
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
@@ -615,6 +641,11 @@ public class AppRuleService {
         if(gridMesh == null) {
             return new AppRuleSyncResponse(gridId, null, null, 0, "网格不存在");
         }
+        // 判断是否已经存在
+        AppGrid oldAppGrid = appGridRepository.findByAppRuleIdAndGridId(appId, gridId);
+        if (oldAppGrid != null) {
+            return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "该网格已部署本应用");
+        }
         List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
         List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
         // 检查 envEvent 是否在 envEventTypeList 中
@@ -658,5 +689,11 @@ public class AppRuleService {
             }
             return appRuleExecuteDetail;
         }).collect(Collectors.toList());
+    }
+    /**
+     * 根据网格ID获取应用规则列表
+     */
+    public List<AppRuleInfo> getAppRulesByGridId(String gridId) {
+        return appRuleRepository.findByGridId(gridId);
     }
 }

@@ -188,8 +188,33 @@ module.exports = {
             var send = res.send;
             res.send = function (body) {
                 if (typeof body === 'string') {
-                    // 在 </body> 标签前强行插入脚本
-                    body = body.replace("</body>", '<script src="/custom-palette-filter.js"></script></body>');
+                    // 定义注入的脚本：包含原有的过滤器、顶栏 Logo 替换、以及浏览器标签图标替换
+                    var injection = 
+                        '<script src="/custom-palette-filter.js"></script>' +
+                        '<script>' +
+                        '  (function() {' +
+                        '    function updateFavicon(url) {' +
+                        '        var link = document.querySelector("link[rel*=\'icon\']") || document.createElement(\'link\');' +
+                        '        link.type = "image/svg+xml";' +
+                        '        link.rel = "shortcut icon";' +
+                        '        link.href = url;' +
+                        '        document.getElementsByTagName("head")[0].appendChild(link);' +
+                        '    }' +
+                        '    updateFavicon("/Fudan_University_Logo.svg");' +
+                        '    var checkExist = setInterval(function() {' +
+                        '       var logoImg = document.querySelector(".red-ui-header-logo img");' +
+                        '       if (logoImg) {' +
+                        '          logoImg.src = "/Fudan_University_Logo.svg";' +
+                        '          logoImg.style.height = "32px";' +
+                        '          logoImg.style.width = "auto";' +
+                        '          clearInterval(checkExist);' +
+                        '       }' +
+                        '    }, 100);' +
+                        '  })();' +
+                        '</script>';
+
+                    // 在 </body> 标签前插入
+                    body = body.replace("</body>", injection + "</body>");
                 }
                 send.call(this, body);
             };
@@ -417,10 +442,16 @@ module.exports = {
     editorTheme: {
         /** 1. 先加一个标题测试，看配置是否生效 **/
         page: {
-            title: "SC-UOS Node-RED",
+            title: "SC-UOS 低代码平台",
+            favicon: "/Fudan_University_Logo.svg",
             scripts: [
                 "/custom-palette-filter.js"
             ]
+        },
+        header: {
+            title: "SC-UOS 低代码平台",     
+            image: "/Fudan_University_Logo.svg",
+            url: "http://10.176.65.202:1880"
         },
         /** The following property can be used to set a custom theme for the editor.
          * See https://github.com/node-red-contrib-themes/theme-collection for
