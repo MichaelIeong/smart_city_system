@@ -152,7 +152,7 @@ export default {
 
   created () {
     this.fetchSceneOptions()
-    this.fetchProjects()
+    this.loadProjectsFromLocal()
   },
 
   methods: {
@@ -291,26 +291,27 @@ export default {
     },
 
     confirmImportFinal () {
+      // 1. 查重逻辑 (保持不变)
       const isExist = this.allProjects.some(p => p.meshData?.type === this.selectedSceneType)
       if (isExist) {
-        alert(`场景已存在，请勿重复添加！`)
+        alert(`该场景卡片已存在，请勿重复添加！`)
         return
       }
 
       this.importing = true
 
       setTimeout(() => {
-        // 获取当前选中类型的详细信息（包含图片 URL）
         const selectedOption = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
 
-        // 如果接口里有图片就用接口的，没有就回退到本地默认图
+        // 图片和名称逻辑 (保持不变)
         const dynamicImage = selectedOption ? selectedOption.image : this.getSceneImageByType(this.selectedSceneType)
         const sceneName = selectedOption ? selectedOption.label : this.getSceneNameByType(this.selectedSceneType)
 
         const newScene = {
+          // 这里的 ID 生成逻辑很重要，用来区分唯一性
           projectId: `scene-${this.selectedSceneType}-${Date.now()}`,
           projectName: sceneName,
-          image: dynamicImage, // 使用动态提取的图片
+          image: dynamicImage,
           meshData: {
             type: this.selectedSceneType,
             grids: this.previewData
@@ -318,12 +319,16 @@ export default {
         }
 
         this.allProjects.push(newScene)
+
+        // 添加后立即保存到本地
+        this.saveProjectsToLocal()
+
         this.$emit('scene-added', newScene)
 
         this.importing = false
         this.showPreviewModal = false
         this.previewData = []
-        alert('导入成功！')
+        alert('场景添加成功！') // 提示语改一下比较贴切
       }, 600)
     },
 
@@ -367,6 +372,30 @@ export default {
       }
     },
 
+    // 从本地存储加载场景
+    loadProjectsFromLocal () {
+      const savedProjects = localStorage.getItem('my_scene_list')
+      if (savedProjects) {
+        try {
+          this.allProjects = JSON.parse(savedProjects)
+        } catch (e) {
+          console.error('本地缓存解析失败', e)
+          this.allProjects = []
+        }
+      } else {
+        // 如果本地没有数据，就显示为空，或者你可以选择默认显示一些系统场景
+        this.allProjects = []
+
+        // 如果你希望第一次打开时，默认自动把后端的系统场景加进去，可以在这里调用 fetchProjects
+        // 但根据你的需求“只有用户新增才显示”，这里保持为空最好。
+      }
+    },
+
+    // 保存到本地存储
+    saveProjectsToLocal () {
+      localStorage.setItem('my_scene_list', JSON.stringify(this.allProjects))
+    },
+
     handleProjectClick (projectId) {
       if (this.isDeleteMode) {
         const isSystem = typeof projectId === 'number' && projectId <= 3
@@ -394,8 +423,11 @@ export default {
 
     async confirmDelete (project) {
       if (confirm(`确定要移除场景 "${project.projectName}" 吗？`)) {
+        // 1. 从数组中移除
         this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
-        alert('移除成功')
+
+        // 2. 同步更新本地存储
+        this.saveProjectsToLocal()
       }
     }
   }

@@ -38,7 +38,6 @@
               message="操作提示"
               description="点击左侧地图上的网格区域，可查看详细设备与服务信息。"
               type="info"
-              show-icon
             />
           </a-card>
 
