@@ -13,6 +13,8 @@ RUN npm install
 # 将本地的 Node-RED 项目复制到工作目录
 COPY . .
 
+RUN npm run build
+
 # 暴露 1880 端口
 EXPOSE 1880
 
