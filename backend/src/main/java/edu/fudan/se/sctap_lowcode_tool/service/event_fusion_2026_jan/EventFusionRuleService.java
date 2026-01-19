@@ -15,6 +15,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * <h3>EventFusionRuleService 事件融合规则服务</h3>
+ * 负责 EventFusionRule 的<b>增删改查</b>操作，具体包括：
+ * <ul>
+ * <li>规则的创建或更新（包括创建时校验合法性）</li>
+ * <li>规则的读取</li>
+ * <li>规则的删除</li>
+ * </ul>
+ * @author Lin Yicheng
+ * @since 2026-01-11
+ */
 @RequiredArgsConstructor
 @Service
 public class EventFusionRuleService {

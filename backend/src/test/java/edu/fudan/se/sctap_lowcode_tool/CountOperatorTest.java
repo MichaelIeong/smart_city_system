@@ -3,8 +3,9 @@ package edu.fudan.se.sctap_lowcode_tool;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.CommonOperatorRegistry;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.Count.CountCondition;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.CommonOperatorRegistry;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.Count.CountCondition;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.Count.CountCondition.FieldType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,9 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.Count.CountCondition.FieldType.*;
-import static edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.Count.CountCondition.Op.EQ;
-import static edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.Count.CountCondition.Op.GT;
+import static edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.Count.CountCondition.FieldType.*;
+import static edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.Count.CountCondition.Op.EQ;
+import static edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.Count.CountCondition.Op.GT;
+
 
 @SpringBootTest
 class CountOperatorTest {
@@ -59,7 +61,7 @@ class CountOperatorTest {
     }
 
     private HashMap<String, Object> buildCondition(
-        String jsonPath, CountCondition.FieldType type, CountCondition.Op op, String value
+        String jsonPath, FieldType type, CountCondition.Op op, String value
     ) {
         HashMap<String, Object> map = new HashMap<>();
         map.put("jsonPath", jsonPath);
@@ -149,7 +151,7 @@ class CountOperatorTest {
     void wrongTypeWithJsonPaths() {
         var params = buildStandardParams();
         params.put(COUNT_CONDITIONS, List.of(
-            new CountCondition($_CAR_PLATE, Number, EQ, "15")
+            new CountCondition($_CAR_PLATE, FieldType.Number, EQ, "15")
         ));
         test(params);
     }
