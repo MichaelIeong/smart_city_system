@@ -2,9 +2,11 @@
   <page-header-wrapper>
     <div style="padding: 0 12px 24px 12px;">
       <a-row :gutter="16" style="height: calc(100vh - 180px);">
+
         <a-col :span="12">
-          <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '600px' }">
-            <div style="height: calc(100% - 60px); display: flex; flex-direction: column;">
+          <a-card title="设备类型" bordered :style="{ borderRadius: '8px', height: '600px' }" class="full-height-card">
+
+            <div style="height: 100%; display: flex; flex-direction: column;">
               <a-table
                 :columns="deviceTypeColumns"
                 :dataSource="deviceTypes"
@@ -13,11 +15,11 @@
                 :scroll="{ x: 900, y: 400 }"
                 @click="handleDeviceTypeClick"
                 :customRow="customRowClick"
-                style="flex: 1;"
+                style="flex: 1; overflow: hidden;"
                 :row-class-name="rowClassName"
               />
 
-              <div style="margin-top: 16px;">
+              <div style="margin-top: auto; padding-top: 16px; display: flex; align-items: center;">
                 <a-button type="primary" @click="showAddDeviceTypeModal">新增设备类型</a-button>
               </div>
             </div>
@@ -61,6 +63,7 @@
             :title="deviceInstanceTitle"
             bordered
             :style="{ borderRadius: '8px', height: '600px' }"
+            class="full-height-card"
           >
             <template slot="extra">
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -80,7 +83,7 @@
               </div>
             </template>
 
-            <div style="height: calc(100% - 60px); display: flex; flex-direction: column;">
+            <div style="height: 100%; display: flex; flex-direction: column;">
               <a-table
                 :columns="deviceInstanceColumns"
                 :dataSource="filteredDeviceInstances"
@@ -88,11 +91,11 @@
                 :pagination="false"
                 :scroll="{ x: 700, y: 350 }"
                 :row-selection="{ selectedRowKeys: selectedInstanceKeys, onChange: onSelectChange}"
-                style="flex: 1; margin-bottom: 16px;"
+                style="flex: 1; overflow: hidden;"
                 :locale="{ emptyText: selectedDeviceType ? '当前条件下暂无设备实例' : '请先选择设备类型' }"
               />
 
-              <div style="display: flex; justify-content: flex-start; gap: 8px;">
+              <div style="margin-top: auto; padding-top: 16px; display: flex; justify-content: flex-start; gap: 8px;">
                 <a-button type="primary" @click="showDeviceInstanceModal" :disabled="!selectedDeviceType">
                   新增设备实例
                 </a-button>
@@ -185,8 +188,8 @@ export default {
       selectedDeviceType: null,
       selectedRowKeys: [],
       selectedInstanceKeys: [],
-      selectedGridId: undefined, // 🚀 新增：选中的网格Code
-      gridList: [], // 🚀 新增：网格数据列表
+      selectedGridId: undefined,
+      gridList: [],
       isRefreshModelVisible: false,
       isDeleteModalVisible: false,
       refreshedDeviceData: {},
@@ -229,18 +232,11 @@ export default {
     }
   },
   computed: {
-    // 🚀 核心修改：双重过滤逻辑
     filteredDeviceInstances () {
       if (!this.selectedDeviceType) return []
-
       return this.deviceInstances.filter(instance => {
-        // 1. 匹配设备类型
         const matchType = instance.deviceTypeId === this.selectedDeviceType.deviceTypeId
-
-        // 2. 匹配网格名称（设备所属区域）
-        // 如果没有选中下拉框，则 matchGrid 永远为 true
         const matchGrid = !this.selectedGridId || instance.deviceRegion === this.selectedGridId
-
         return matchType && matchGrid
       })
     },
@@ -261,42 +257,30 @@ export default {
   mounted () {
     this.fetchDeviceTypes()
     this.fetchDeviceData()
-    this.fetchGridList() // 🚀 获取网格数据
+    this.fetchGridList()
   },
   methods: {
-    // 🚀 新增：获取网格列表
     async fetchGridList () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // 🚀 核心修改：请求全量接口
         const response = await axios.get(`${baseUrl}/api/meshes/all`)
-
-        console.log('全局网格接口返回数据:', response.data)
-
-        // 映射数据库字段 mesh_no 和 mesh_name
         this.gridList = (response.data || []).map(item => ({
-          meshCode: item.mesh_no, // 用于逻辑筛选的值 (对应数据库的 mesh_no)
-          meshName: item.mesh_name // 用于下拉框显示的文字 (对应数据库的 mesh_name)
+          meshCode: item.mesh_no,
+          meshName: item.mesh_name
         }))
       } catch (error) {
         console.error('获取全局网格列表失败:', error)
       }
     },
-
-    handleGridChange (value) {
-      this.selectedInstanceKeys = []
-    },
-
+    handleGridChange (value) { this.selectedInstanceKeys = [] },
     async fetchDeviceData () {
       try {
         const projectId = localStorage.getItem('project_id') || '1'
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
         const response = await axios.get(`${baseUrl}/api/devices`, { params: { project: projectId } })
-
         this.deviceInstances = (response.data || []).map(device => ({
           deviceId: device.deviceId,
           deviceName: device.deviceName,
-          // 💡 关键：将后端返回的 meshCode 映射到 deviceRegion 供过滤使用
           deviceRegion: device.meshCode || '未设置',
           states: this.parseStates(device.states || []),
           deviceTime: device.lastUpdateTime || '未知',
@@ -304,11 +288,8 @@ export default {
           deviceTypeName: device.deviceTypeName,
           deviceTypeId: device.deviceTypeId
         }))
-      } catch (error) {
-        console.error('获取设备数据失败:', error)
-      }
+      } catch (error) { console.error('获取设备数据失败:', error) }
     },
-
     async fetchDeviceTypes () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
@@ -319,17 +300,13 @@ export default {
           deviceTypeAttributes: this.formatArrayField(item.deviceTypeAttributes, '未知属性'),
           deviceTypeFunction: this.formatArrayField(item.deviceTypeFunction, '无特定功能')
         }))
-      } catch (error) {
-        console.error('获取设备类型失败:', error)
-      }
+      } catch (error) { console.error('获取设备类型失败:', error) }
     },
-
     async fetchDeviceInstancesByType (prodId) {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
         const response = await axios.get(`${baseUrl}/api/devices/instances`, { params: { prodId } })
         const rawData = response.data?.data || response.data || []
-
         this.deviceInstances = rawData.map(device => ({
           deviceId: device.deviceId || device.devId || '-',
           deviceName: device.deviceName || device.devName || '未命名设备',
@@ -339,25 +316,20 @@ export default {
           operation: device.operation || '无操作指令',
           deviceTypeId: prodId
         }))
-      } catch (error) {
-        console.error('获取设备实例失败:', error)
-      }
+      } catch (error) { console.error('获取设备实例失败:', error) }
     },
-
     parseStates (states) {
       if (Array.isArray(states) && states.length > 0) {
         return states.map(s => `${s.stateKey || 'Unknown'}: ${s.stateValue || 'Unknown'}`).join(', ')
       }
       return '离线'
     },
-
     parseFunctions (functions) {
       if (Array.isArray(functions) && functions.length > 0) {
         return functions.map(func => func.functionName || 'Unknown').join(', ')
       }
       return '无可用操作'
     },
-
     formatArrayField (field, fallbackText) {
       if (!field) return fallbackText
       if (Array.isArray(field)) return field.join('\n')
@@ -368,7 +340,6 @@ export default {
         return field.replace(/[\\[\]"]/g, '').replace(/,/g, '\n').trim()
       }
     },
-
     onSelectChange (selectedRowKeys) { this.selectedInstanceKeys = selectedRowKeys },
     deleteDeviceInstance () { this.isDeleteModalVisible = true },
     confirmDeleteDevice () {
@@ -376,7 +347,6 @@ export default {
       this.selectedInstanceKeys = []; this.isDeleteModalVisible = false; this.$message.success('删除成功')
     },
     cancelDeleteDevice () { this.isDeleteModalVisible = false },
-
     async refreshDevice () {
       const deviceId = this.selectedInstanceKeys[0]
       const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
@@ -391,25 +361,20 @@ export default {
         this.isRefreshModelVisible = true
       } catch (error) { this.$message.error('刷新失败') }
     },
-
     handleRefreshOk () { this.isRefreshModelVisible = false },
     handleRefreshCancel () { this.isRefreshModelVisible = false },
-
     async handleDeviceTypeClick (record) {
       this.selectedDeviceType = record
       this.selectedRowKeys = [record.deviceTypeId]
       this.$message.info(`加载 ${record.deviceTypeName}...`)
       await this.fetchDeviceInstancesByType(record.deviceTypeId)
     },
-
     customRowClick (record) {
       return { on: { click: () => this.handleDeviceTypeClick(record) }, style: { cursor: 'pointer' } }
     },
-
     rowClassName (record) { return this.selectedRowKeys.includes(record.deviceTypeId) ? 'selected-row' : '' },
     showAddDeviceTypeModal () { this.isDeviceTypeModalVisible = true },
     showDeviceInstanceModal () { this.isDeviceInstanceModalVisible = true },
-
     handleNewDeviceTypeSubmit () {
       this.deviceTypes.push({ ...this.newDeviceType })
       this.isDeviceTypeModalVisible = false; this.$message.success('添加成功')
@@ -430,5 +395,13 @@ export default {
 .selected-row { background-color: #e6f7ff !important; }
 .ant-table-tbody > tr > td { text-align: center; padding: 8px 12px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 .ant-table-thead > tr > th { white-space: nowrap; text-align: center; padding: 8px 4px; font-size: 13px; }
+
+/* 强制卡片Body区域占满高度并使用Flex布局 */
+.full-height-card >>> .ant-card-body {
+  height: calc(100% - 58px); /* 减去Header高度 */
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 768px) { .ant-col-12 { width: 100% !important; margin-bottom: 16px; } }
 </style>

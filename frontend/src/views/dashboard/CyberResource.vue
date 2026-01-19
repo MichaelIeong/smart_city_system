@@ -102,7 +102,7 @@
               }
             ]"
             placeholder="请输入资源描述"
-            :rows="4"
+            :rows="3"
           />
         </a-form-item>
 
@@ -124,10 +124,40 @@
             placeholder="请输入访问地址，格式：api/xxxxx"
           />
         </a-form-item>
+
+        <a-form-item label="输入参数">
+          <a-textarea
+            v-decorator="[
+              'input',
+              {
+                rules: [
+                  { required: false, message: '请输入输入参数描述' }
+                ]
+              }
+            ]"
+            placeholder="请输入JSON 格式参数"
+            :rows="3"
+          />
+        </a-form-item>
+
+        <a-form-item label="输出参数">
+          <a-textarea
+            v-decorator="[
+              'output',
+              {
+                rules: [
+                  { required: false, message: '请输入输出参数描述' }
+                ]
+              }
+            ]"
+            placeholder="请输入JSON 格式参数"
+            :rows="3"
+          />
+        </a-form-item>
+
       </a-form>
     </a-modal>
 
-    <!-- 删除确认弹窗 -->
     <a-modal
       v-model="isDeleteModalVisible"
       title="确认删除"
@@ -155,11 +185,14 @@ export default {
       loading: false,
       resourceTypes: [], // 存储从数据库获取的资源类型
       advanced: false,
+      // 修改：添加 input 和 output 列
       cyberColumns: [
         { title: '资源编号', dataIndex: 'resourceId', key: 'resourceId', width: 120 },
         { title: '资源类型', dataIndex: 'resourceType', key: 'resourceType', width: 150 },
-        { title: '资源描述', dataIndex: 'description', key: 'description', width: 200 },
+        { title: '资源描述', dataIndex: 'description', key: 'description', width: 200, ellipsis: true },
         { title: '访问地址', dataIndex: 'url', key: 'url', width: 150 },
+        { title: '输入', dataIndex: 'input', key: 'input', width: 150, ellipsis: true },
+        { title: '输出', dataIndex: 'output', key: 'output', width: 150, ellipsis: true },
         { title: '操作', key: 'action', width: 100, scopedSlots: { customRender: 'action' } }
       ],
       cyberData: [],
@@ -171,12 +204,15 @@ export default {
       addForm: this.$form.createForm(this),
 
       // 新增资源临时存储对象
+      // 修改：添加 input 和 output 字段
       newResource: {
         id: '',
         resourceId: '',
         resourceType: '',
         description: '',
-        url: ''
+        url: '',
+        input: '',
+        output: ''
       },
 
       // 删除功能相关数据
@@ -331,7 +367,10 @@ export default {
         resourceId: this.newResource.resourceId,
         resourceType: this.newResource.resourceType,
         description: this.newResource.description,
-        url: this.newResource.url
+        url: this.newResource.url,
+        // 修改：添加 input 和 output
+        input: this.newResource.input,
+        output: this.newResource.output
       })
       // 清空输入框
       this.newResource = {
@@ -339,7 +378,9 @@ export default {
         resourceId: '',
         resourceType: '',
         description: '',
-        url: ''
+        url: '',
+        input: '',
+        output: ''
       }
     },
 
@@ -379,12 +420,15 @@ export default {
             const newId = Date.now()
 
             // 构造新资源数据对象
+            // 修改：获取 input 和 output 的值
             this.newResource = {
               id: newId,
               resourceId: values.resourceId.trim(),
               resourceType: values.resourceType.trim(),
               description: values.description.trim(),
-              url: values.url.trim()
+              url: values.url.trim(),
+              input: values.input ? values.input.trim() : '',
+              output: values.output ? values.output.trim() : ''
             }
 
             // 调用新增资源实例方法
@@ -417,7 +461,7 @@ export default {
 
 <style scoped>
 .a-form-item {
-  height: 50px;
+  margin-bottom: 24px; /* 稍微增加间距以适应 TextArea */
 }
 
 .table-page-search-wrapper {
