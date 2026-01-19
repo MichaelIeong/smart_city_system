@@ -9,7 +9,7 @@ import lombok.Data;
 @Entity
 @Table(name = "tsl_devices")
 @Data
-public class Tsldevices {
+public class TslDevices {
 
     @Id
     @Column(name = "product_id")
@@ -19,7 +19,7 @@ public class Tsldevices {
     private String meshId;
 
     @Column(name = "device_name")
-    private String deviceName; // 存储 JSON 数组或单个字符串
+    private String deviceName;
 
     @Column(name = "mesh_name")
     private String meshName;
