@@ -227,23 +227,6 @@ export default {
       globalDeviceColumns: [
         { title: '设备类型', dataIndex: 'name', key: 'name', width: 120, align: 'center' },
         {
-          title: '设备功能',
-          dataIndex: 'info',
-          key: 'info',
-          align: 'left',
-          customRender: (text) => {
-            let cleanText = text || '无功能描述'
-            try {
-              if (cleanText.startsWith('[') || cleanText.startsWith('{')) {
-                const parsed = JSON.parse(cleanText)
-                if (Array.isArray(parsed)) cleanText = parsed.join('、')
-              }
-            } catch (e) { cleanText = cleanText.replace(/^"|"$/g, '') }
-            const shortText = cleanText.length > 15 ? cleanText.substring(0, 15) + '...' : cleanText
-            return <a-tooltip placement="topLeft" title={cleanText}><span>{shortText}</span></a-tooltip>
-          }
-        },
-        {
           title: '设备实例数量',
           dataIndex: 'count',
           key: 'count',
@@ -273,7 +256,8 @@ export default {
           title: '设备功能',
           dataIndex: 'info',
           key: 'info',
-          align: 'left',
+          width: 120,
+          align: 'center',
           customRender: (text) => {
             let cleanText = text || '无功能描述'
             try {
