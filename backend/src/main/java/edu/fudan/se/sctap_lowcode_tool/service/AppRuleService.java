@@ -14,10 +14,7 @@ import edu.fudan.se.sctap_lowcode_tool.constant.SystemPrompt;
 import edu.fudan.se.sctap_lowcode_tool.model.AppGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
-import edu.fudan.se.sctap_lowcode_tool.repository.AppGridRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.ProjectRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
 import jakarta.annotation.Resource;
@@ -63,6 +60,9 @@ public class AppRuleService {
 
     @Resource
     private AppGridRepository appGridRepository;
+
+    @Resource
+    private TslDeviceRepository tslDeviceRepository;
 
     private final ChatLanguageModel chatLanguageModel;
 
@@ -571,14 +571,13 @@ public class AppRuleService {
             throw new BadRequestException("400", "应用规则解析失败",  null);
         }
         String envEvent = appRule.getTrigger().getEvent_type();
-        Set<String> envServiceSet = extractEnvService(appRule);
-        // 使用多线程并行检查每个 gridId 是否支持 envEvent 和 envServiceSet
+        // 使用多线程并行检查每个 gridId 是否支持 envEvent 和 各自需要的环境级服务
         ExecutorService executor = Executors.newFixedThreadPool(Math.min(gridIdList.size(), 5));
         List<Future<AppRuleSyncResponse>> futures = new ArrayList<>();
         for(String gridId : gridIdList) {
             Callable<AppRuleSyncResponse> task = () -> {
                 try {
-                    return checkGridIdSupport(gridId, appId, envEvent, envServiceSet);
+                    return checkGridIdSupport(gridId, appId, envEvent, appRule);
                 } catch (Exception e) {
                     return new AppRuleSyncResponse(gridId, null, null, 0, e.getMessage());
                 }
@@ -599,36 +598,8 @@ public class AppRuleService {
         return responses;
     }
 
-    // 从AppRule中提取环境级服务
-    private Set<String> extractEnvService(AppRule appRule) {
-        Set<String> envServiceSet = new HashSet<>();
-        if (appRule == null || appRule.getResponse() == null) {
-            return envServiceSet;
-        }
-        Response response = appRule.getResponse();
-        if (response.isChainType()) {
-            extractFromChain(response.getChain(), envServiceSet);
-        } else if (response.isBranchType()) {
-            for (BranchNode branchNode : response.getBranch()) {
-                // 如果是检查当前条件中的属性条件，并且要求大于0，则跳过该条件
-                if(branchNode.isCurrentCondition()) {
-                    CurrentCondition cond = branchNode.getCurrent_condition();
-                    if(cond.getCurrent_left()!=null&&"property".equals(cond.getCurrent_left().getType())) {
-                        String operator = cond.getOperator();
-                        int rightVal = Integer.parseInt(cond.getRight());
-                        boolean isPositiveCondition = (">".equals(operator) && rightVal >= 0) || (">=".equals(operator) && rightVal >= 1);
-                        if(isPositiveCondition) {
-                            continue;
-                        }
-                    }
-                }
-                extractFromChain(branchNode.getChain(), envServiceSet);
-            }
-        }
-        return envServiceSet;
-    }
 
-    private void extractFromChain(List<ChainStep> chain, Set<String> envServiceSet) {
+    private void extractFromChain(List<ChainStep> chain, Set<String> envServiceSet, String gridId) {
         if (chain == null || chain.isEmpty()) {
             return;
         }
@@ -640,7 +611,9 @@ public class AppRuleService {
             } else if (step instanceof BranchStep branchStep) {
                 if (branchStep.getBranch() != null) {
                     for (BranchNode branchNode : branchStep.getBranch()) {
-                        extractFromChain(branchNode.getChain(), envServiceSet);
+                        if(isBranchConditionMet(branchNode, gridId)) {
+                            extractFromChain(branchNode.getChain(), envServiceSet, gridId);
+                        }
                     }
                 }
             }  // WaitStep 不包含 action_name，跳过
@@ -648,7 +621,7 @@ public class AppRuleService {
     }
 
     //检查环境级事件和服务是否支持
-    private AppRuleSyncResponse checkGridIdSupport(String gridId, Integer appId, String envEvent, Set<String> envServiceSet) {
+    private AppRuleSyncResponse checkGridIdSupport(String gridId, Integer appId, String envEvent, AppRule appRule) {
         GridMesh gridMesh = gridMeshRepository.findById(gridId).orElse(null);
         if(gridMesh == null) {
             return new AppRuleSyncResponse(gridId, null, null, 0, "网格不存在");
@@ -658,6 +631,8 @@ public class AppRuleService {
         if (oldAppGrid != null) {
             return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "该网格已部署本应用");
         }
+        // 动态获取当前网格实际需要支持的环境级服务
+        Set<String> envServiceSet = extractEnvServiceByGrid(appRule, gridId);
         List<String> envEventTypeList = envEventService.getEnvEventTypeList(gridId);
         List<String> envServiceNameList = envServiceService.getEnvServiceNameList(gridId);
         // 检查 envEvent 是否在 envEventTypeList 中
@@ -682,6 +657,59 @@ public class AppRuleService {
         // TODO 下发到边端服务器
         // 所有检查通过
         return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "同步下发成功");
+    }
+
+    // 获取当前网格实际需要支持的环境级服务
+    private Set<String> extractEnvServiceByGrid(AppRule appRule, String gridId) {
+        Set<String> envServiceSet = new HashSet<>();
+        if (appRule == null || appRule.getResponse() == null) {
+            return envServiceSet;
+        }
+        Response response = appRule.getResponse();
+        if(response.isChainType()) {
+            extractFromChain(response.getChain(), envServiceSet, gridId);
+        } else if(response.isBranchType()) {
+            for(BranchNode branchNode : response.getBranch()) {
+                if(isBranchConditionMet(branchNode, gridId)) {
+                    extractFromChain(branchNode.getChain(), envServiceSet, gridId);
+                }
+            }
+        }
+        return envServiceSet;
+    }
+
+    // 判断分支条件是否满足
+    private boolean isBranchConditionMet(BranchNode branchNode, String gridId) {
+        if(branchNode.isHistoryCondition()) {
+            return true;
+        }
+        CurrentCondition cond = branchNode.getCurrent_condition();
+        if(cond.getCurrent_left()!=null&&"property".equals(cond.getCurrent_left().getType())) {
+            String property = cond.getCurrent_left().getProperty();
+            String productId = property.endsWith("_num") ? property.substring(0, property.lastIndexOf("_num")) : property;
+            long leftVal = tslDeviceRepository.countByProductAndMesh(productId, gridId);
+            try {
+                long rightVal = Long.parseLong(cond.getRight());
+                String operator = cond.getOperator();
+                return evaluateCondition(leftVal, operator, rightVal);
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 通用的条件求值器
+    private boolean evaluateCondition(long left, String op, long right) {
+        return switch (op) {
+            case ">" -> left > right;
+            case ">=" -> left >= right;
+            case "<" -> left < right;
+            case "<=" -> left <= right;
+            case "==", "=" -> left == right;
+            case "!=" -> left != right;
+            default -> false;
+        };
     }
 
     /**
