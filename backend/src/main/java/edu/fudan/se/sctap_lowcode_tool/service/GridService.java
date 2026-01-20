@@ -143,7 +143,7 @@ public class GridService {
             result.put("services", envServices);
 
             // 7. 获取环境级属性列表 (保留，依赖其他 Service)
-            List<EnvProperty> envProperties = envPropertyService.getEnvPropertyList(meshId);
+            List<EnvProperty> envProperties = envPropertyService.getEnvPropertyList();
             result.put("properties", envProperties);
 
             // 8. 获取应用级信息 (保留，依赖其他 Service)

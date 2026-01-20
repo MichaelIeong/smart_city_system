@@ -23,6 +23,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleLogRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EventHistoryRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.TslDeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -57,6 +58,9 @@ public class AppRuleExecutorService {
 
     @Resource
     private AppRuleLogRepository appRuleLogRepository;
+
+    @Resource
+    private TslDeviceRepository tslDeviceRepository;
 
     @Resource
     private WebSocketPushService webSocketPushService;
@@ -520,12 +524,13 @@ public class AppRuleExecutorService {
             addLog(LogConstant.ERROR, eventType, waitValue, "当前属性条件检查失败，上报的事件中不存在 'location'");
             return false;
         }
-        int leftVal;
-        int rightVal;
+        long leftVal;
+        long rightVal;
         try {
-            // TODO: 从数据库获取属性值，这里先默认属性值为1
-            leftVal = 1;
-            rightVal = Integer.parseInt(right);
+            // 从数据库中计算设备数量
+            String productId = property.endsWith("_num") ? property.substring(0, property.lastIndexOf("_num")) : property;
+            leftVal = tslDeviceRepository.countByProductAndMesh(productId, location);
+            rightVal = Long.parseLong(right);
         } catch (NumberFormatException e) {
             addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, right: '%s' 不是有效的整数", right));
             return false;

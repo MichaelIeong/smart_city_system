@@ -30,4 +30,8 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
     // 3. [原有功能重构] 根据产品ID查询设备实例列表
     // 对应原本的 queryDeviceInstances 功能
     List<TslDevice> findByProductProductId(String productId);
+
+    // 4. [新功能] 根据 product_id 和 mesh_id 统计数量
+    @Query("SELECT COUNT(d) FROM TslDevice d WHERE d.product.productId = :productId AND d.meshId = :meshId")
+    long countByProductAndMesh(@Param("productId") String productId, @Param("meshId") String meshId);
 }
