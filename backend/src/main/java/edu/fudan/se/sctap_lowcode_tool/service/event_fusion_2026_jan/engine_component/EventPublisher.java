@@ -1,6 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.engine_component;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event.DataEvent;
+import edu.fudan.se.sctap_lowcode_tool.controller.AppRuleExecutorController;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,21 +20,30 @@ public abstract class EventPublisher {
      */
     public abstract void publish(DataEvent result);
 
-    // TODO: 模拟不同的发布通道，等待具体实现
+    /**
+     * <h3>DirectPushChannel 直接推送通道</h3>
+     * 将融合结果直接回注到流水线入口（内部推送）。
+     */
     @Component
-    public static class Channel1Publisher extends EventPublisher {
-        @Override
-        public void publish(DataEvent result) {
-            System.out.println("[Channel1] Publishing event: " + result.getIdentifier() + " By " + Thread.currentThread().getName());
-        }
+    @RequiredArgsConstructor
+    public static class DirectPushChannel extends EventPublisher {
+        private final EventIngestor.DirectPushIngestor directPushIngestor;
+        @Override public void publish(DataEvent result) {directPushIngestor.push(result);}
     }
 
-    // TODO: 模拟不同的发布通道，等待具体实现
+    /**
+     * <h3>AppRuleChannel 应用规则通道</h3>
+     * 将融合结果转为应用规则触发请求。
+     */
     @Component
-    public static class Channel2Publisher extends EventPublisher {
-        @Override
-        public void publish(DataEvent result) {
-            System.out.println("[Channel2] Publishing event: " + result.getIdentifier() + " By " + Thread.currentThread().getName());
+    @RequiredArgsConstructor
+    public static class AppRuleChannel extends EventPublisher {
+        private final AppRuleExecutorController controller;
+        @Override public void publish(DataEvent result) {
+            var request = new EventTriggerRequest();
+            request.setEvent_type(result.getEventId());
+            request.setEvent_params(result.getPayload());
+            controller.triggerAppRule(request);
         }
     }
 }

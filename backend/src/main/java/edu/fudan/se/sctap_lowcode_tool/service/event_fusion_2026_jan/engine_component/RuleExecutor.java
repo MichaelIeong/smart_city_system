@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule.EventSource.sensorEvent;
 import static edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule.EventSource.spaceEvent;
 
 /**
@@ -34,19 +35,26 @@ public class RuleExecutor {
     @NotNull
     private static Optional<DataEvent> mockExecute(EventFusionRule rule, List<DataEvent> triggers) {
         System.out.println("Executing(" + triggers.get(0).getIdentifier() + ") By " + Thread.currentThread().getName());
+        System.out.println(triggers.get(0).getPayload());
         try {
             Thread.sleep(1000); // Simulate execution time
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        var result = DataEvent.builder()
-            .timestamp(System.currentTimeMillis())
-            .sourceIngestor("EventFusionEngine")
-            .eventSource(spaceEvent)
-            .identifier("fused-" + triggers.get(0).getIdentifier())
-            .eventId("truck_spil")
-            .payload(Map.of("key", "value"))
-            .build();
-        return Optional.of(result);
+
+        if (triggers.get(0).getEventSource() == sensorEvent) {
+            var result = DataEvent.builder()
+                                  .timestamp(System.currentTimeMillis())
+                                  .sourceIngestor("EventFusionEngine")
+                                  .eventSource(spaceEvent)
+                                  .identifier("fused-" + triggers.get(0).getIdentifier())
+                                  .eventId("truck_spill")
+                                  .payload(Map.of("key", "value"))
+                                  .build();
+            return Optional.of(result);
+        } else {
+            return Optional.empty();
+        }
+
     }
 }
