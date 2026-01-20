@@ -366,7 +366,6 @@ export default {
 
       const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 
-      // 3. 【核心修改】并行请求 4 个后端接口
       try {
         // 使用 Promise.all 同时发起请求，加快加载速度
         const [deviceRes, eventRes, serviceRes, appRes] = await Promise.all([
