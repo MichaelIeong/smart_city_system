@@ -23,6 +23,6 @@ public class EnvPropertyController {
      * */
     @GetMapping("/list/{gridId}")
     public ResponseEntity<List<EnvProperty>> getEnvPropertyList(@PathVariable String gridId) {
-        return ResponseEntity.ok(envPropertyService.getEnvPropertyList(gridId));
+        return ResponseEntity.ok(envPropertyService.getEnvPropertyList());
     }
 }
