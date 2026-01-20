@@ -6,9 +6,9 @@
 
         // 这里的 key 对应 URL 的 type，value 对应 div ID 中最后的部分
         const mapping = {
-            "1": ["Application_Construction"],
-            "2": ["Event_Fusion"],
-            "3": ["Service_Composition"]
+            "1": ["应用构造"],
+            "2": ["事件融合"],
+            "3": ["服务组合"]
         };
 
         const allowed = mapping[type];
