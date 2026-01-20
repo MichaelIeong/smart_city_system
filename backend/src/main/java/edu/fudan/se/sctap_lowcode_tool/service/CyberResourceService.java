@@ -55,4 +55,28 @@ public class CyberResourceService {
         }
         return "{}";
     }
+
+    /**
+     * 保存或更新资源信息
+     * 对应 Controller 中的 saveCyberResource 调用
+     */
+    public CyberResourceInfo saveCyberResource(CyberResourceInfo info) {
+        info.setLastUpdateTime(java.time.LocalDateTime.now());
+        if (info.getState() == null || info.getState().isEmpty()) {
+            info.setState("在线");
+        }
+        if (info.getDetails() == null) {
+            info.setDetails(info.getDescription());
+        }
+        return cyberResourceRepository.save(info);
+    }
+
+    /**
+     * 根据 ID 删除资源
+     * 对应 Controller 中的 deleteCyberResource 调用
+     */
+    public void deleteCyberResource(Integer id) {
+        cyberResourceRepository.deleteById(id);
+    }
+
 }

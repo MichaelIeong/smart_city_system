@@ -39,4 +39,16 @@ public class CyberResourceController {
         return cyberResourceService.getParamJson(description);
     }
 
+    @PostMapping("/add")
+    public ResponseEntity<CyberResourceInfo> addCyberResource(@RequestBody CyberResourceInfo cyberResourceInfo) {
+        CyberResourceInfo savedResource = cyberResourceService.saveCyberResource(cyberResourceInfo);
+        return ResponseEntity.ok(savedResource);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteCyberResource(@PathVariable Integer id) {
+        cyberResourceService.deleteCyberResource(id);
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
 }

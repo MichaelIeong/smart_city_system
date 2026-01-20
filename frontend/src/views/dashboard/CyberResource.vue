@@ -162,8 +162,8 @@
       v-model="isDeleteModalVisible"
       title="确认删除"
       :width="400"
-      @ok="confirmDeleteDevice"
-      @cancel="cancelDeleteDevice"
+      @ok="confirmDeleteResource"
+      @cancel="cancelDeleteResource"
       okText="确定"
       cancelText="取消"
       okType="danger"
@@ -301,36 +301,34 @@ export default {
       this.isDeleteModalVisible = true
     },
 
-    // 确认删除设备
-    async confirmDeleteDevice () {
+    async confirmDeleteResource () {
       try {
-        // 从本地数据中删除选中的设备实例
-        this.cyberData = this.cyberData.filter(
-          device => device.id !== this.selectedResource.id
-        )
-        this.filteredData = this.filteredData.filter(
-          device => device.id !== this.selectedResource.id
-        )
+        if (!this.selectedResource || !this.selectedResource.id) {
+          this.$message.error('未找到资源ID，无法删除')
+          return
+        }
 
-        // 清空选中状态
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+
+        // 调用后端删除接口
+        await axios.delete(`${baseUrl}/api/cyberResources/delete/${this.selectedResource.id}`)
+
+        // 关闭弹窗
+        this.isDeleteModalVisible = false
         this.selectedResource = null
 
-        // 关闭删除确认弹窗
-        this.isDeleteModalVisible = false
+        this.$message.success('删除成功')
 
-        // 重新提取资源类型
-        this.extractResourceTypes()
-
-        // 显示成功消息
-        this.$message.success({ content: '设备实例删除成功！' })
+        // 重新拉取数据
+        this.fetchData(1)
       } catch (error) {
-        console.error('删除设备实例时出错：', error)
-        this.$message.error({ content: '删除失败，请稍后重试！' })
+        console.error('删除资源时出错：', error)
+        this.$message.error('删除失败，请稍后重试！')
       }
     },
 
     // 取消删除
-    cancelDeleteDevice () {
+    cancelDeleteResource () {
       this.isDeleteModalVisible = false
       this.selectedResource = null
     },
@@ -398,55 +396,42 @@ export default {
       this.addForm.resetFields()
     },
 
-    handleAddSubmit () {
-      this.addForm.validateFields((err, values) => {
+    async handleAddSubmit () {
+      this.addForm.validateFields(async (err, values) => {
         if (!err) {
           this.addSubmitLoading = true
+          try {
+            const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 
-          // 模拟提交延迟，提升用户体验
-          setTimeout(() => {
-            // 检查资源编号是否已存在
-            const existingResource = this.cyberData.find(item =>
-              item.resourceId === values.resourceId.trim()
-            )
-
-            if (existingResource) {
-              this.$message.error('资源编号已存在，请使用其他编号')
-              this.addSubmitLoading = false
-              return
-            }
-
-            // 生成新的ID（使用时间戳确保唯一性）
-            const newId = Date.now()
-
-            // 构造新资源数据对象
-            // 修改：获取 input 和 output 的值
-            this.newResource = {
-              id: newId,
+            // 构造发送给后端的对象
+            const payload = {
               resourceId: values.resourceId.trim(),
               resourceType: values.resourceType.trim(),
               description: values.description.trim(),
               url: values.url.trim(),
+              // 传递新增的 input 和 output
               input: values.input ? values.input.trim() : '',
-              output: values.output ? values.output.trim() : ''
+              output: values.output ? values.output.trim() : '',
+              projectId: 1
             }
 
-            // 调用新增资源实例方法
-            this.addResourceInstance()
-
-            // 更新筛选数据
-            this.filteredData = [...this.cyberData]
-
-            // 重新提取资源类型
-            this.extractResourceTypes()
-
-            // 关闭对话框并重置表单
-            this.addModalVisible = false
-            this.addForm.resetFields()
-            this.addSubmitLoading = false
+            // 发送 POST 请求给后端
+            await axios.post(`${baseUrl}/api/cyberResources/add`, payload)
 
             this.$message.success('新增信息资源成功')
-          }, 500) // 500ms延迟，模拟网络请求
+
+            // 关闭弹窗
+            this.addModalVisible = false
+            this.addForm.resetFields()
+
+            // 重新从后端获取最新列表，而不是手动 push
+            this.fetchData(1)
+          } catch (error) {
+            console.error('新增失败:', error)
+            this.$message.error('新增失败，请检查后端服务')
+          } finally {
+            this.addSubmitLoading = false
+          }
         }
       })
     }
