@@ -324,7 +324,7 @@ public class AppRuleService {
         if(messages.isEmpty()) {
             // 根据网格ID获取环境级事件、属性、服务列表
             List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
-            List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+            List<String> envProperties = envPropertyService.getEnvPropertyStringList();
             List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
             String envEventsStr = String.join("\n", envEvents);
             String envPropertiesStr = String.join("\n", envProperties);
@@ -356,7 +356,7 @@ public class AppRuleService {
         // 构造系统提示词
         // 根据网格ID获取环境级事件、属性、服务列表
         List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
-        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList();
         List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
         String envEventsStr = String.join("\n", envEvents);
         String envPropertiesStr = String.join("\n", envProperties);
@@ -460,7 +460,7 @@ public class AppRuleService {
         List<ChatMessage> messages = new ArrayList<>();
         // 根据网格ID获取环境级事件、属性、服务列表
         List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
-        List<String> envProperties = envPropertyService.getEnvPropertyStringList(gridId);
+        List<String> envProperties = envPropertyService.getEnvPropertyStringList();
         List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
         String envEventsStr = String.join("\n", envEvents);
         String envPropertiesStr = String.join("\n", envProperties);
@@ -610,6 +610,18 @@ public class AppRuleService {
             extractFromChain(response.getChain(), envServiceSet);
         } else if (response.isBranchType()) {
             for (BranchNode branchNode : response.getBranch()) {
+                // 如果是检查当前条件中的属性条件，并且要求大于0，则跳过该条件
+                if(branchNode.isCurrentCondition()) {
+                    CurrentCondition cond = branchNode.getCurrent_condition();
+                    if(cond.getCurrent_left()!=null&&"property".equals(cond.getCurrent_left().getType())) {
+                        String operator = cond.getOperator();
+                        int rightVal = Integer.parseInt(cond.getRight());
+                        boolean isPositiveCondition = (">".equals(operator) && rightVal >= 0) || (">=".equals(operator) && rightVal >= 1);
+                        if(isPositiveCondition) {
+                            continue;
+                        }
+                    }
+                }
                 extractFromChain(branchNode.getChain(), envServiceSet);
             }
         }
@@ -669,7 +681,7 @@ public class AppRuleService {
         }
         // TODO 下发到边端服务器
         // 所有检查通过
-        return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "下发成功");
+        return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "同步下发成功");
     }
 
     /**
