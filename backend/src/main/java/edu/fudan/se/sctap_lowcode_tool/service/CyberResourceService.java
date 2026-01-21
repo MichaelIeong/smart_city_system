@@ -85,7 +85,7 @@ public class CyberResourceService {
     public List<Map<String, String>> getCyberResourceTypes() {
         return cyberResourceRepository.findAll().stream()
                 .collect(Collectors.toMap(
-                        p -> p.getDescription(), // 以 resource_type (description) 为 key
+                        p -> p.getResourceType(), // 以 resource_type (description) 为 key
                         p -> Map.of("value", p.getResourceId(), "label", p.getResourceType()),
                         (existing, replacement) -> existing // 如果 key 冲突，保留第一个（或替换逻辑）
                 ))
