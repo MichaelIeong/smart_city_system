@@ -331,13 +331,25 @@ export default {
     }
   },
   created () {
-    const initialMeshType = this.$route.query.initialMeshType
+    // 1. 尝试从 URL 获取参数 (优先级最高)
+    let initialMeshType = this.$route.query.initialMeshType
+
+    // 2. 如果 URL 没参数，尝试从 LocalStorage 读取
+    if (!initialMeshType) {
+      initialMeshType = localStorage.getItem('current_scene_type')
+    }
+
+    // 3. 如果有值且在我们的支持列表中，就使用它
     if (initialMeshType && this.meshFiles[initialMeshType]) {
       this.selectedType = initialMeshType
+    } else {
+      // 4. 兜底：如果啥都没有，默认 F-city
+      this.selectedType = 'F-city'
     }
   },
 
   mounted () {
+    // 根据 created 里计算出的 selectedType 加载数据
     this.handleMeshTypeChange(this.selectedType)
   },
 
