@@ -96,13 +96,15 @@ public class FusionNodeRedService {
         System.out.println("FLOW JSON:");
         System.out.println(flowJson.toPrettyString());
 
-        // ---------- 1. 构建 id -> node 映射 ----------
+        // ---------- 1. id -> node ----------
         Map<String, JsonNode> nodeMap = new HashMap<>();
         for (JsonNode node : flowJson) {
-            nodeMap.put(node.get("id").asText(), node);
+            if (node.has("id")) {
+                nodeMap.put(node.get("id").asText(), node);
+            }
         }
 
-        // ---------- 2. 分类节点 ----------
+        // ---------- 2. 分类 ----------
         List<JsonNode> eventSources = new ArrayList<>();
         List<JsonNode> operators = new ArrayList<>();
         JsonNode publishNode = null;
@@ -117,15 +119,14 @@ public class FusionNodeRedService {
         }
 
         // ---------- 3. ruleName ----------
-        String spaceEventName = publishNode.get("spaceEventName").asText();
-        String ruleName = spaceEventName.replace("事件", "") + "规则";
+        String ruleName = publishNode.get("spaceEventName").asText()
+                .replace("事件", "") + "规则";
 
         Map<String, Object> dsl = new LinkedHashMap<>();
         dsl.put("ruleName", ruleName);
 
         // ---------- 4. triggers ----------
         List<Map<String, Object>> triggers = new ArrayList<>();
-
         for (JsonNode es : eventSources) {
             Map<String, Object> trigger = new LinkedHashMap<>();
             String eventSourceType = es.get("eventSourceType").asText();
@@ -133,30 +134,25 @@ public class FusionNodeRedService {
 
             if ("sensorEvent".equals(eventSourceType)) {
                 trigger.put("eventId", es.get("sensingEvent").asText());
+            } else if ("spaceEvent".equals(eventSourceType)) {
+                trigger.put("eventId", es.get("spaceEventType").asText());
             }
-
             triggers.add(trigger);
         }
-
         dsl.put("triggers", triggers);
 
-        // ---------- 5. steps（按 wires 顺序） ----------
+        // ---------- 5. steps ----------
         List<Map<String, Object>> steps = new ArrayList<>();
 
-        // 从 EventSource 出发
         for (JsonNode es : eventSources) {
             JsonNode wires = es.get("wires");
-            if (wires == null || !wires.elements().hasNext()) {
-                continue;
-            }
+            if (wires == null || wires.isEmpty()) continue;
 
             String nextId = wires.get(0).get(0).asText();
 
             while (nextId != null) {
                 JsonNode opNode = nodeMap.get(nextId);
-                if (opNode == null || !"Operator".equals(opNode.get("type").asText())) {
-                    break;
-                }
+                if (opNode == null || !"Operator".equals(opNode.get("type").asText())) break;
 
                 Map<String, Object> step = new LinkedHashMap<>();
                 step.put("stepId", opNode.get("id").asText());
@@ -167,31 +163,41 @@ public class FusionNodeRedService {
                 if ("service".equals(mode)) {
                     step.put("operatorUrl", opNode.get("operatorURL").asText());
                     step.put("operatorHttpMethod", "POST");
+
+                    // input
+                    List<Map<String, Object>> inputList = new ArrayList<>();
+                    for (JsonNode input : opNode.get("inputsMapping")) {
+                        Map<String, Object> in = new LinkedHashMap<>();
+                        in.put("key", input.get("key").asText());
+                        in.put("type", input.get("type").asText());
+                        in.put("desc", input.get("desc").asText());
+                        in.put("expr", input.get("source").asText());
+                        inputList.add(in);
+                    }
+                    step.put("input", inputList);
+
+                    // output
+                    List<Map<String, Object>> outputList = new ArrayList<>();
+                    JsonNode outputNode = opNode.get("output");
+                    if (outputNode != null && outputNode.isObject()) {
+                        Map<String, Object> out = new LinkedHashMap<>();
+                        out.put("key", outputNode.get("key").asText());
+                        out.put("type", outputNode.get("type").asText());
+                        out.put("desc", outputNode.get("desc").asText());
+                        outputList.add(out);
+                    }
+                    step.put("output", outputList);
                 }
 
-                // input
-                List<Map<String, Object>> inputList = new ArrayList<>();
-                for (JsonNode input : opNode.get("inputsMapping")) {
-                    Map<String, Object> in = new LinkedHashMap<>();
-                    in.put("key", input.get("key").asText());
-                    in.put("type", input.get("type").asText());
-                    in.put("desc", input.get("desc").asText());
-                    in.put("expr", input.get("source").asText());
-                    inputList.add(in);
-                }
-                step.put("input", inputList);
+                // ---------- common / count ----------
+                if ("common".equals(mode)) {
+                    String operatorName = opNode.get("operator").asText();
+                    step.put("operatorName", operatorName);
 
-                // output
-                List<Map<String, Object>> outputList = new ArrayList<>();
-                JsonNode outputNode = opNode.get("output");
-                if (outputNode != null && outputNode.isObject()) {
-                    Map<String, Object> out = new LinkedHashMap<>();
-                    out.put("key", outputNode.get("key").asText());
-                    out.put("type", outputNode.get("type").asText());
-                    out.put("desc", outputNode.get("desc").asText());
-                    outputList.add(out);
+                    if ("count".equals(operatorName)) {
+                        handleCountOperator(opNode, step);
+                    }
                 }
-                step.put("output", outputList);
 
                 step.put("next", Collections.emptyList());
                 steps.add(step);
@@ -234,7 +240,74 @@ public class FusionNodeRedService {
             System.out.println(dslJson);
             return dslJson;
         } catch (Exception e) {
-            throw new RuntimeException("DSL 序列化失败", e);
+            throw new RuntimeException(e);
         }
+    }
+
+    /* =====================================================
+     * count 算子专用转换
+     * ===================================================== */
+    private void handleCountOperator(JsonNode opNode, Map<String, Object> step) {
+
+        JsonNode value = opNode.get("value");
+
+        List<Map<String, Object>> input = new ArrayList<>();
+
+        // timeWindowMinute
+        input.add(Map.of(
+                "key", "timeWindowMinute",
+                "type", "Number",
+                "desc", "时间窗口（分钟），只统计该时间段内(N分钟前～现在)的事件数量。",
+                "expr", value.get("timeWindowMinute").asText()
+        ));
+
+        // spaceEventId
+        String eventId = value.get("countingEvent").asText();
+        input.add(Map.of(
+                "key", "spaceEventId",
+                "type", "String",
+                "desc", "环境事件ID，只统计该环境事件的数量。",
+                "expr", "'" + eventId + "'"
+        ));
+
+        // conditions
+        List<String> condExprs = new ArrayList<>();
+        for (JsonNode c : value.get("conditions")) {
+            String op = switch (c.get("operation").asText()) {
+                case "Equal To" -> "EQ";
+                case "Not Equal To" -> "NE";
+                case "Greater Than" -> "GT";
+                case "Greater Than or Equal To" -> "GTE";
+                case "Less Than" -> "LT";
+                case "Less Than or Equal To" -> "LTE";
+                case "Like" -> "LIKE";
+                default -> throw new IllegalArgumentException("Unsupported op");
+            };
+
+            condExprs.add(String.format(
+                    "{'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s}",
+                    c.get("jsonPath").asText(),
+                    c.get("type").asText(),
+                    op,
+                    c.get("value").asText()
+            ));
+        }
+
+        input.add(Map.of(
+                "key", "countConditions",
+                "type", "Array",
+                "desc", "计数条件，指定对事件负载数据的过滤条件，条件间为AND关系，格式为 List<CountCondition>。",
+                "expr", "{{" + String.join(", ", condExprs) + "}}"
+        ));
+
+        step.put("input", input);
+
+        step.put("output", List.of(
+                Map.of(
+                        "key", "count",
+                        "type", "Number",
+                        "desc", "在指定时间窗口内，符合条件的环境事件数量。"
+                )
+        ));
     }
 }
