@@ -18,7 +18,12 @@ public class EnvServiceService {
      * 获取环境级服务列表
      * */
     public List<String> getEnvServiceJsonList(String gridId) {
-        List<EnvService> envServices = envServiceRepository.findByGridId(gridId);
+        List<EnvService> envServices;
+        if("crossRegion".equals(gridId)) {
+            envServices = envServiceRepository.findCrossRegion();
+        } else {
+            envServices = envServiceRepository.findByGridId(gridId);
+        }
         return envServices
                 .stream()
                 .map(EnvService::getServiceJson)
@@ -29,7 +34,12 @@ public class EnvServiceService {
      * 获取环境级服务名称列表
      * */
     public List<String> getEnvServiceNameList(String gridId) {
-        List<EnvService> envServices = envServiceRepository.findByGridId(gridId);
+        List<EnvService> envServices;
+        if("crossRegion".equals(gridId)) {
+            envServices = envServiceRepository.findCrossRegion();
+        } else {
+            envServices = envServiceRepository.findByGridId(gridId);
+        }
         return envServices
                 .stream()
                 .map(EnvService::getServiceName)
@@ -40,10 +50,10 @@ public class EnvServiceService {
      * 获取环境级服务列表
      * */
     public List<EnvService> getEnvServiceList(String gridId) {
+        if("crossRegion".equals(gridId)) {
+            return envServiceRepository.findCrossRegion();
+        }
         return  envServiceRepository.findByGridId(gridId);
     }
 
-    public List<EnvService> findByGridId(String meshId) {
-        return List.of();
-    }
 }

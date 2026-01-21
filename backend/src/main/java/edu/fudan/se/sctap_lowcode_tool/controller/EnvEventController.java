@@ -25,4 +25,12 @@ public class EnvEventController {
     public ResponseEntity<List<EnvEvent>> getEnvEventList(@PathVariable String gridId) {
         return ResponseEntity.ok(envEventService.getEnvEventList(gridId));
     }
+
+    /**
+     * 获取全部环境级事件列表
+     * */
+    @GetMapping("/all")
+    public ResponseEntity<List<EnvEvent>> getAllEnvEventList() {
+        return ResponseEntity.ok(envEventService.getAllEnvEventList());
+    }
 }

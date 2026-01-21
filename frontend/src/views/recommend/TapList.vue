@@ -156,9 +156,9 @@
 
 /* eslint-disable */
 import { message, Modal } from 'ant-design-vue';
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import dayjs from 'dayjs';
-import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled, getGridListByAppId, syncAppRule } from '@/api/manage';
+import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled, getGridListByAppId, syncAppRule, getAllEnvEvent } from '@/api/manage';
 
 export default {
     // 假设您在项目中启用了 setup 语法
@@ -184,22 +184,12 @@ export default {
         });
 
         // === 数据和列定义 ===
-        const eventOptions = [
-            { value: 'manhole-flooding', label: '井盖水浸' },
-            { value: 'manhole-tilte', label: '井盖倾斜' },
-            { value: 'truck_dect', label: '渣土车识别' },
-            { value: 'ill_parking', label: '机动车违章停车' },
-            { value: 'ill_parking2', label: '非机动车违章停车' },
-            { value: 'waste_accumulate', label: '垃圾堆积' },
-            { value: 'greenbelt_stack', label: '绿化带乱堆乱放' },
-            { value: 'road-operate', label: '占道经营' },
-            { value: 'out-store', label: '店外经营' },
-            { value: 'road-feeding', label: '占道饲养家禽' },
-            { value: 'trash_full', label: '垃圾桶满溢' }
-        ];
+        const eventOptions = ref([]);
 
         const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : v);
-        const eventLabelMap = Object.fromEntries(eventOptions.map(o => [norm(o.value), o.label]));
+        const eventLabelMap = computed(() => {
+          return Object.fromEntries(eventOptions.value.map(o => [norm(o.value), o.label]));
+        });
 
         const columns = [
             { title: '序号', dataIndex: 'id' },
@@ -310,7 +300,7 @@ export default {
                 const records = res?.data ?? [];
                 const rows = records.map(r => ({
                     ...r,
-                    eventTypeLabel: eventLabelMap[norm(r.eventType)] ?? r.eventType,
+                    eventTypeLabel: eventLabelMap.value[norm(r.eventType)] ?? r.eventType,
                     updateTime: r.updateTime ? dayjs(r.updateTime).format('YYYY-MM-DD HH:mm:ss') : ''
                 }));
 
@@ -324,6 +314,22 @@ export default {
                 pagination.total = 0;
             } finally {
                 loading.value = false;
+            }
+        }
+
+        async function fetchEventOptions() {
+            try {
+                const res = await getAllEnvEvent(); // 调用你提供的接口
+                if (res) {
+                    // 将后端返回的 id/eventType/eventName 转换为下拉框需要的 value/label
+                    eventOptions.value = res.map(item => ({
+                        value: item.eventType,
+                        label: item.eventName || item.eventType // 如果 eventName 为空则显示类型
+                    }));
+                }
+            } catch (e) {
+                console.error('Fetch Event Options Error:', e);
+                message.error('加载事件类型下拉框失败');
             }
         }
 
@@ -370,7 +376,8 @@ export default {
             });
         }
 
-        onMounted(() => {
+        onMounted(async () => {
+            await fetchEventOptions();
             loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
         });
 

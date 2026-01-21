@@ -18,6 +18,6 @@ public class EnvEventGrid {
     @Column(name = "env_event_id", nullable = false)
     private Integer envEventId;
 
-    @Column()
+    @Column(name = "enabled")
     private Boolean enabled = true; // 是否启用
 }

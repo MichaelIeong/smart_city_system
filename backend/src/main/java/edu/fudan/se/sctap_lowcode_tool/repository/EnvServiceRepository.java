@@ -17,4 +17,10 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
         AND g.enabled = TRUE
     """)
     List<EnvService> findByGridId(@Param("gridId") String gridId);
+
+    @Query("""
+        SELECT DISTINCT a FROM EnvService a
+        WHERE a.crossRegion = TRUE
+    """)
+    List<EnvService> findCrossRegion();
 }

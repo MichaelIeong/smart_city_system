@@ -19,11 +19,9 @@ import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleLog;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
-import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleLogRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.EventHistoryRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.TslDeviceRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -64,6 +62,9 @@ public class AppRuleExecutorService {
 
     @Resource
     private WebSocketPushService webSocketPushService;
+
+    @Resource
+    private EnvEventRepository envEventRepository;
 
     @Resource
     private RedisUtil redisUtil;
@@ -174,14 +175,24 @@ public class AppRuleExecutorService {
         // 获取全部该事件类型的应用规则
         String eventType = eventTriggerRequest.getEvent_type();
         String location = eventTriggerRequest.getEvent_params().get("location").toString();
+        AppRuleInfo appRuleInfo;
+        // 从区域内应用选择
         List<AppRuleInfo> appRules = appRuleRepository.findByEventTypeAndLocation(eventType, location);
-        if(appRules == null || appRules.isEmpty()) {
-            return;
+        if(appRules != null && !appRules.isEmpty()) {
+            // 选择最新的一条应用
+            appRuleInfo = appRules.get(0);
+        } else{
+            // 从跨区域应用中选取
+            appRules = appRuleRepository.findByEventTypeAndCrossRegion(eventType);
+            if(appRules != null && !appRules.isEmpty()) {
+                // 选择最新的一条应用
+                appRuleInfo = appRules.get(0);
+            } else {
+                return;
+            }
         }
-        // 选择最新的一条执行
-        AppRuleInfo latestRule = appRules.get(0);
         // 解析JSON规则
-        AppRule appRule = parseJsonRule(latestRule.getRuleJson());
+        AppRule appRule = parseJsonRule(appRuleInfo.getRuleJson());
         if(appRule == null) {
             return;
         }
@@ -220,7 +231,7 @@ public class AppRuleExecutorService {
         Map<String, Object> appMessageData = new HashMap<>();
         appMessageData.put("eventType", eventType);
         appMessageData.put("waitValue", waitValue);
-        appMessageData.put("appName", latestRule.getAppName());
+        appMessageData.put("appName", appRuleInfo.getAppName());
         appMessageData.put("status", "start");
         appMessage.setData(appMessageData);
         webSocketPushService.sendAlert(appMessage);
@@ -974,6 +985,21 @@ public class AppRuleExecutorService {
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
+                    // 向前端推送应用结束消息
+                    List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
+                    AlertMessage appMessage;
+                    for(AlertMessage message : messages) {
+                        if(message.getType().equals("application")) {
+                            appMessage = message;
+                            Map<String, Object> data = appMessage.getData();
+                            data.put("status", "end");
+                            appMessage.setData(data);
+                            appMessage.setTimestamp(LocalDateTime.now());
+                            webSocketPushService.sendAlert(appMessage);
+                        }
+                    }
+                    // 删除日志
+                    appRuleLogPushMap.get(eventType).remove(waitValue);
                     // 存储日志
                     saveLog(eventType, waitValue);
                 }
