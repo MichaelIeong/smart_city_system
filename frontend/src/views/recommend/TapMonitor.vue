@@ -84,7 +84,7 @@ import { message } from 'ant-design-vue'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 import data from './F-city.json'
-import { getLog } from '@/api/manage'
+import { getLog, getAllEnvEvent } from '@/api/manage'
 import { Empty } from 'ant-design-vue'
 
 export default {
@@ -100,19 +100,7 @@ export default {
       // 模拟日志数据
       eventLogs: [],
       // eventType -> label（气泡显示）
-      eventTypeLabelMap: {
-        'manhole-flooding': '井盖水浸',
-        'manhole-tilte': '井盖倾斜',
-        'truck_dect': '渣土车识别',
-        'ill_parking': '机动车违章停车',
-        'ill_parking2': '非机动车违章停车',
-        'waste_accumulate': '垃圾堆积',
-        'greenbelt_stack': '绿化带堆放',
-        'road-operate': '占道经营',
-        'out-store': '店外经营',
-        'road-feeding': '占道饲养',
-        'trash_full': '垃圾桶满溢'
-      },
+      eventTypeLabelMap: {},
       logModalVisible: false,
       logModalLoading: false,
       logModalLogs: []
@@ -123,6 +111,7 @@ export default {
     // ✅ 非响应式字段：放实例上，避免 Vue2 对 Map/复杂对象的坑
     this.__d3 = { svg: null, zoomG: null, bubbleLayer: null }
     this.__bubbleMap = new Map()
+    this.fetchEventOptions()
     this.handleData()
     this.$nextTick(() => {
       setTimeout(() => {
@@ -392,6 +381,22 @@ export default {
         this.logModalVisible = false
       } finally {
         this.logModalLoading = false
+      }
+    },
+    async fetchEventOptions() {
+      try {
+        const res = await getAllEnvEvent();
+        if (res && Array.isArray(res)) {
+          const map = {};
+          res.forEach(item => {
+            // key 为 event_type，value 为 event_name
+            map[item.eventType] = item.eventName || item.eventType;
+          });
+          this.eventTypeLabelMap = map;
+        }
+      } catch (e) {
+        console.error('加载事件配置失败:', e);
+        this.$message.error('加载事件类型失败');
       }
     },
     handleEventMessage(payload) { 

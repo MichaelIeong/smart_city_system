@@ -151,7 +151,14 @@ onMounted(() => {
 /** 处理网格选择逻辑 (从 URL 获取) */
 async function initGridContext() {
   const gridIdFromUrl = new URLSearchParams(window.location.search).get('gridId')
-  if (gridIdFromUrl) {
+  if (gridIdFromUrl === "crossRegion") {
+    gridId.value = gridIdFromUrl
+    chatHistory.value.push({
+        role: 'assistant',
+        content: "您已选择全局网格。",
+        isSuccess: false,
+      })
+  }else if (gridIdFromUrl) {
     try {
       gridId.value = gridIdFromUrl
       const grid = await getGridById(gridId.value)

@@ -136,6 +136,8 @@ public class AppRuleService {
                 var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
                 // 设置事件类型
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+                // 判断是否跨区域
+                appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
                 // 插入数据库
                 appRuleInfo = appRuleRepository.save(appRuleInfo);
                 // 插入向量数据库
@@ -147,12 +149,14 @@ public class AppRuleService {
                         log.error("No api key");
                     }
                 }
-                // 绑定应用id和网格id
-                AppGrid appGrid = new AppGrid();
-                appGrid.setAppRuleId(appRuleInfo.getId());
-                appGrid.setGridId(gridId);
-                appGrid.setEnabled(false);
-                appGridRepository.save(appGrid);
+                // 如果不跨区域，绑定应用id和网格id
+                if(!"crossRegion".equals(gridId)) {
+                    AppGrid appGrid = new AppGrid();
+                    appGrid.setAppRuleId(appRuleInfo.getId());
+                    appGrid.setGridId(gridId);
+                    appGrid.setEnabled(true);
+                    appGridRepository.save(appGrid);
+                }
                 return appRuleInfo.getId();
             }
             return 0;
@@ -168,6 +172,8 @@ public class AppRuleService {
             appRuleInfo.setRuleJson(jsonRule);
             var appRule = parseJsonRule(jsonRule);
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
+            // 判断是否跨区域
+            appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
             // 插入数据库
             appRuleInfo = appRuleRepository.save(appRuleInfo);
             // 插入向量数据库
@@ -179,12 +185,14 @@ public class AppRuleService {
                     log.error("No api key");
                 }
             }
-            // 绑定应用id和网格id
-            AppGrid appGrid = new AppGrid();
-            appGrid.setAppRuleId(appRuleInfo.getId());
-            appGrid.setGridId(gridId);
-            appGrid.setEnabled(false);
-            appGridRepository.save(appGrid);
+            // 如果不跨区域，绑定应用id和网格id
+            if(!"crossRegion".equals(gridId)) {
+                AppGrid appGrid = new AppGrid();
+                appGrid.setAppRuleId(appRuleInfo.getId());
+                appGrid.setGridId(gridId);
+                appGrid.setEnabled(true);
+                appGridRepository.save(appGrid);
+            }
             return appRuleInfo.getId();
         }
         return 0;
@@ -208,9 +216,18 @@ public class AppRuleService {
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
         // 首先判断应用是否存在
         AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
-        String gridId = "6b2b5be61c60401aa4c6da9828a7df68";
         if(appRuleInfo==null) {
             return false;
+        }
+        String gridId;
+        if(appRuleInfo.getCrossRegion()) {
+            gridId = "crossRegion";
+        } else {
+            List<AppGrid> appGrids = appGridRepository.findByAppRuleId(appRuleInfo.getId());
+            if(appGrids==null || appGrids.isEmpty()) {
+                return false;
+            }
+            gridId = appGrids.get(0).getGridId();
         }
         String flowJson = appRuleUpdateRequest.getFlowJson();
         String description = appRuleUpdateRequest.getDescription();
@@ -649,7 +666,7 @@ public class AppRuleService {
         AppGrid appGrid = new AppGrid();
         appGrid.setAppRuleId(appId);
         appGrid.setGridId(gridId);
-        appGrid.setEnabled(false);
+        appGrid.setEnabled(true);
         appGrid = appGridRepository.save(appGrid);
         if(appGrid.getId()==null) {
             return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "保存到数据库失败");

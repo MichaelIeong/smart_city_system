@@ -24,7 +24,8 @@ const api = {
   grid: '/api/grid',
   sceneAdd: '/api/scene/add',
   isResources: '/api/is_resources',
-  sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498'
+  sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498',
+  envEvent: '/api/envEvent'
 }
 
 export default api
@@ -613,5 +614,17 @@ export function getSceneTypeDict () {
   return request({
     url: api.sceneTypeDict,
     method: 'get'
+  })
+}
+
+// 获取全部环境级事件
+export function getAllEnvEvent () {
+  const token = store.state.token
+  return request({
+    url: api.envEvent + '/all',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   })
 }
