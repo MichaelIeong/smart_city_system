@@ -1,4 +1,4 @@
-package edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator;
+package edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

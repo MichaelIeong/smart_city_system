@@ -2,7 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.common_operator.CommonOperatorDetailResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.common_operator.CommonOperatorPreviewResponse;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.CommonOperatorRegistry;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.CommonOperatorRegistry;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

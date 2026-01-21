@@ -25,7 +25,7 @@ public class SocialResourceController {
     //获取所有的社会服务名称
     @GetMapping("/services")
     public List<Map<String, String>> getTypes() {
-        return socialResourceService.getSocialResource();
+        return socialResourceService.getSocialResourceTypes();
     }
 
     //根据服务名称获取对应的details
@@ -38,6 +38,17 @@ public class SocialResourceController {
     @GetMapping("/params")
     public String getParams(@RequestParam String description){
         return socialResourceService.getParamJson(description);
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<SocialResourceInfo> addSocialResource(@RequestBody SocialResourceInfo info) {
+        return ResponseEntity.ok(socialResourceService.saveSocialResource(info));
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteSocialResource(@PathVariable Integer id) {
+        socialResourceService.deleteSocialResource(id);
+        return ResponseEntity.ok("Deleted successfully");
     }
 
 

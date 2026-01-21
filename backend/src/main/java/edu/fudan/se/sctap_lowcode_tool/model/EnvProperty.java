@@ -12,9 +12,6 @@ public class EnvProperty {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "grid_id", nullable = false)
-    private String gridId;
-
     @Column(name = "property_name", nullable = false)
     private String propertyName;
 

@@ -35,7 +35,7 @@ public class SpaceEventHistory {
 
     /**
      * <b>环境事件ID</b><br/>
-     * 表明所属的环境事件，例如 "truck_spil", "truck_spil_cross_region"
+     * 表明所属的环境事件，例如 "truck_spill", "truck_spill_cross_region"
      */
     @NotNull
     @Column(nullable = false)

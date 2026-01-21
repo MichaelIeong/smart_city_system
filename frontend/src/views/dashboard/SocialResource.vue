@@ -102,7 +102,7 @@
               }
             ]"
             placeholder="请输入资源描述"
-            :rows="4"
+            :rows="3"
           />
         </a-form-item>
 
@@ -124,6 +124,37 @@
             placeholder="请输入访问地址，格式：api/xxxxx"
           />
         </a-form-item>
+
+        <a-form-item label="输入参数">
+          <a-textarea
+            v-decorator="[
+              'input',
+              {
+                rules: [
+                  { required: false, message: '请输入输入参数描述' }
+                ]
+              }
+            ]"
+            placeholder="请输入 JSON 格式参数"
+            :rows="3"
+          />
+        </a-form-item>
+
+        <a-form-item label="输出参数">
+          <a-textarea
+            v-decorator="[
+              'output',
+              {
+                rules: [
+                  { required: false, message: '请输入输出参数描述' }
+                ]
+              }
+            ]"
+            placeholder="请输入 JSON 格式参数"
+            :rows="3"
+          />
+        </a-form-item>
+
       </a-form>
     </a-modal>
 
@@ -131,13 +162,13 @@
       v-model="isDeleteModalVisible"
       title="确认删除"
       :width="400"
-      @ok="confirmDeleteDevice"
-      @cancel="cancelDeleteDevice"
+      @ok="confirmDeleteResource"
+      @cancel="cancelDeleteResource"
       okText="确定"
       cancelText="取消"
       okType="danger"
     >
-      <p>确定要删除该资源实例吗？</p>
+      <p>确定要删除该资源吗？</p>
     </a-modal>
   </page-header-wrapper>
 </template>
@@ -153,52 +184,27 @@ export default {
       queryId: '',
       queryResourceType: '0',
       loading: false,
-      resourceTypes: [], // 存储从数据库获取的资源类型
+      resourceTypes: [],
+      // 表格列定义：包含输入和输出
       socialColumns: [
-        {
-          title: '资源编号',
-          dataIndex: 'resourceId',
-          key: 'resourceId',
-          width: 120
-        },
-        {
-          title: '资源类型',
-          dataIndex: 'resourceType',
-          key: 'resourceType',
-          width: 120
-        },
-        {
-          title: '资源描述',
-          dataIndex: 'description',
-          key: 'description',
-          width: 200
-        },
-        {
-          title: '访问地址',
-          dataIndex: 'url',
-          key: 'url',
-          width: 200
-        },
-        {
-          title: '操作',
-          key: 'action',
-          width: 80,
-          scopedSlots: { customRender: 'action' }
-        }
+        { title: '资源编号', dataIndex: 'resourceId', key: 'resourceId', width: 120 },
+        { title: '资源类型', dataIndex: 'resourceType', key: 'resourceType', width: 120 },
+        { title: '资源描述', dataIndex: 'description', key: 'description', width: 200, ellipsis: true },
+        { title: '访问地址', dataIndex: 'url', key: 'url', width: 150 },
+        { title: '输入', dataIndex: 'input', key: 'input', width: 150, ellipsis: true },
+        { title: '输出', dataIndex: 'output', key: 'output', width: 150, ellipsis: true },
+        { title: '操作', key: 'action', width: 100, scopedSlots: { customRender: 'action' } }
       ],
       socialData: [],
       filteredData: [],
 
-      // 新增功能相关数据
       addModalVisible: false,
       addSubmitLoading: false,
       addForm: this.$form.createForm(this),
 
-      // 删除功能相关数据 (新增)
-      selectedResource: null, // 选中要删除的资源
-      isDeleteModalVisible: false, // 删除确认弹窗显示状态
+      selectedResource: null,
+      isDeleteModalVisible: false,
 
-      // 分页配置
       paginationConfig: {
         pageSize: 10,
         showSizeChanger: true,
@@ -214,36 +220,23 @@ export default {
         this.loading = true
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
         const response = await axios.get(`${baseUrl}/api/socialResources/project/${id}`)
-        console.log('API response data:', response.data)
 
-        // 确保数据格式正确
         if (Array.isArray(response.data)) {
           this.socialData = response.data
-          this.filteredData = [...response.data] // 使用展开运算符创建新数组
-
-          // 提取所有不重复的资源类型
+          this.filteredData = [...response.data]
           this.extractResourceTypes()
-
-          console.log('表格数据已更新，共', response.data.length, '条记录')
-          console.log('资源类型列表:', this.resourceTypes)
         } else {
-          console.warn('API返回的数据不是数组格式:', response.data)
           this.socialData = []
           this.filteredData = []
-          this.resourceTypes = []
         }
       } catch (error) {
-        console.error('获取数据时发生错误:', error)
-        this.$message.error('获取数据失败，请检查网络连接或联系管理员')
-        this.socialData = []
-        this.filteredData = []
-        this.resourceTypes = []
+        console.error('获取数据失败:', error)
+        this.$message.error('获取数据失败')
       } finally {
         this.loading = false
       }
     },
 
-    // 提取数据中的所有资源类型
     extractResourceTypes () {
       const types = new Set()
       this.socialData.forEach(item => {
@@ -260,10 +253,6 @@ export default {
         const matchesResourceType = this.queryResourceType === '0' || (item.resourceType && item.resourceType === this.queryResourceType)
         return matchesId && matchesResourceType
       })
-
-      if (this.filteredData.length === 0 && this.socialData.length > 0) {
-        this.$message.info('未找到匹配的数据')
-      }
     },
 
     resetQueryParam () {
@@ -273,52 +262,35 @@ export default {
       this.$message.success('查询条件已重置')
     },
 
-    // 删除设备实例 (新增)
     deleteResourceInstance (record) {
-      // 保存要删除的资源记录
       this.selectedResource = record
-      // 显示删除确认弹窗
       this.isDeleteModalVisible = true
     },
 
-    // 确认删除设备 (新增)
-    async confirmDeleteDevice () {
+    async confirmDeleteResource () {
       try {
-        // 从本地数据中删除选中的设备实例
-        this.socialData = this.socialData.filter(
-          item => item.id !== this.selectedResource.id
-        )
-        this.filteredData = this.filteredData.filter(
-          item => item.id !== this.selectedResource.id
-        )
+        if (!this.selectedResource || !this.selectedResource.id) return
 
-        // 清空选中状态
-        this.selectedResource = null
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        await axios.delete(`${baseUrl}/api/socialResources/delete/${this.selectedResource.id}`)
 
-        // 关闭删除确认弹窗
         this.isDeleteModalVisible = false
-
-        // 重新提取资源类型
-        this.extractResourceTypes()
-
-        // 显示成功消息
-        this.$message.success('设备实例删除成功！')
+        this.selectedResource = null
+        this.$message.success('删除成功')
+        this.fetchData(1) // 刷新
       } catch (error) {
-        console.error('删除设备实例时出错：', error)
-        this.$message.error('删除失败，请稍后重试！')
+        console.error('删除出错:', error)
+        this.$message.error('删除失败')
       }
     },
 
-    // 取消删除 (新增)
-    cancelDeleteDevice () {
+    cancelDeleteResource () {
       this.isDeleteModalVisible = false
       this.selectedResource = null
     },
 
-    // 新增功能相关方法
     showAddModal () {
       this.addModalVisible = true
-      // 重置表单
       this.$nextTick(() => {
         this.addForm.resetFields()
       })
@@ -330,64 +302,49 @@ export default {
     },
 
     handleAddSubmit () {
-      this.addForm.validateFields((err, values) => {
+      this.addForm.validateFields(async (err, values) => {
         if (!err) {
           this.addSubmitLoading = true
+          try {
+            const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 
-          // 模拟提交延迟，提升用户体验
-          setTimeout(() => {
-            // 检查资源编号是否已存在
-            const existingResource = this.socialData.find(item =>
-              item.resourceId === values.resourceId.trim()
-            )
-
-            if (existingResource) {
-              this.$message.error('资源编号已存在，请使用其他编号')
-              this.addSubmitLoading = false
-              return
-            }
-
-            // 生成新的ID（使用时间戳确保唯一性）
-            const newId = Date.now()
-
-            // 构造新资源数据
-            const newResource = {
-              id: newId,
+            const payload = {
               resourceId: values.resourceId.trim(),
               resourceType: values.resourceType.trim(),
               description: values.description.trim(),
-              url: values.url.trim()
+              url: values.url.trim(),
+              input: values.input ? values.input.trim() : '',
+              output: values.output ? values.output.trim() : '',
+              projectId: 1 // 关键参数
             }
 
-            // 添加到本地数据
-            this.socialData.push(newResource)
-            this.filteredData = [...this.socialData] // 刷新过滤后的数据
+            await axios.post(`${baseUrl}/api/socialResources/add`, payload)
 
-            // 重新提取资源类型
-            this.extractResourceTypes()
-
-            // 关闭对话框并重置表单
+            this.$message.success('新增成功')
             this.addModalVisible = false
             this.addForm.resetFields()
+            this.fetchData(1) // 刷新
+          } catch (error) {
+            console.error('新增失败:', error)
+            this.$message.error('新增失败，请检查资源编号是否重复')
+          } finally {
             this.addSubmitLoading = false
-
-            this.$message.success('新增社会资源成功')
-          }, 500) // 500ms延迟，模拟网络请求
+          }
         }
       })
     }
   },
 
   created () {
-    const projectId = '1'
-    this.fetchData(projectId)
+    this.fetchData(1)
   }
 }
 </script>
 
 <style scoped>
+/* 关键修改：改用 margin-bottom，允许 TextArea 撑开高度 */
 .a-form-item {
-  height: 50px; /* 调整表单项的高度 */
+  margin-bottom: 24px;
 }
 
 .table-page-search-wrapper {
@@ -397,37 +354,5 @@ export default {
 .table-page-search-submitButtons {
   display: flex;
   align-items: center;
-}
-
-/* 自定义分页样式 */
-:global(.ant-table-pagination.ant-pagination) {
-  margin: 16px 0;
-  text-align: right;
-}
-
-:global(.ant-pagination-total-text) {
-  display: inline-block;
-  height: 32px;
-  margin-right: 8px;
-  line-height: 32px;
-  vertical-align: top;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-:global(.ant-pagination-options-size-changer.ant-select) {
-  margin-left: 8px;
-}
-
-:global(.ant-pagination-options-size-changer .ant-select-selector) {
-  padding: 0 8px;
-}
-
-:global(.ant-pagination-item) {
-  margin-right: 8px;
-}
-
-:global(.ant-pagination-prev),
-:global(.ant-pagination-next) {
-  margin-right: 8px;
 }
 </style>

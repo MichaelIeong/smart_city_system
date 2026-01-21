@@ -56,12 +56,12 @@ public class SystemPrompt {
             
             ## 输出示例：
             当触发机动车违章停车事件时：
-            - 首先检查该区域附近是否有音箱设备（NetworkAudioNum）。如果有音箱，则：
+            - 首先检查该区域附近是否有广播设备（p_broadcast_ip_num）。如果有广播，则：
               - 检查该车牌号对应的车辆过去1小时内发生的违停次数。如果违停次数大于0次，则：
                 - 下发工单至相关人员进行现场处置，等待工单处理完成。
               - 如果违停次数等于0次， 则：
-                - 通过音箱广播违法停车警告，等待3分钟。
-            - 如果没有音箱，则：
+                - 通过广播播报违章停车警告，等待3分钟。
+            - 如果没有广播，则：
               - 直接下发工单进行现场处理，等待工单处理完成。
             """;
 
@@ -117,11 +117,11 @@ public class SystemPrompt {
                         "operator": "==",
                         "right": "street_A"
                     }
-                    // 判断环境级属性NetworkAudioNum是否大于0，即事件上报位置所在区域是否有音箱
+                    // 判断环境级属性 p_broadcast_ip_num 是否大于0，即事件上报位置所在区域是否有广播设备
                     "current_condition": {
                         "current_left": {
                             "type": "property",
-                            "property": "NetworkAudioNum"
+                            "property": "p_broadcast_ip_num"
                         },
                         "operator": ">",
                         "right": "0"
@@ -221,12 +221,12 @@ public class SystemPrompt {
             ## 示例：
             + 用户自然语言描述输入：
             当触发机动车违章停车事件时：
-            - 首先检查该区域附近是否有音箱设备（NetworkAudioNum）。如果有音箱，则：
+            - 首先检查该区域附近是否有广播设备（p_broadcast_ip_num）。如果有广播，则：
               - 检查该车牌号对应的车辆过去1小时内发生的违停次数。如果违停次数大于0次，则：
                 - 下发工单至相关人员进行现场处置，等待工单处理完成。
               - 如果违停次数等于0次， 则：
-                - 通过音箱广播违法停车警告，等待3分钟。
-            - 如果没有音箱，则：
+                - 通过广播播报违章停车警告，等待3分钟。
+            - 如果没有广播，则：
               - 直接下发工单进行现场处理，等待工单处理完成。
             + 系统输出：
             ```json
@@ -244,7 +244,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": ">",
                                 "right": "0"
@@ -330,7 +330,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": "==",
                                 "right": "0"
@@ -480,7 +480,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": ">",
                                 "right": "0"
@@ -566,7 +566,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": "==",
                                 "right": "0"
@@ -630,7 +630,7 @@ public class SystemPrompt {
                     "description": "判断区域附近有无广播设备",
                     "conditionType": "current_condition",
                     "currentType": "property",
-                    "currentProperty": "NetworkAudioNum",
+                    "currentProperty": "p_broadcast_ip_num",
                     "historyEventType": null,
                     "historyTimeDuration": "",
                     "historyTimeUnit": null,
@@ -918,7 +918,7 @@ public class SystemPrompt {
                     "description": "判断区域附近有无广播设备",
                     "conditionType": "current_condition",
                     "currentType": "property",
-                    "currentProperty": "NetworkAudioNum",
+                    "currentProperty": "p_broadcast_ip_num",
                     "historyEventType": null,
                     "historyTimeDuration": "",
                     "historyTimeUnit": null,
@@ -1088,7 +1088,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": ">",
                                 "right": "0"
@@ -1174,7 +1174,7 @@ public class SystemPrompt {
                             "current_condition": {
                                 "current_left": {
                                     "type": "property",
-                                    "property": "NetworkAudioNum"
+                                    "property": "p_broadcast_ip_num"
                                 },
                                 "operator": "==",
                                 "right": "0"

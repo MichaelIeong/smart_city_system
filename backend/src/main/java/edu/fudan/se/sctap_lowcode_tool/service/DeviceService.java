@@ -1,11 +1,9 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
-import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionDevice;
-import edu.fudan.se.sctap_lowcode_tool.model.ActuatingFunctionInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.SpaceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.*;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.ActuatingFunctionNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceNodeRepository;
@@ -17,10 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service

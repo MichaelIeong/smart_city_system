@@ -3,7 +3,6 @@
     <a-card :bordered="false" :style="{ borderRadius: '8px', height: '75vh'}">
       <div class="top-buttons">
         <button class="top-btn" type="primary" @click="openNodeRED">打开Node-RED</button>
-        <button class="top-btn" type="primary" @click="handleOpenManualCreate">创建应用</button>
       </div>
       <div class="main-container">
         <div class="content-wrapper">
@@ -73,101 +72,6 @@
           </div>
         </div>
       </div>
-      <a-modal :visible="isGridSelectionModalVisible" title="同层次类型的全部网格列表" @cancel="closeGridSelectionModal" :width="800">
-        <div>
-          <a-table
-            :columns="gridColumns"
-            :dataSource="gridList"
-            :rowKey="record => record.id"
-            :rowSelection="gridSyncRowSelection"
-          >
-          </a-table>
-        </div>
-        <template v-slot:footer>
-          <a-button @click="handleSyncConfirm" type="primary">同步下发</a-button>
-          <a-button @click="closeGridSelectionModal">取消</a-button>
-        </template>
-      </a-modal>
-      <a-modal :visible="isSyncResultModalVisible" title="同步结果" @cancel="closeSyncResultModal" :width="800" :footer="null">
-        <div>
-          <a-table
-            :columns="syncResultColumns"
-            :dataSource="gridSyncResults"
-            :rowKey="record => record.gridId"
-          >
-            <template slot="isSuccessSlot" slot-scope="text">
-              <span :style="{ color: text === 1 ? 'green' : 'red' }">
-                {{ text === 1 ? '成功' : '失败' }}
-              </span>
-            </template>
-          </a-table>
-        </div>
-      </a-modal>
-      <a-modal
-        :visible="isManualSaveModalVisible"
-        title="创建应用"
-        :confirm-loading="isManualSaveLoading"
-        @cancel="closeManualSaveModal"
-        destroy-on-close
-      >
-        <a-form
-          ref="manualSaveFormRef"
-          :model="manualSaveForm"
-          layout="vertical"
-        >
-          <a-form-item label="应用名称" name="appName">
-            <a-input
-              v-model="manualSaveForm.appName"
-              placeholder="请输入应用名称，不能超过 30 字"
-              allow-clear
-              :max-length="30"
-            />
-            <span
-              style="
-                position: absolute;
-                right: 8px;
-                bottom: -26px;
-                font-size: 12px;
-                color: #999;
-              "
-            >
-              {{ manualSaveForm.appName.length }} / 30
-            </span>
-          </a-form-item>
-          <a-form-item label="应用描述" name="description">
-            <a-textarea
-              :rows="4"
-              v-model="manualSaveForm.description"
-              placeholder="请输入应用的简要描述，不能超过 300 字"
-              allow-clear
-              :max-length="300"
-            />
-            <span
-              style="
-                position: absolute;
-                right: 8px;
-                bottom: -18px;
-                font-size: 12px;
-                color: #999;
-              "
-            >
-              {{ manualSaveForm.description.length }} / 300
-            </span>
-          </a-form-item>
-          <a-form-item label="Node-RED 导出 JSON" name="flowJson">
-            <a-textarea
-              v-model="manualSaveForm.flowJson"
-              placeholder="请将 Node-RED 导出的 JSON 粘贴到这里"
-              :rows="8"
-              allow-clear
-            />
-          </a-form-item>
-        </a-form>
-        <template slot="footer">
-          <a-button @click="closeManualSaveModal">取消</a-button>
-          <a-button type="primary" :loading="isManualSaveLoading" @click="handleManualSaveApp">保存</a-button>
-        </template>
-      </a-modal>
       <a-modal
         :visible="isAppNameModalVisible"
         title="请输入应用名称"
@@ -203,7 +107,7 @@
 
 <script setup>
 /* eslint-disable */
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -214,16 +118,13 @@ import {
   findSimilarRules,
   createTapRule,
   convertJsonRule,
-  getGridById,
-  getGridListByType,
-  syncAppRule
+  getGridById
 } from '@/api/manage'
 
 // --- 1. 常量和配置 ---
 const UNIQUE_CHAT_ID = uuidv4()
 const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
 const MAX_APP_NAME_LENGTH = 30
-const MAX_DESCRIPTION_LENGTH = 300
 
 // --- 2. 响应式状态：聊天与规则详情 ---
 const chatHistory = ref([
@@ -235,38 +136,6 @@ const ruleDetails = ref(null) // 对应原 selectedRule
 
 // --- 3. 响应式状态：网格/应用管理与同步 ---
 const gridId = ref(null)
-const appId = ref(null)
-
-// 同步网格列表模态框 (原 isModalVisible)
-const isGridSelectionModalVisible = ref(false)
-const gridList = ref([])
-const selectedSyncGridKeys = ref([]) // 对应原 selectedRowKeys
-const gridColumns = [ // 对应原 columns
-  { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
-  { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
-  { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
-  { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
-]
-
-// 同步结果模态框 (原 isResultModalVisible)
-const isSyncResultModalVisible = ref(false)
-const gridSyncResults = ref([]) // 对应原 gridResults
-const syncResultColumns = [ // 对应原 resultColumns
-  { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
-  { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
-  { title: '是否成功', dataIndex: 'isSuccess', key: 'isSuccess', scopedSlots: { customRender: 'isSuccessSlot' }},
-  { title: '消息', dataIndex: 'message', key: 'message' }
-]
-
-// --- 4. 响应式状态：手动创建应用模态框 (原 saveXXX) ---
-const isManualSaveModalVisible = ref(false) // 对应原 saveVisible
-const isManualSaveLoading = ref(false) // 对应原 saveLoading
-const manualSaveFormRef = ref(null) // 对应原 saveFormRef
-const manualSaveForm = reactive({ // 对应原 saveForm
-  appName: '',
-  description: '',
-  flowJson: ''
-})
 
 // —— 创建应用名称弹窗 ——
 const isAppNameModalVisible = ref(false)
@@ -312,7 +181,8 @@ function openNodeRED() {
   if (!gridId.value) {
     message.warning('请先选择网格')
   } else {
-    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
+    const projectId = localStorage.getItem('project_id')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}&projectId=${projectId}`, '_blank')
   }
 }
 
@@ -428,15 +298,8 @@ async function handleConfirmCreateApp() {
     )
 
     if (appIdNew !== 0) {
-      appId.value = appIdNew
-      message.success('应用创建成功')
-
       isAppNameModalVisible.value = false
-
-      // 准备同步
-      const gridListData = await getGridListByType(gridId.value)
-      gridList.value = gridListData
-      isGridSelectionModalVisible.value = true
+      message.success('应用创建成功')
     } else {
       message.error('应用创建失败')
     }
@@ -452,87 +315,6 @@ function closeAppNameModal() {
   appNameInput.value = ''
 }
 
-/** 打开手动创建应用的模态框 (对应原 handleCreate) */
-function handleOpenManualCreate () {
-  isManualSaveModalVisible.value = true
-}
-
-/** 关闭手动创建应用的模态框 (对应原 closeSave) */
-function closeManualSaveModal () {
-  isManualSaveModalVisible.value = false
-  // 重置表单
-  manualSaveForm.appName = ''
-  manualSaveForm.description = ''
-  manualSaveForm.flowJson = ''
-}
-
-/** 手动创建应用 (对应原 submitSave) */
-async function handleManualSaveApp () {
-  if (!gridId.value) return message.warning('请先选择网格。')
-  try {
-    isManualSaveLoading.value = true
-    
-    // --- 手动校验 ---
-    if (!manualSaveForm.appName || manualSaveForm.appName.trim() === '') {
-      return message.error('请输入应用名称')
-    }
-    if (manualSaveForm.appName.length > MAX_APP_NAME_LENGTH) {
-      return message.error(`应用名称不能超过 ${MAX_APP_NAME_LENGTH} 个字符`)
-    }
-    if (!manualSaveForm.description || manualSaveForm.description.trim() === '') {
-      return message.error('请输入应用描述')
-    }
-    if (manualSaveForm.description.length > MAX_DESCRIPTION_LENGTH) {
-      return message.error(`描述不能超过 ${MAX_DESCRIPTION_LENGTH} 个字符`)
-    }
-    if (!manualSaveForm.flowJson || manualSaveForm.flowJson.trim() === '') {
-      return message.error('请粘贴 Node-RED 导出的 JSON')
-    }
-    let flowJsonObj
-    try {
-      flowJsonObj = JSON.parse(manualSaveForm.flowJson)
-    } catch (e) {
-      return message.error('Node-RED JSON 格式不正确，请检查后再试')
-    }
-    
-    const hide = message.loading('正在创建应用，请稍等片刻...', 0)
-    
-    try {
-      const projectId = localStorage.getItem('project_id')
-      const appIdNew = await createTapRule(
-        projectId, 
-        manualSaveForm.description, 
-        "", // jsonRule 留空
-        JSON.stringify(flowJsonObj, null, 2), 
-        gridId.value,
-        manualSaveForm.appName
-      )
-
-      if (appIdNew !== 0) {
-        hide()
-        message.success('应用创建成功')
-        appId.value = appIdNew
-        closeManualSaveModal()
-        
-        // 获取同类型网格数据并准备同步
-        const gridListData = await getGridListByType(gridId.value)
-        gridList.value = gridListData
-        isGridSelectionModalVisible.value = true
-      } else {
-        hide()
-        message.error('应用创建失败，请稍后重试')
-      }
-    } catch (error) {
-      hide()
-      message.error('应用创建失败: ' + error.message)
-    }
-  } finally {
-    isManualSaveLoading.value = false
-  }
-}
-
-
-// --- 9. 核心逻辑函数：Node-RED 交互 ---
 /** 将 JSON 规则推送到 Node-RED 并打开编辑器 (对应原 viewInNodeRed) */
 async function handleViewInNodeRed() {
   if (!ruleDetails.value || !ruleDetails.value.jsonRule || typeof ruleDetails.value.jsonRule !== 'object') {
@@ -544,6 +326,7 @@ async function handleViewInNodeRed() {
     // 1. 将规则 JSON 转换为 Node-RED Flow JSON
     const ruleJsonString = JSON.stringify(ruleDetails.value.jsonRule)
     const flowJson = await convertJsonRule(ruleJsonString)
+    const projectId = localStorage.getItem('project_id')
 
     // 2. 推送到 Node-RED
     await fetch(`${NODE_RED_URL}/flows`, {
@@ -554,51 +337,12 @@ async function handleViewInNodeRed() {
 
     hide()
     message.success('已成功推送至 Node-RED！')
-    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}&projectId=${projectId}`, '_blank')
   } catch (error) {
     hide()
     message.error('推送失败，请稍后重试: ' + error.message)
   }
 }
-
-// --- 10. 核心逻辑函数：网格同步 (Modal Actions) ---
-/** 关闭网格选择弹窗 (对应原 closeModal) */
-function closeGridSelectionModal() {
-  isGridSelectionModalVisible.value = false
-  selectedSyncGridKeys.value = []
-}
-
-/** 关闭同步结果弹窗 (对应原 closeResultModal) */
-function closeSyncResultModal() {
-  isSyncResultModalVisible.value = false
-  gridSyncResults.value = []
-}
-
-/** 确认同步下发应用规则 (对应原 handleConfirm) */
-async function handleSyncConfirm() {
-  if (!appId.value) return message.error('应用 ID 丢失。')
-  if (selectedSyncGridKeys.value.length === 0) return message.warning('请选择至少一个网格进行同步。')
-
-  try {
-    const result = await syncAppRule(appId.value, selectedSyncGridKeys.value)
-    gridSyncResults.value = result
-    isSyncResultModalVisible.value = true
-  } catch (error) {
-    message.error('同步失败: ' + error.message)
-  } finally {
-    closeGridSelectionModal(); // 关闭选择弹窗
-  }
-}
-
-// --- 11. Computed/Modal 配置 ---
-/** 网格同步表格的 rowSelection 配置 (对应原 rowSelection) */
-const gridSyncRowSelection = computed(() => ({
-  type: 'checkbox',
-  selectedRowKeys: selectedSyncGridKeys.value,
-  onChange: (selectedKeys) => {
-    selectedSyncGridKeys.value = selectedKeys
-  }
-}))
 </script>
 
 <style lang="less" scoped>

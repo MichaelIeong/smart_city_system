@@ -24,7 +24,7 @@ public class CyberResourceController {
 
     @GetMapping("/services")
     public List<Map<String, String>> getTypes() {
-        return cyberResourceService.getCyberResource();
+        return cyberResourceService.getCyberResourceTypes();
     }
 
     //根据服务名称获取对应的details
@@ -37,6 +37,18 @@ public class CyberResourceController {
     @GetMapping("/params")
     public String getParams(@RequestParam String description){
         return cyberResourceService.getParamJson(description);
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<CyberResourceInfo> addCyberResource(@RequestBody CyberResourceInfo cyberResourceInfo) {
+        CyberResourceInfo savedResource = cyberResourceService.saveCyberResource(cyberResourceInfo);
+        return ResponseEntity.ok(savedResource);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteCyberResource(@PathVariable Integer id) {
+        cyberResourceService.deleteCyberResource(id);
+        return ResponseEntity.ok("Deleted successfully");
     }
 
 }

@@ -35,24 +35,86 @@ public class CyberResourceService {
     }
 
     /**
-     * 根据 ResourceId 获取参数 JSON（直接返回 input 字段）
+     * 根据 ResourceType 获取参数 JSON（
      */
-    public String getParamJson(String resourceId) {
+    public String getParamJson(String resourceType) {
+        /*
         Optional<CyberResourceInfo> socialResourceOpt = Optional.ofNullable(cyberResourceRepository.findByResourceId(resourceId));
         if (socialResourceOpt.isPresent() && socialResourceOpt.get().getCyberResourceJson() != null) {
             return socialResourceOpt.get().getCyberResourceJson();
         }
         return "{}";
+         */
+        List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(resourceType);
+
+        if (resources != null && !resources.isEmpty()) {
+            // 取第一个
+            CyberResourceInfo first = resources.get(0);
+            if (first.getCyberResourceJson() != null) {
+                return first.getCyberResourceJson();
+            }
+        }
+
+        return "{}";
     }
 
     /**
-     * 根据 ResourceId 获取服务描述（直接返回 details 字段）
+     * 根据 ResourceType 获取服务描述（直接返回 details 字段）
      */
-    public String getMoreDetails(String resourceId) {
+    public String getMoreDetails(String resourceType) {
+        /*
         Optional<CyberResourceInfo> socialResourceOpt = Optional.ofNullable(cyberResourceRepository.findByResourceId(resourceId));
         if (socialResourceOpt.isPresent() && socialResourceOpt.get().getDetails() != null) {
             return socialResourceOpt.get().getDetails();
         }
         return "{}";
+        */
+        List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(resourceType);
+
+        if (resources != null && !resources.isEmpty()) {
+            // 取第一个
+            CyberResourceInfo first = resources.get(0);
+            if (first.getDetails() != null) {
+                return first.getDetails();
+            }
+        }
+
+        return "{}";
     }
+
+    public List<Map<String, String>> getCyberResourceTypes() {
+        return cyberResourceRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        p -> p.getResourceType(), // 以 resource_type (description) 为 key
+                        p -> Map.of("value", p.getResourceId(), "label", p.getResourceType()),
+                        (existing, replacement) -> existing // 如果 key 冲突，保留第一个（或替换逻辑）
+                ))
+                .values()
+                .stream()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 保存或更新资源信息
+     * 对应 Controller 中的 saveCyberResource 调用
+     */
+    public CyberResourceInfo saveCyberResource(CyberResourceInfo info) {
+        info.setLastUpdateTime(java.time.LocalDateTime.now());
+        if (info.getState() == null || info.getState().isEmpty()) {
+            info.setState("在线");
+        }
+        if (info.getDetails() == null) {
+            info.setDetails(info.getDescription());
+        }
+        return cyberResourceRepository.save(info);
+    }
+
+    /**
+     * 根据 ID 删除资源
+     * 对应 Controller 中的 deleteCyberResource 调用
+     */
+    public void deleteCyberResource(Integer id) {
+        cyberResourceRepository.deleteById(id);
+    }
+
 }

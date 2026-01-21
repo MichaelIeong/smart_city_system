@@ -1,7 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.common_operator.NumberCompare;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.NumberCompare;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.convert.support.DefaultConversionService;

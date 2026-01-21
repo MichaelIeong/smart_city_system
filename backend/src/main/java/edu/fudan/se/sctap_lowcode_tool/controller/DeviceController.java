@@ -1,8 +1,12 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.alibaba.dashscope.common.Result;
+import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceConfig;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceCreateRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.Product;
+import edu.fudan.se.sctap_lowcode_tool.model.TslDevices;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceNode;
 import edu.fudan.se.sctap_lowcode_tool.service.DeviceService;
 import edu.fudan.se.sctap_lowcode_tool.service.ProductService;
@@ -11,9 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -42,11 +45,11 @@ public class DeviceController {
     }
 
     // MySQL 查询：根据项目ID获取设备列表
-    @GetMapping
-    public ResponseEntity<Iterable<DeviceResponse>> getDevicesByProjectId(
-            @RequestParam(name = "project") int projectId) {
-        return ResponseEntity.ok(deviceService.findAllByProjectId(projectId));  // MySQL 查询
-    }
+//    @GetMapping
+//    public ResponseEntity<Iterable<DeviceResponse>> getDevicesByProjectId(
+//            @RequestParam(name = "project") int projectId) {
+//        return ResponseEntity.ok(deviceService.findAllByProjectId(projectId));  // MySQL 查询
+//    }
 
     // 创建设备，同时保存到 MySQL 和 Neo4j
     @PostMapping
@@ -73,6 +76,12 @@ public class DeviceController {
     @GetMapping("/types")
     public List<Map<String, String>> getTypes() {
         return productService.getDeviceTypes();
+    }
+
+    @GetMapping("/types/byGridId")
+    public List<Map<String, String>> getTypesByGridId(@RequestParam String gridId) {
+        // 调用 Service 方法，传入 gridId
+        return productService.getDeviceTypesByGridId(gridId);
     }
 
     // 根据设备类型获取功能列表
