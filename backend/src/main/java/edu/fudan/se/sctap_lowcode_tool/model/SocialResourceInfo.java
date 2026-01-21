@@ -47,4 +47,24 @@ public class SocialResourceInfo {
 
     @Column(name = "url", nullable = false, length = 512)
     private String url;  // 资源的访问链接或 API 地址
+
+    @Column(name = "output", columnDefinition = "TEXT")
+    private String output;
+
+    public String getInput() {
+        return this.socialResourceJson;
+    }
+    public void setInput(String input) {
+        this.socialResourceJson = input;
+    }
+
+    public void setProjectId(Integer projectId) {
+        if (projectId != null) {
+            ProjectInfo p = new ProjectInfo();
+            p.setProjectId(projectId);
+            this.projectInfo = p;
+        }
+    }
+
+
 }

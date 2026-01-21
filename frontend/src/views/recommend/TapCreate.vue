@@ -181,7 +181,8 @@ function openNodeRED() {
   if (!gridId.value) {
     message.warning('请先选择网格')
   } else {
-    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
+    const projectId = localStorage.getItem('project_id')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}&projectId=${projectId}`, '_blank')
   }
 }
 
@@ -325,6 +326,7 @@ async function handleViewInNodeRed() {
     // 1. 将规则 JSON 转换为 Node-RED Flow JSON
     const ruleJsonString = JSON.stringify(ruleDetails.value.jsonRule)
     const flowJson = await convertJsonRule(ruleJsonString)
+    const projectId = localStorage.getItem('project_id')
 
     // 2. 推送到 Node-RED
     await fetch(`${NODE_RED_URL}/flows`, {
@@ -335,7 +337,7 @@ async function handleViewInNodeRed() {
 
     hide()
     message.success('已成功推送至 Node-RED！')
-    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}`, '_blank')
+    window.open(`${NODE_RED_URL}?type=1&gridId=${gridId.value}&projectId=${projectId}`, '_blank')
   } catch (error) {
     hide()
     message.error('推送失败，请稍后重试: ' + error.message)

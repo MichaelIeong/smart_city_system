@@ -18,8 +18,8 @@ public class EnvPropertyService {
     /**
      * 获取环境级属性列表
      * */
-    public List<String> getEnvPropertyStringList(String gridId) {
-        List<EnvProperty> envProperties = envPropertyRepository.findByGridId(gridId);
+    public List<String> getEnvPropertyStringList() {
+        List<EnvProperty> envProperties = envPropertyRepository.findAll();
         return envProperties.stream()
                 .map(envProperty -> envProperty.getPropertyName() + ": " + envProperty.getDescription())
                 .collect(Collectors.toList());
@@ -28,11 +28,8 @@ public class EnvPropertyService {
     /**
      * 获取环境级属性列表
      * */
-    public List<EnvProperty> getEnvPropertyList(String gridId) {
-        return envPropertyRepository.findByGridId(gridId);
+    public List<EnvProperty> getEnvPropertyList() {
+        return envPropertyRepository.findAll();
     }
 
-    public List<EnvProperty> findByGridId(String meshId) {
-        return List.of();
-    }
 }

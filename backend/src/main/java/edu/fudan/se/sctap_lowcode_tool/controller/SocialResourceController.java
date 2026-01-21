@@ -40,5 +40,16 @@ public class SocialResourceController {
         return socialResourceService.getParamJson(description);
     }
 
+    @PostMapping("/add")
+    public ResponseEntity<SocialResourceInfo> addSocialResource(@RequestBody SocialResourceInfo info) {
+        return ResponseEntity.ok(socialResourceService.saveSocialResource(info));
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteSocialResource(@PathVariable Integer id) {
+        socialResourceService.deleteSocialResource(id);
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
 
 }

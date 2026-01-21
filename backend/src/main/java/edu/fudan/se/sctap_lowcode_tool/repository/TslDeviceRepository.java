@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
 
-    // 1. [新功能] 全局聚合：根据场景(meshNature)统计
+    // 1. 全局聚合：根据场景(meshNature)统计
     @Query("SELECT new edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeSummaryDTO(" +
             "d.product.productName, d.product.productFunction, COUNT(d)) " +
             "FROM TslDevice d WHERE d.meshNature = :sceneType " +
@@ -19,7 +19,7 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
             "ORDER BY COUNT(d) DESC")
     List<DeviceTypeSummaryDTO> findGlobalSummaryByScene(@Param("sceneType") String sceneType);
 
-    // 2. [新功能] 网格聚合：根据网格编号(meshNo)统计
+    // 2. 网格聚合：根据网格编号(meshNo)统计
     @Query("SELECT new edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeSummaryDTO(" +
             "d.product.productName, d.product.productFunction, COUNT(d)) " +
             "FROM TslDevice d WHERE d.meshNo = :gridId " +
@@ -27,7 +27,29 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
             "ORDER BY COUNT(d) DESC")
     List<DeviceTypeSummaryDTO> findGridSummaryByGridId(@Param("gridId") String gridId);
 
-    // 3. [原有功能重构] 根据产品ID查询设备实例列表
+    // 3. 根据产品ID查询设备实例列表
     // 对应原本的 queryDeviceInstances 功能
     List<TslDevice> findByProductProductId(String productId);
+
+    // 4. 根据 product_id 和 mesh_id 统计数量
+    @Query("SELECT COUNT(d) FROM TslDevice d WHERE d.product.productId = :productId AND d.meshId = :meshId")
+    long countByProductAndMesh(@Param("productId") String productId, @Param("meshId") String meshId);
+    /**
+     * API: /api/devices
+     * 获取指定项目下的所有设备，并按场景过滤
+     */
+    List<TslDevice> findByProjectIdAndMeshNature(Long projectId, String meshNature);
+
+    /**
+     * API: /api/devices/instances
+     * 根据产品ID查询设备实例，并增加场景过滤
+     */
+    List<TslDevice> findByProductProductIdAndMeshNature(String productId, String meshNature);
+
+    /**
+     * API: /api/meshes/all
+     * 获取当前场景下的所有网格 (去重)
+     */
+    @Query("SELECT DISTINCT d.meshNo, d.meshName FROM TslDevice d WHERE d.meshNature = :meshNature")
+    List<Object[]> findDistinctMeshesByScene(@Param("meshNature") String meshNature);
 }
