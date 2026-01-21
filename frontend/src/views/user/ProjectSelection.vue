@@ -394,7 +394,7 @@ export default {
     },
 
     async confirmDelete (project) {
-      if (confirm(`确定要移除场景 "${project.projectName}" 吗？(仅隐藏卡片)`)) {
+      if (confirm(`确定要移除场景 "${project.projectName}" 吗？`)) {
         this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
         this.saveProjectsToLocal()
       }
