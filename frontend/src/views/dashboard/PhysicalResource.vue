@@ -185,6 +185,7 @@ export default {
   },
   data () {
     return {
+      currentScene: '', // 新增：当前场景ID (mesh_nature)
       selectedDeviceType: null,
       selectedRowKeys: [],
       selectedInstanceKeys: [],
@@ -241,6 +242,8 @@ export default {
       })
     },
     deviceInstanceTitle () {
+      // 可以在标题中也显示当前场景，如果需要的话
+      // return this.selectedDeviceType ? `设备实例 (${this.selectedDeviceType.deviceTypeName}) - ${this.currentScene}` : '设备实例'
       return this.selectedDeviceType ? `设备实例 (${this.selectedDeviceType.deviceTypeName})` : '设备实例'
     },
     selectedDeviceNames () {
@@ -255,6 +258,30 @@ export default {
     }
   },
   mounted () {
+    // 1. 尝试从 URL 获取参数
+    let scene = this.$route.query.scene
+
+    // 2. 如果 URL 没参数，尝试从 LocalStorage 读取
+    if (!scene) {
+      scene = localStorage.getItem('current_scene_type')
+    }
+
+    // 3. 如果还是没有，默认给 'F-city'
+    if (!scene) {
+      scene = 'F-city'
+    }
+
+    // 4. 赋值并更新状态
+    this.currentScene = scene
+
+    if (this.$route.query.scene !== scene) {
+      this.$router.replace({
+        path: this.$route.path,
+        query: { ...this.$route.query, scene: scene }
+      })
+    }
+
+    // 5. 发起请求
     this.fetchDeviceTypes()
     this.fetchDeviceData()
     this.fetchGridList()
@@ -263,7 +290,10 @@ export default {
     async fetchGridList () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/meshes/all`)
+        // 2. 传递 mesh_nature 参数进行过滤
+        const response = await axios.get(`${baseUrl}/api/meshes/all`, {
+          params: { mesh_nature: this.currentScene }
+        })
         this.gridList = (response.data || []).map(item => ({
           meshCode: item.mesh_no,
           meshName: item.mesh_name
@@ -277,7 +307,13 @@ export default {
       try {
         const projectId = localStorage.getItem('project_id') || '1'
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/devices`, { params: { project: projectId } })
+        // 3. 传递 mesh_nature 参数进行过滤
+        const response = await axios.get(`${baseUrl}/api/devices`, {
+          params: {
+            project: projectId,
+            mesh_nature: this.currentScene
+          }
+        })
         this.deviceInstances = (response.data || []).map(device => ({
           deviceId: device.deviceId,
           deviceName: device.deviceName,
@@ -293,7 +329,11 @@ export default {
     async fetchDeviceTypes () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/deviceTypes/fromTslProduct`)
+        // 4. 传递 mesh_nature 参数进行过滤
+        // 假设获取产品类型的接口也支持 mesh_nature 过滤，或者由后端返回该场景下的类型
+        const response = await axios.get(`${baseUrl}/api/deviceTypes/fromTslProduct`, {
+          params: { mesh_nature: this.currentScene }
+        })
         this.deviceTypes = response.data.map(item => ({
           deviceTypeId: item.deviceTypeId,
           deviceTypeName: item.deviceTypeName,
@@ -305,7 +345,13 @@ export default {
     async fetchDeviceInstancesByType (prodId) {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/devices/instances`, { params: { prodId } })
+        // 5. 传递 mesh_nature 参数进行过滤
+        const response = await axios.get(`${baseUrl}/api/devices/instances`, {
+          params: {
+            prodId,
+            mesh_nature: this.currentScene
+          }
+        })
         const rawData = response.data?.data || response.data || []
         this.deviceInstances = rawData.map(device => ({
           deviceId: device.deviceId || device.devId || '-',

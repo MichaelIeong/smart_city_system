@@ -151,8 +151,6 @@ export default {
   created () {
     this.fetchSceneOptions()
     this.loadProjectsFromLocal()
-    // 如果本地没有数据，且你需要默认加载后端的，可以放开下面这行
-    // if (this.allProjects.length === 0) { this.fetchProjects() }
   },
 
   methods: {
@@ -348,9 +346,6 @@ export default {
       this.showTypeModal = true
     },
 
-    // ----------------------------------------------------
-    // 点击与删除逻辑
-    // ----------------------------------------------------
     handleProjectClick (projectId) {
       if (this.isDeleteMode) {
         const project = this.allProjects.find(p => p.projectId === projectId)
@@ -367,28 +362,24 @@ export default {
       const project = this.allProjects.find(p => p.projectId === projectId)
 
       if (project) {
-        // 强制根据类型(type)获取后端所需的 ID (1, 2, 3)
+        // 1. 获取场景类型
         const type = project.meshData?.type || 'F-city'
 
-        let apiId = 1 // 默认为 1 (城区)
+        // 2. 获取后端 ID 并存入
+        let apiId = 1
+        if (type === 'F-city') apiId = 1
+        else if (type === 'F-community') apiId = 2
+        else if (type === 'F-park') apiId = 3
+        else apiId = project.systemId || project.projectId
 
-        if (type === 'F-city') {
-          apiId = 1
-        } else if (type === 'F-community') {
-          apiId = 2
-        } else if (type === 'F-park') {
-          apiId = 3
-        } else {
-          // 如果是未来未知的类型，才尝试读取 systemId
-          apiId = project.systemId || project.projectId
-        }
-
-        // 存入 localStorage 的就是 1, 2, 或 3
         localStorage.setItem('project_id', apiId)
 
+        localStorage.setItem('current_scene_type', type)
+
+        // 4. 跳转到“环境表征”页面 (根据您的路由，应该是 /space-scene)
         this.$router.push({
-          path: '/space-scene',
-          query: { initialMeshType: type }
+          path: '/space-scene'
+
         })
       }
     },
@@ -400,16 +391,13 @@ export default {
       }
     },
 
-    // ----------------------------------------------------
-    // fetchProjects: 严格保留你要求的 projectId 处理逻辑
-    // ----------------------------------------------------
     async fetchProjects () {
       // 只有在需要拉取默认数据时才调用
       try {
         const fetchedProjects = await getProjects()
 
         this.allProjects = fetchedProjects.map((project) => {
-          // ✅ 严格保留你的逻辑：处理 project_id / projectId 并转为 Number
+          // 处理 project_id / projectId 并转为 Number
           const currentId = project.project_id ? Number(project.project_id) : Number(project.projectId)
 
           let imagePath = project.image
@@ -423,7 +411,7 @@ export default {
             ...project,
             // 赋值处理后的 ID
             projectId: currentId,
-            // 同时也把这个 ID 赋给 systemId，保持逻辑统一
+            // ID 赋给 systemId
             systemId: currentId,
 
             projectName: name || '新导入场景',
