@@ -182,6 +182,9 @@ public class AppRuleExecutorService {
         AppRuleInfo latestRule = appRules.get(0);
         // 解析JSON规则
         AppRule appRule = parseJsonRule(latestRule.getRuleJson());
+        if(appRule == null) {
+            return;
+        }
         // 提取事件参数
         Map<String, Object> eventParams = eventTriggerRequest.getEvent_params();
         String waitKey = extractWaitKey(appRule);
@@ -190,6 +193,7 @@ public class AppRuleExecutorService {
         if(isAppRuleWaiting(eventType, waitValue)) {
             return;
         }
+        addLog(LogConstant.INFO, eventType, waitValue, "检测到事件：" + eventType);
         // 向前端推送事件触发消息
         AlertMessage eventMessage = new AlertMessage();
         eventMessage.setType("event");
@@ -207,7 +211,7 @@ public class AppRuleExecutorService {
         // 将事件加入数据库历史事件中
         storeEventHistory(eventType, eventParams, waitValue);
         // 增加开始执行日志
-        addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行...");
+        addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行");
         // 向前端推送应用开始消息
         AlertMessage appMessage = new AlertMessage();
         appMessage.setType("application");
@@ -310,7 +314,7 @@ public class AppRuleExecutorService {
      * */
     private void addLog(String level, String eventType, String waitValue, String message) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"));
-        String logMessage = String.format("[%s]-[%s]-[%s]-[%s]: %s", level, timestamp, eventType, waitValue, message);
+        String logMessage = String.format("[%s]-[%s]: %s", level, timestamp, message);
         // 根据 level 调用不同的 log 方法
         switch (level) {
             case "ERROR":
@@ -340,7 +344,7 @@ public class AppRuleExecutorService {
      * 存储历史事件
      * */
     public void storeEventHistory(String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始存储历史事件...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始存储事件数据");
         try {
             EventHistory eventHistory = new EventHistory();
             eventHistory.setEventType(eventType);
@@ -348,9 +352,9 @@ public class AppRuleExecutorService {
             eventHistory.setEventData(objectMapper.writeValueAsString(eventParams));
             eventHistory.setTimestamp(LocalDateTime.now());
             eventHistoryService.saveEventHistory(eventHistory);
-            addLog(LogConstant.INFO, eventType, waitValue, "存储历史事件成功...");
+            addLog(LogConstant.INFO, eventType, waitValue, "存储事件数据成功");
         } catch (Exception e) {
-            addLog(LogConstant.ERROR, eventType, waitValue, "存储历史事件失败: " + e.getMessage());
+            addLog(LogConstant.ERROR, eventType, waitValue, "存储事件数据失败: " + e.getMessage());
         }
     }
 
@@ -377,7 +381,7 @@ public class AppRuleExecutorService {
      * 处理 branchStep
      * */
     private void handleBranchStep(BranchStep branchStep, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理分支条件逻辑...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理分支条件逻辑");
         List<BranchNode> branchNodes = branchStep.getBranch();
         for(BranchNode branchNode : branchNodes) {
             if(branchNode.isCurrentCondition()) {
@@ -405,7 +409,7 @@ public class AppRuleExecutorService {
      * 检查 current_condition
      * */
     private boolean checkCurrentCondition(CurrentCondition currentCondition, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始检查当前条件...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始检查当前条件");
         CurrentCondition.CurrentLeft currentLeft = currentCondition.getCurrent_left();
         String operator = currentCondition.getOperator();
         String right = currentCondition.getRight();
@@ -426,7 +430,7 @@ public class AppRuleExecutorService {
      * 检查当前时间条件
      * */
     private boolean checkCurrentTimeCondition(String operator, String right, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前时间条件, operator: '%s', right: '%s'", operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前时间条件, 运算符: '%s', 右值: '%s'", operator, right));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
         LocalTime now = LocalTime.now();
         try {
@@ -480,7 +484,7 @@ public class AppRuleExecutorService {
      * 检查当前位置
      * */
     private boolean checkCurrentLocation(String operator, String right, Map<String, Object> eventParams, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前位置条件, operator: '%s', right: '%s'", operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前位置条件, 运算符: '%s', 右值: '%s'", operator, right));
         String location = (String) eventParams.get("location");
         if (location == null) {
             addLog(LogConstant.ERROR, eventType, waitValue, "当前位置条件检查失败, 上报事件中不存在 'location' 字段");
@@ -514,7 +518,7 @@ public class AppRuleExecutorService {
      * 检查当前属性
      * */
     private boolean checkCurrentProperty(String property, String operator, String right, Map<String, Object> eventParams, String eventType, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前属性条件, property: '%s', operator: '%s', right: '%s'", property, operator, right));
+        addLog(LogConstant.INFO, eventType, waitValue, String.format("开始检查当前属性条件, 属性: '%s', 运算符: '%s', 运算符: '%s'", property, operator, right));
         if (property == null || property.isEmpty()) {
             addLog(LogConstant.ERROR, eventType, waitValue, "当前属性条件检查失败，'property' 参数为空");
             return false;
@@ -532,7 +536,7 @@ public class AppRuleExecutorService {
             leftVal = tslDeviceRepository.countByProductAndMesh(productId, location);
             rightVal = Long.parseLong(right);
         } catch (NumberFormatException e) {
-            addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, right: '%s' 不是有效的整数", right));
+            addLog(LogConstant.ERROR, eventType, waitValue, String.format("当前属性条件检查失败, 右值: '%s' 不是有效的整数", right));
             return false;
         }
         boolean result;
@@ -579,7 +583,7 @@ public class AppRuleExecutorService {
      * 检查 history_condition
      * */
     private boolean checkHistoryCondition(HistoryCondition historyCondition, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始检查历史条件...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始检查历史条件");
         HistoryCondition.HistoryLeft historyLeft = historyCondition.getHistory_left();
         String operator = historyCondition.getOperator();
         String right = historyCondition.getRight();
@@ -698,7 +702,7 @@ public class AppRuleExecutorService {
      * 处理 chain
      * */
     private void handleChain(List<ChainStep> chain, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理顺序链路逻辑...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理顺序链路逻辑");
         for(int i=0;i<chain.size();i++) {
             ChainStep step = chain.get(i);
             switch (step.getType()) {
@@ -721,7 +725,7 @@ public class AppRuleExecutorService {
      * 处理 actionStep
      * */
     private void handleActionStep(ActionStep actionStep, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理action...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理action节点");
         // TODO ，这里暂时模拟执行动作
         ActionStep.Action action = actionStep.getAction();
         addLog(LogConstant.INFO, eventType, waitValue, String.format("下发执行动作: '%s', 事件类型: '%s', 地点: '%s'", action.getAction_name(), eventType, eventParams.get("location")));
@@ -731,7 +735,7 @@ public class AppRuleExecutorService {
      * 处理 waitStep
      * */
     private void handleWaitStep(WaitStep waitStep, String eventType, Map<String, Object> eventParams, List<ChainStep> chain, int index, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理wait...");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理wait节点");
         // 将应用加入等待
         appRuleWaitMap
                 .computeIfAbsent(eventType, k -> new HashSet<>())
@@ -804,7 +808,7 @@ public class AppRuleExecutorService {
         waitSet.remove(eventParam);
         appRuleWaitMap.put(eventType, waitSet);
         addLog(LogConstant.INFO, eventType, eventParam, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, eventParam));
-        addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束...");
+        addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束");
         // 向前端推送应用结束消息
         List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(eventParam);
         AlertMessage appMessage;
@@ -913,7 +917,7 @@ public class AppRuleExecutorService {
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
-                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
                     // 向前端推送应用结束消息
                     List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
                     AlertMessage appMessage;
@@ -923,6 +927,7 @@ public class AppRuleExecutorService {
                             Map<String, Object> data = appMessage.getData();
                             data.put("status", "end");
                             appMessage.setData(data);
+                            appMessage.setTimestamp(LocalDateTime.now());
                             webSocketPushService.sendAlert(appMessage);
                         }
                     }
@@ -968,7 +973,7 @@ public class AppRuleExecutorService {
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
                     addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
-                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束...");
+                    addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
                     // 存储日志
                     saveLog(eventType, waitValue);
                 }
