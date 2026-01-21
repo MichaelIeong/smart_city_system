@@ -25,7 +25,7 @@ public class SocialResourceController {
     //获取所有的社会服务名称
     @GetMapping("/services")
     public List<Map<String, String>> getTypes() {
-        return socialResourceService.getSocialResource();
+        return socialResourceService.getSocialResourceTypes();
     }
 
     //根据服务名称获取对应的details

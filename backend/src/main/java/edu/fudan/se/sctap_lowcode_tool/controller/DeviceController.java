@@ -45,11 +45,11 @@ public class DeviceController {
     }
 
     // MySQL 查询：根据项目ID获取设备列表
-    @GetMapping
-    public ResponseEntity<Iterable<DeviceResponse>> getDevicesByProjectId(
-            @RequestParam(name = "project") int projectId) {
-        return ResponseEntity.ok(deviceService.findAllByProjectId(projectId));  // MySQL 查询
-    }
+//    @GetMapping
+//    public ResponseEntity<Iterable<DeviceResponse>> getDevicesByProjectId(
+//            @RequestParam(name = "project") int projectId) {
+//        return ResponseEntity.ok(deviceService.findAllByProjectId(projectId));  // MySQL 查询
+//    }
 
     // 创建设备，同时保存到 MySQL 和 Neo4j
     @PostMapping

@@ -10,4 +10,7 @@ public interface SocialResourceRepository extends JpaRepository<SocialResourceIn
     List<SocialResourceInfo> findByProjectInfoProjectId(Integer projectId);
 
     SocialResourceInfo findByResourceId(String resourceId);
+
+    List<SocialResourceInfo> findByResourceType(String resourceType);
+
 }
