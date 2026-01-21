@@ -29,6 +29,7 @@ public class SocialResourceInfo {
     @Column(name = "resource_id", nullable = false)
     private String resourceId; // 用户设定的资源ID(Project内唯一)
 
+    @Column(name = "resource_type")
     private String resourceType;   // 资源类型
 
     @Column(name = "description")
