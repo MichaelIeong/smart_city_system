@@ -271,7 +271,7 @@ module.exports = {
      * When httpStaticRoot is set differently to httpAdminRoot, there is no need
      * to move httpAdminRoot
      */
-    httpStatic: '/usr/src/app/storage/public/', //single static source
+    httpStatic: '.node-red/public', //single static source
     /**
      *  OR multiple static sources can be created using an array of objects...
      *  Each object can also contain an options object for further configuration.

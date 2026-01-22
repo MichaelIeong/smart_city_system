@@ -95,4 +95,15 @@ public class SocialResourceService {
                 .collect(Collectors.toList());
     }
 
+    public SocialResourceInfo saveSocialResource(SocialResourceInfo info) {
+        info.setLastUpdateTime(java.time.LocalDateTime.now());
+        if (info.getState() == null) info.setState("在线");
+        if (info.getDetails() == null) info.setDetails(info.getDescription());
+        return socialResourceRepository.save(info);
+    }
+
+    public void deleteSocialResource(Integer id) {
+        socialResourceRepository.deleteById(id);
+    }
+
 }

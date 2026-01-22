@@ -1,10 +1,12 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
 import edu.fudan.se.sctap_lowcode_tool.execution.ServiceTaskExecutor;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
@@ -18,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -31,7 +34,6 @@ public class ServiceController {
     private SpaceService spaceService;
 
     private final TaskScheduler scheduler; // 让 Spring 负责管理
-
 
 
     private final WorkflowParser parser;
@@ -128,5 +130,23 @@ public class ServiceController {
         serviceService.executeServiceById(serviceId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/uploadCompositionService")
+    public ResponseEntity<Void> saveCompositionService(@RequestBody String standardData,
+                                                       @RequestParam("gridId") String gridId){
+        JSONObject jsonObj = JSONObject.parseObject(standardData);
+        EnvService envService = new EnvService();
+        envService.setServiceJson(standardData);
+        envService.setServiceName(jsonObj.getString("action_name"));
+        envService.setDescription(jsonObj.getString("description"));
+        if(gridId == "crossRegion") {
+            envService.setCrossRegion(true);
+        } else {
+            envService.setCrossRegion(false);
+        }
+        serviceService.saveCompositionService(envService);
+        return ResponseEntity.ok().build();
+    }
+
 
 }

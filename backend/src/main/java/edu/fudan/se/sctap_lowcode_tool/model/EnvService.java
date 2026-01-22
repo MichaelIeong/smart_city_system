@@ -21,4 +21,10 @@ public class EnvService {
     // TEXT 类型，用于存 JSON 字符串
     @Column(name = "service_json", columnDefinition = "TEXT", nullable = false)
     private String serviceJson;
+
+    @Column(name = "rule_json", columnDefinition = "TEXT", nullable = false)
+    private String ruleJson;
+
+    @Column(name = "cross_region")
+    private boolean crossRegion;
 }
