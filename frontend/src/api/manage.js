@@ -628,3 +628,19 @@ export function getAllEnvEvent () {
     }
   })
 }
+
+// 应用结束动作等待
+export function completeActionWait (eventType, eventParam) {
+  const token = store.state.token
+  return request({
+    url: `${api.tapExector}/complete`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      eventType,
+      eventParam
+    }
+  })
+}

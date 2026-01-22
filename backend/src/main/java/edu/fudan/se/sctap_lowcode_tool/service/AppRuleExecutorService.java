@@ -19,7 +19,6 @@ import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleLog;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
 import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
@@ -95,23 +94,29 @@ public class AppRuleExecutorService {
     public void initMockData() {
         log.info("✅ 初始化模拟应用规则数据...");
         String eventType = "ill_parking";
-        Set<String> locations = new HashSet<>();
+        List<String> locations = new ArrayList<>();
         locations.add("6b2b5be61c60401aa4c6da9828a7df68");
         locations.add("d920d10793e64b04a4467276337fd0dd");
         locations.add("e730178505d54b5d98cbbd2bbc01f176");
         Map<String, List<String>> logMap = new HashMap<>();
         Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
+        Set<String> waitLocations = new HashSet<>();
         LocalDateTime base = LocalDateTime.now();
-        for (String location : locations) {
-            // 1) 日志（你这段没问题）
+        for (int i=0;i<locations.size();i++) {
+            String location = locations.get(i);
+            waitLocations.add(location);
+            // 1) 日志
             List<String> logs = new ArrayList<>();
             logs.add("应用开始执行...");
             logs.add("检测到车辆违章停车");
             logs.add("AI 识别车牌号：沪A1001");
             logs.add("推送至交通管理部门处理中...");
-            logs.add("等待人工确认...");
+            if(i==0) {
+                logs.add("加入时间等待");
+            } else {
+                logs.add("加入动作等待");
+            }
             logMap.put(location, logs);
-
             // 2) 每个 location 的消息列表
             List<AlertMessage> alertMessages = new ArrayList<>();
             int eventOffsetMin = ThreadLocalRandom.current().nextInt(0, 11); // 0~10
@@ -150,7 +155,7 @@ public class AppRuleExecutorService {
 
         appRuleLogMap.put(eventType, logMap);
         appRuleLogPushMap.put(eventType, logPushMap);
-        appRuleWaitMap.put(eventType, locations);
+        appRuleWaitMap.put(eventType, waitLocations);
 
         log.info("✅ 模拟数据已加入");
     }
@@ -811,31 +816,43 @@ public class AppRuleExecutorService {
     public void complete(AppRuleCompleteRequest appRuleCompleteRequest) {
         String eventType = appRuleCompleteRequest.getEventType();
         String eventParam = appRuleCompleteRequest.getEventParam();
-        String redisKey = RedisConstant.ActionWait + eventType + ":" + eventParam;
-        // 从 redis 中删除
-        redisUtil.deleteSingle(redisKey);
-        // 从等待中移除
+        // 1. 优先从内存等待中移除，并进行判断（卫语句）
         Set<String> waitSet = appRuleWaitMap.get(eventType);
+        // 如果该类型的等待列表为空，或者列表中不包含当前标识，直接结束
+        if (waitSet == null || !waitSet.contains(eventParam)) {
+            log.warn("⚠️ 尝试结束一个不存在的等待动作: eventType={}, eventParam={}", eventType, eventParam);
+            return;
+        }
+        // 2. 执行移除操作
         waitSet.remove(eventParam);
-        appRuleWaitMap.put(eventType, waitSet);
+        // 如果该类型的 Set 空了，可选：从 map 中移除该 key 节省内存
+        if (waitSet.isEmpty()) {
+            appRuleWaitMap.remove(eventType);
+        }
+        // 3. 移除 Redis 标识
+        String redisKey = RedisConstant.ActionWait + eventType + ":" + eventParam;
+        redisUtil.deleteSingle(redisKey);
+        // 4. 记录日志
         addLog(LogConstant.INFO, eventType, eventParam, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, eventParam));
         addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束");
-        // 向前端推送应用结束消息
-        List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(eventParam);
-        AlertMessage appMessage;
-        for(AlertMessage message : messages) {
-            if(message.getType().equals("application")) {
-                appMessage = message;
-                Map<String, Object> data = appMessage.getData();
-                data.put("status", "end");
-                appMessage.setData(data);
-                appMessage.setTimestamp(LocalDateTime.now());
-                webSocketPushService.sendAlert(appMessage);
+        // 5. 向前端推送应用结束消息（逻辑优化）
+        Map<String, List<AlertMessage>> locationMessagesMap = appRuleLogPushMap.get(eventType);
+        if (locationMessagesMap != null) {
+            List<AlertMessage> messages = locationMessagesMap.get(eventParam);
+            if (messages != null) {
+                for (AlertMessage message : messages) {
+                    // 只更新应用类型的消息状态
+                    if ("application".equals(message.getType())) {
+                        message.getData().put("status", "end");
+                        message.setTimestamp(LocalDateTime.now());
+                        webSocketPushService.sendAlert(message);
+                    }
+                }
             }
+            // 从推送缓存中移除
+            locationMessagesMap.remove(eventParam);
         }
-        // 删除日志
-        appRuleLogPushMap.get(eventType).remove(eventParam);
-        // 将日志存入数据库
+        // 6. 最终日志持久化
         saveLog(eventType, eventParam);
     }
 
