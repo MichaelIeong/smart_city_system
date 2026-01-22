@@ -24,9 +24,14 @@ public class EnvService {
     @Column(name = "service_json", columnDefinition = "TEXT", nullable = false)
     private String serviceJson;
 
+    // TEXT 类型，用于存 JSON 字符串
+    @Column(name = "rule_json", columnDefinition = "TEXT", nullable = false)
+    private String ruleJson;
+
     @Column(name = "cross_region", nullable = false)
     private Boolean crossRegion = true; // 是否跨网格
 
     @Column(name = "create_time")
     private LocalDateTime createTime; // 创建时间
+
 }
