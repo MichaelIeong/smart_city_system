@@ -24,6 +24,19 @@ public class TaskFlowService {
     @Autowired
     private CompositeServiceDispatcher dispatcher; // 换成我们新写的执行器
 
+
+    public List<String> call_service(String serviceName, Map<String, Object> params) {
+        try {
+            // 1. 复用之前写的 executeByName 异步方法
+            // 2. 使用 .join() 变成同步等待，拿回 List<String>
+            return this.executeByName(serviceName, params).join();
+        } catch (Exception e) {
+            // 如果出错，返回错误日志
+            String timestamp = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"));
+            return java.util.List.of(String.format("[ERROR]-[%s]: 执行失败 - %s", timestamp, e.getMessage()));
+        }
+    }
     /**
      * 通过名字执行服务，并透传外部参数
      */

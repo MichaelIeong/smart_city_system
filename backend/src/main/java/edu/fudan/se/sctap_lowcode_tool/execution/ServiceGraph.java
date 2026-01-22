@@ -6,7 +6,7 @@ import java.util.Map;
 public class ServiceGraph {
     // 所有的节点（Key是step的ID）
     private final Map<String, ServiceTaskNode> nodes;
-    // JSON里的 inputs 部分
+    // JSON里的 action_params 部分
     private final JsonNode inputsDefinition;
 
     public ServiceGraph(Map<String, ServiceTaskNode> nodes, JsonNode inputsDefinition) {

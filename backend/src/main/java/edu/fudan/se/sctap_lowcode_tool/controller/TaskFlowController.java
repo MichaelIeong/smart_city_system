@@ -28,7 +28,7 @@ public class TaskFlowController {
 
     @Operation(summary = "服务执行引擎入口(新)", description = "通过服务名调用执行引擎，并支持传入自定义JSON参数")
     @PostMapping("/executeByName")
-    public List<String> call_service(@RequestParam String serviceName, @RequestBody Map<String, Object> serviceParams) {
+    public List<String> executeByName(@RequestParam String serviceName, @RequestBody Map<String, Object> serviceParams) {
         try {
             // 1. 调用你原来的异步方法
             CompletableFuture<List<String>> future = taskFlowService.executeByName(serviceName, serviceParams);
