@@ -22,4 +22,8 @@ public class BadRequestException extends RuntimeException {
         this("400", e.getMessage(), List.of());
     }
 
+    @Override
+    public String getMessage() {
+        return "(%s) %s".formatted(errorResponse.errCode(), errorResponse.errMsg()) + errorResponse.errDetails();
+    }
 }

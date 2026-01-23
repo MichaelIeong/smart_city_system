@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class EventFusionRunHistory {
 
     /**
@@ -68,6 +70,12 @@ public class EventFusionRunHistory {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
     private DataEvent publishedEvent;
+
+    /**
+     * <b>运行结果</b>
+     */
+    @Nullable
+    private Boolean isSuccess;
 
     /**
      * <b>运行日志</b>

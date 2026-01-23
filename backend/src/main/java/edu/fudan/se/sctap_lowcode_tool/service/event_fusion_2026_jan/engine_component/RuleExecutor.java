@@ -7,6 +7,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.EventFusionRu
 import edu.fudan.se.sctap_lowcode_tool.repository.EventFusionRunHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.common_operator.CommonOperatorRegistry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.context.expression.MapAccessor;
@@ -14,6 +15,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -36,6 +39,7 @@ import static edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFus
  * @author Lin Yicheng
  * @since 2026-01-16
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RuleExecutor {
@@ -112,6 +116,9 @@ public class RuleExecutor {
                 return publish();
             } catch (FlowAbortException ex) {
                 return abort();
+            } catch (Exception e) {
+                log("在规则执行过程中发生了未捕获的错误:(%s) %s".formatted(e.getClass().getSimpleName(), e.getMessage()));
+                return abort();
             }
         }
 
@@ -156,14 +163,14 @@ public class RuleExecutor {
         /** 发布融合事件 */
         private Optional<DataEvent> publish() throws FlowAbortException {
             EventFusionRule.Publish publish = rule.publish();
-            log("规则" + rule.ruleName() + "的所有步骤均已执行完成，进入事件发布阶段");
+            log("规则的所有步骤均已执行完成，进入事件发布阶段");
 
             // 评估发布条件
             try {
                 if (!evaluateCondition(publish.condition()))
-                    logAndAbort("规则" + rule.ruleName() + "的发布条件判断为false，规则执行终止");
+                    logAndAbort("规则的发布条件判断为false，规则执行终止");
             } catch (ExpressionEvaluationException ex) {
-                logAndAbort("规则" + rule.ruleName() + "在判断发布条件时发生异常：" + ex.getMessage() + "，规则执行终止");
+                logAndAbort("规则在判断发布条件时发生异常：" + ex.getMessage() + "，规则执行终止");
             }
 
             // 计算事件融合输出
@@ -171,7 +178,7 @@ public class RuleExecutor {
             try {
                 outputPayload = evaluateParams(publish.output());
             } catch (ExpressionEvaluationException ex) {
-                logAndAbort("规则" + rule.ruleName() + "在准备发布事件的数据时发生异常：" + ex.getMessage() + "，规则执行终止");
+                logAndAbort("规则在准备发布事件的数据时发生异常：" + ex.getMessage() + "，规则执行终止");
             }
 
             // 构建发布事件
@@ -191,14 +198,14 @@ public class RuleExecutor {
             this.publishEvent = result;
 
             // 返回结果
-            log("规则" + rule.ruleName() + "发布事件构造完成，事件ID：" + identifier);
-            persistLogs();
+            log("规则发布事件构造完成，事件ID：" + identifier);
+            persistLogs(true);
             return Optional.of(result);
         }
 
         /** 中止规则执行 */
         private Optional<DataEvent> abort() {
-            this.persistLogs();
+            this.persistLogs(false);
             return Optional.empty();
         }
 
@@ -247,13 +254,14 @@ public class RuleExecutor {
         }
 
         /** 将运行上下文持久化到数据库中，包括触发数据、步骤中间数据、运行日志、结果事件数据等。 */
-        private void persistLogs() {
+        private void persistLogs(boolean isSuccess) {
             var runHistory = new EventFusionRunHistory();
             runHistory.setRuleName(rule.ruleName());
             runHistory.setTriggers(triggers);
             runHistory.setStepOutputs(stepOutputs);
             runHistory.setPublishedEvent(publishEvent);
             runHistory.setLogs(logs);
+            runHistory.setIsSuccess(isSuccess);
             runHistoryRepository.save(runHistory);
         }
 
@@ -290,9 +298,10 @@ public class RuleExecutor {
                     }
                     case service -> {
                         return RestClient
-                            .create()
+                            .builder().requestFactory(new SimpleClientHttpRequestFactory()).build()
                             .method(HttpMethod.valueOf(step.operatorHttpMethod().name()))
                             .uri(step.operatorUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
                             .body(inputArgs)
                             .retrieve()
                             .body(new ParameterizedTypeReference<>() {});
@@ -300,6 +309,7 @@ public class RuleExecutor {
                     default -> throw new OperatorException("不支持的算子类型: " + step.operatorType());
                 }
             } catch (Exception e) {
+                log.error("[事件融合引擎] 算子调用过程中发生异常: ", e);
                 throw new OperatorException("(%s): %s".formatted(e.getClass().getSimpleName(), e.getMessage()));
             }
         }
@@ -338,7 +348,9 @@ public class RuleExecutor {
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private boolean evaluateCondition(@Nullable String spelExpr) throws ExpressionEvaluationException {
             if (spelExpr == null || spelExpr.isBlank()) return true;
-            return evalExpression(spelExpr, Boolean.class);
+            Boolean b = evalExpression(spelExpr, Boolean.class);
+            if (b == null) throw new ExpressionEvaluationException("条件表达式求值结果为 null");
+            return b;
         }
 
         /** 使用 SpEL 对表达式进行求值，返回值的类型由泛型参数 T 决定 */

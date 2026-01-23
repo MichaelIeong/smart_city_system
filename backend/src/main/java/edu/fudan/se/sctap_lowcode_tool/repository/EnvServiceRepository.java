@@ -16,7 +16,9 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
         WHERE g.gridId = :gridId
         AND g.enabled = TRUE
     """)
-    List<EnvService> findByGridId(@Param("gridId") String gridId);
+    List<EnvService> findByGridId(@Param("gridId") String gridId);  
+    //按服务名称查找
+    EnvService findByServiceName(String serviceName);
 
     @Query("""
         SELECT DISTINCT a FROM EnvService a
