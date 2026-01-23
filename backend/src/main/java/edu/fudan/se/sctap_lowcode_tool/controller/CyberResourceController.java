@@ -24,7 +24,7 @@ public class CyberResourceController {
 
     @GetMapping("/services")
     public List<Map<String, String>> getTypes() {
-        return cyberResourceService.getCyberResource();
+        return cyberResourceService.getCyberResourceTypes();
     }
 
     //根据服务名称获取对应的details

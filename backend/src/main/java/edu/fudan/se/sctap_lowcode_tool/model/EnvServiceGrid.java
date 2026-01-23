@@ -3,6 +3,8 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "env_service_grid")
 @Data
@@ -18,6 +20,6 @@ public class EnvServiceGrid {
     @Column(name = "env_service_id", nullable = false)
     private Integer envServiceId;
 
-    @Column()
+    @Column(name = "enabled")
     private Boolean enabled = true; // 是否启用
 }

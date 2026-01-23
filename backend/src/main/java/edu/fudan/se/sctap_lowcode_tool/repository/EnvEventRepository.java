@@ -17,4 +17,10 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
         AND g.enabled = TRUE
     """)
     List<EnvEvent> findByGridId(@Param("gridId") String gridId);
+
+    @Query("""
+        SELECT DISTINCT a FROM EnvEvent a
+        WHERE a.crossRegion = TRUE
+    """)
+    List<EnvEvent> findCrossRegion();
 }
