@@ -115,6 +115,7 @@ public class FusionNodeRedService {
 
         // ---------- 提取基础字段 ----------
         String spaceEventName = publishNode.get("spaceEventName").asText();
+        String spaceEventType = publishNode.get("spaceEventType").asText();
         String spaceEventDesc = publishNode.get("spaceEventDesc").asText();
 
         // ---------- 构建 eventJson ----------
@@ -132,7 +133,7 @@ public class FusionNodeRedService {
 
         // ---------- 组装并入库 EnvEvent ----------
         EnvEvent envEvent = new EnvEvent();
-        envEvent.setEventType(spaceEventName);
+        envEvent.setEventType(spaceEventType);
         envEvent.setEventName(spaceEventName);
         envEvent.setDescription(spaceEventDesc);
         envEvent.setEventJson(eventJson);
@@ -268,7 +269,7 @@ public class FusionNodeRedService {
 
         // ---------- 6. publish ----------
         Map<String, Object> publish = new LinkedHashMap<>();
-        publish.put("spaceEventId", publishNode.get("id").asText());
+        publish.put("spaceEventId", publishNode.get("spaceEventType").asText());
         publish.put("spaceEventName", publishNode.get("spaceEventName").asText());
         publish.put("spaceEventDesc", publishNode.get("spaceEventDesc").asText());
         publish.put("condition", publishNode.get("publishCondition").asText());
@@ -366,7 +367,7 @@ public class FusionNodeRedService {
     private String buildEventJson(JsonNode publishNode) {
 
         Map<String, Object> eventJson = new LinkedHashMap<>();
-        eventJson.put("event_type", publishNode.get("spaceEventName").asText());
+        eventJson.put("event_type", publishNode.get("spaceEventType").asText());
         eventJson.put("description", publishNode.get("spaceEventDesc").asText());
 
         Map<String, Object> params = new LinkedHashMap<>();
