@@ -400,7 +400,7 @@ export default {
         this.logModalVisible = true
         this.logModalLoading = true
         this.logModalLogs = []
-        const logs = await getLog(item.eventType, item.waitValue)
+        const logs = await getLog(item.appId, item.waitValue)
         this.logModalLogs = Array.isArray(logs) ? logs : []
       } catch (e) {
         console.error('获取日志失败', e)
@@ -412,10 +412,10 @@ export default {
     },
     async handleCompleteWait() {
       if (!this.currentActiveItem) return
-      const { eventType, waitValue } = this.currentActiveItem
+      const { appId, waitValue } = this.currentActiveItem
       this.submittingWait = true
       try {
-        await completeActionWait(eventType, waitValue)
+        await completeActionWait(appId, waitValue)
         this.$message.success('操作成功')
         this.logModalVisible = false
         this.currentActiveItem = null
@@ -446,6 +446,7 @@ export default {
       const location = String(payload.location || '')
       const eventType = payload?.data?.eventType
       const waitValue = payload?.data?.waitValue
+      const appId = payload?.data?.appId
       const timestamp = payload.timestamp
       const type = payload.type
       if (!location || !eventType) return
@@ -462,6 +463,7 @@ export default {
         time: timeText,
         content: `${meshName}发生${eventLabel}事件`,
         type: type,
+        appId: appId,
         eventType: eventType,
         waitValue: waitValue
       })
@@ -471,6 +473,7 @@ export default {
       const data = payload.data || {}
       const status = data.status
       const appName = data.appName
+      const appId = data.appId
       const eventType = data.eventType
       const waitValue = data.waitValue
       const timestamp = payload.timestamp
@@ -484,6 +487,7 @@ export default {
           content: `${meshName}开始执行${appName}`,
           type: type,
           status: status,
+          appId: appId,
           eventType: eventType,
           waitValue: waitValue
         })
@@ -505,7 +509,7 @@ export default {
           this.renderBubbles()
         }
         this.eventLogs = this.eventLogs.filter(item => 
-          !(item.eventType === eventType && item.waitValue === waitValue)
+          !(item.appId === appId && item.waitValue === waitValue)
         )
       }
     },

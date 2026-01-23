@@ -4,10 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
+import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
+import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,13 +22,16 @@ public class FusionNodeRedService {
     private final TslProductRepository productRepository;
     private final EnvEventRepository envEventRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final EventFusionRuleService eventFusionRuleService;
 
     public FusionNodeRedService(
-            TslProductRepository productRepository,
-            EnvEventRepository envEventRepository
+        TslProductRepository productRepository,
+        EnvEventRepository envEventRepository,
+        EventFusionRuleService eventFusionRuleService
     ) {
         this.productRepository = productRepository;
         this.envEventRepository = envEventRepository;
+        this.eventFusionRuleService = eventFusionRuleService;
     }
 
     /* =====================================================
@@ -122,7 +127,7 @@ public class FusionNodeRedService {
         String eventJson = buildEventJson(publishNode);
 
         // ---------- 构建 DSL ----------
-        String ruleDsl = buildDSL(flowJson);
+        EventFusionRule ruleDsl = buildDSL(flowJson);
 
         // ---------- 判断 crossRegion ----------
         boolean crossRegion = true;
@@ -148,7 +153,7 @@ public class FusionNodeRedService {
      * DSL 转换函数
      * ===================================================== */
 
-    private String buildDSL(JsonNode flowJson) {
+    private EventFusionRule buildDSL(JsonNode flowJson) {
 
         // ---------- 1. id -> node ----------
         Map<String, JsonNode> nodeMap = new HashMap<>();
@@ -288,9 +293,9 @@ public class FusionNodeRedService {
         dsl.put("publish", publish);
 
         try {
-            return objectMapper
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(dsl);
+            EventFusionRule fusionRule = objectMapper.convertValue(dsl, EventFusionRule.class);
+            eventFusionRuleService.checkRuleValidity(fusionRule);
+            return fusionRule;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

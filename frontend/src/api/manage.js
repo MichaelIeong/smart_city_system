@@ -498,10 +498,10 @@ export function getWaitValueOfEvent (eventType) {
 }
 
 // 获取日志
-export function getLog (eventType, waitValue) {
+export function getLog (appId, waitValue) {
   const token = store.state.token
   return request({
-    url: `${api.tapExector}/getLog?eventType=${eventType}&waitValue=${waitValue}`,
+    url: `${api.tapExector}/getLog?appId=${appId}&waitValue=${waitValue}`,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -630,7 +630,7 @@ export function getAllEnvEvent () {
 }
 
 // 应用结束动作等待
-export function completeActionWait (eventType, eventParam) {
+export function completeActionWait (appId, waitValue) {
   const token = store.state.token
   return request({
     url: `${api.tapExector}/complete`,
@@ -639,8 +639,8 @@ export function completeActionWait (eventType, eventParam) {
       'Authorization': `Bearer ${token}`
     },
     data: {
-      eventType,
-      eventParam
+      appId,
+      waitValue
     }
   })
 }

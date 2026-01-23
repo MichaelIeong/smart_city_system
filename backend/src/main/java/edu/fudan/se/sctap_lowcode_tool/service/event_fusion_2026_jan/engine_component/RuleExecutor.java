@@ -348,7 +348,9 @@ public class RuleExecutor {
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private boolean evaluateCondition(@Nullable String spelExpr) throws ExpressionEvaluationException {
             if (spelExpr == null || spelExpr.isBlank()) return true;
-            return evalExpression(spelExpr, Boolean.class);
+            Boolean b = evalExpression(spelExpr, Boolean.class);
+            if (b == null) throw new ExpressionEvaluationException("条件表达式求值结果为 null");
+            return b;
         }
 
         /** 使用 SpEL 对表达式进行求值，返回值的类型由泛型参数 T 决定 */
