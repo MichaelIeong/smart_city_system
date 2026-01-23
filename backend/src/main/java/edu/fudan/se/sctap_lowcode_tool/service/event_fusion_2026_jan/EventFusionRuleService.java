@@ -4,8 +4,6 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.Param;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.Var;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.EventFusionRuleEntity;
-import edu.fudan.se.sctap_lowcode_tool.repository.EventFusionRuleRepository;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,15 +28,18 @@ import java.util.Map;
 @Service
 public class EventFusionRuleService {
 
-    private final EventFusionRuleRepository eventFusionRuleRepository;
-
     /**
      * 校验事件融合规则的有效性
      *
      * @param rule 待校验的事件融合规则
      * @throws BadRequestException 如果规则配置不符合要求
      */
-    private void checkRuleValidity(@NotNull EventFusionRule rule) throws BadRequestException {
+    public void checkRuleValidity(@Nullable EventFusionRule rule) throws BadRequestException {
+
+        // 0. rule 不能为空
+        if (rule == null)
+            throw new BadRequestException("400", "事件融合规则配置有误", "rule", "null", "事件融合规则不能为空。");
+
         // 1. 当前 triggers 只支持单个事件触发器
         if (rule.triggers().size() != 1) {
             throw new BadRequestException(
@@ -193,39 +194,6 @@ public class EventFusionRuleService {
 
         colors.put(node, 2); // 标记为已完成
         return false;
-    }
-
-    /**
-     * 创建或更新事件融合规则
-     * <p>
-     * 执行流程：
-     * <ol>
-     *   <li>校验规则的有效性（触发器、步骤流程、算子配置、参数唯一性等）</li>
-     *   <li>如果提供了 id，检查对应的规则实体是否存在</li>
-     *   <li>保存或更新规则到数据库</li>
-     * </ol>
-     *
-     * @param id 规则 ID，如果为 null 则创建新规则，否则更新现有规则
-     * @param rule 事件融合规则定义
-     * @return 保存后的事件融合规则实体
-     * @throws BadRequestException 如果规则配置无效或更新的 ID 不存在
-     */
-    public EventFusionRuleEntity createOrUpdateRule(
-        @Nullable Integer id,
-        @NotNull EventFusionRule rule
-    ) throws BadRequestException {
-        // 校验规则有效性
-        checkRuleValidity(rule);
-        // 若 id 不为 null，则检查对应实体是否存在
-        if (id != null && !eventFusionRuleRepository.existsById(id)) {
-            throw new BadRequestException(
-                "404", "试图更新 id 为 " + id  + " 的事件融合规则，该规则不存在。",
-                "id", String.valueOf(id), "指定的事件融合规则 ID 不存在，无法更新。"
-            );
-        }
-        // 保存或更新规则
-        EventFusionRuleEntity entity = new EventFusionRuleEntity(id, rule);
-        return eventFusionRuleRepository.save(entity);
     }
 
 }

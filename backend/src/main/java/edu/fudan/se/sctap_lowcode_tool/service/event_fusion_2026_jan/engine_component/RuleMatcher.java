@@ -2,8 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.engine_com
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event.DataEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.EventFusionRuleEntity;
-import edu.fudan.se.sctap_lowcode_tool.repository.EventFusionRuleRepository;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +21,7 @@ import java.util.Objects;
 @Component
 public class RuleMatcher {
 
-    private final EventFusionRuleRepository eventFusionRuleRepository;
+    private final EnvEventRepository envEventRepository;
 
     /**
      * MatchResult 规则匹配结果
@@ -43,10 +43,11 @@ public class RuleMatcher {
      * @return 规则匹配结果列表
      */
     public List<MatchResult> match(List<List<DataEvent>> groupedEvents) {
-        var rulesWithSingleTrigger = eventFusionRuleRepository
+        var rulesWithSingleTrigger = envEventRepository
             .findAll()
             .stream()
-            .map(EventFusionRuleEntity::getEventFusionRule)
+            .map(EnvEvent::getRuleDsl)
+            .filter(Objects::nonNull)
             .filter(rule -> rule.triggers().size() == 1)
             .toList();
 

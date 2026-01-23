@@ -1,7 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.model;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
 
@@ -23,8 +27,9 @@ public class EnvEvent {
     @Column(name = "event_json", columnDefinition = "TEXT", nullable = false)
     private String eventJson;
 
-    @Column(name = "rule_dsl", columnDefinition = "TEXT")
-    private String ruleDsl;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    @Nullable private EventFusionRule ruleDsl;
 
     @Column(name = "event_name")
     private String eventName;
