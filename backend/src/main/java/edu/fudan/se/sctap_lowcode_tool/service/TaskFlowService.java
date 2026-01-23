@@ -25,7 +25,7 @@ public class TaskFlowService {
     private CompositeServiceDispatcher dispatcher; // 换成我们新写的执行器
 
 
-    public List<String> call_service(String serviceName, Map<String, Object> params) {
+    public List<String> callService(String serviceName, Map<String, Object> params) {
         try {
             // 1. 复用之前写的 executeByName 异步方法
             // 2. 使用 .join() 变成同步等待，拿回 List<String>

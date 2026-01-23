@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.CallServiceRequest;
 import edu.fudan.se.sctap_lowcode_tool.service.TaskFlowService;
 import io.jsonwebtoken.lang.Arrays;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,5 +46,10 @@ public class TaskFlowController {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss")), 
                 e.getMessage()));
         }
+    }
+
+    @PostMapping("/callService")
+    public ResponseEntity<List<String>> callService(@RequestBody CallServiceRequest callServiceRequest) {
+        return ResponseEntity.ok(taskFlowService.callService(callServiceRequest.getServiceName(), callServiceRequest.getServiceParams()));
     }
 }

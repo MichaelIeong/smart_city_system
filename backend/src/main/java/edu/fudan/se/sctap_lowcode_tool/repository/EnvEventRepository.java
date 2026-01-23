@@ -23,4 +23,11 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
         WHERE a.crossRegion = TRUE
     """)
     List<EnvEvent> findCrossRegion();
+
+    @Query("""
+        SELECT DISTINCT a FROM EnvEvent a
+        WHERE a.eventType = :eventType
+        ORDER BY a.createTime DESC
+    """)
+    List<EnvEvent> findByEventType(@Param("eventType") String eventType);
 }
