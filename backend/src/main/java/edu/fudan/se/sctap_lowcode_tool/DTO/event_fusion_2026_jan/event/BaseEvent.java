@@ -1,6 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
 
@@ -18,6 +19,7 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder
+@AllArgsConstructor
 public class BaseEvent {
     /**
      * 事件产生时间戳（Unix毫秒级）

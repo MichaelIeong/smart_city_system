@@ -64,6 +64,9 @@ public class AppRuleExecutorService {
     private WebSocketPushService webSocketPushService;
 
     @Resource
+    private TaskFlowService taskFlowService;
+
+    @Resource
     private EnvEventRepository envEventRepository;
 
     @Resource
@@ -95,27 +98,33 @@ public class AppRuleExecutorService {
     public void initMockData() {
         log.info("✅ 初始化模拟应用规则数据...");
         String eventType = "ill_parking";
-        Set<String> locations = new HashSet<>();
+        List<String> locations = new ArrayList<>();
         locations.add("6b2b5be61c60401aa4c6da9828a7df68");
         locations.add("d920d10793e64b04a4467276337fd0dd");
         locations.add("e730178505d54b5d98cbbd2bbc01f176");
         Map<String, List<String>> logMap = new HashMap<>();
         Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
+        Set<String> waitLocations = new HashSet<>();
         LocalDateTime base = LocalDateTime.now();
-        for (String location : locations) {
-            // 1) 日志（你这段没问题）
+        for (int i=0;i<locations.size();i++) {
+            String location = locations.get(i);
+            waitLocations.add(location);
+            // 1) 日志
             List<String> logs = new ArrayList<>();
             logs.add("应用开始执行...");
             logs.add("检测到车辆违章停车");
             logs.add("AI 识别车牌号：沪A1001");
             logs.add("推送至交通管理部门处理中...");
-            logs.add("等待人工确认...");
+            if(i==0) {
+                logs.add("应用加入时间等待");
+            } else {
+                logs.add("应用加入动作等待");
+            }
             logMap.put(location, logs);
-
             // 2) 每个 location 的消息列表
             List<AlertMessage> alertMessages = new ArrayList<>();
-            int eventOffsetMin = ThreadLocalRandom.current().nextInt(0, 11); // 0~10
-            LocalDateTime eventTime = base.plusMinutes(eventOffsetMin);
+            int eventOffsetMin = ThreadLocalRandom.current().nextInt(2, 11); // 0~10
+            LocalDateTime eventTime = base.minusMinutes(eventOffsetMin);
             // event message（每次循环都 new）
             AlertMessage eventMessage = new AlertMessage();
             eventMessage.setType("event");
@@ -150,7 +159,7 @@ public class AppRuleExecutorService {
 
         appRuleLogMap.put(eventType, logMap);
         appRuleLogPushMap.put(eventType, logPushMap);
-        appRuleWaitMap.put(eventType, locations);
+        appRuleWaitMap.put(eventType, waitLocations);
 
         log.info("✅ 模拟数据已加入");
     }
@@ -204,7 +213,12 @@ public class AppRuleExecutorService {
         if(isAppRuleWaiting(eventType, waitValue)) {
             return;
         }
-        addLog(LogConstant.INFO, eventType, waitValue, "检测到事件：" + eventType);
+        List<EnvEvent> envEvents = envEventRepository.findByEventType(eventType);
+        if(envEvents != null && !envEvents.isEmpty() && !envEvents.get(0).getEventName().isBlank()) {
+            addLog(LogConstant.INFO, eventType, waitValue, "检测到环境级事件：" + envEvents.get(0).getEventName());
+        } else {
+            addLog(LogConstant.INFO, eventType, waitValue, "检测到环境级事件：" + eventType);
+        }
         // 向前端推送事件触发消息
         AlertMessage eventMessage = new AlertMessage();
         eventMessage.setType("event");
@@ -222,7 +236,11 @@ public class AppRuleExecutorService {
         // 将事件加入数据库历史事件中
         storeEventHistory(eventType, eventParams, waitValue);
         // 增加开始执行日志
-        addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行");
+        if(!appRuleInfo.getAppName().isBlank()) {
+            addLog(LogConstant.INFO, eventType, waitValue, appRuleInfo.getAppName() + "开始执行");
+        } else {
+            addLog(LogConstant.INFO, eventType, waitValue, "应用开始执行应用");
+        }
         // 向前端推送应用开始消息
         AlertMessage appMessage = new AlertMessage();
         appMessage.setType("application");
@@ -392,7 +410,7 @@ public class AppRuleExecutorService {
      * 处理 branchStep
      * */
     private void handleBranchStep(BranchStep branchStep, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理分支条件逻辑");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理 branch 分支条件逻辑");
         List<BranchNode> branchNodes = branchStep.getBranch();
         for(BranchNode branchNode : branchNodes) {
             if(branchNode.isCurrentCondition()) {
@@ -713,7 +731,7 @@ public class AppRuleExecutorService {
      * 处理 chain
      * */
     private void handleChain(List<ChainStep> chain, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理顺序链路逻辑");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理 chain 顺序链路逻辑");
         for(int i=0;i<chain.size();i++) {
             ChainStep step = chain.get(i);
             switch (step.getType()) {
@@ -736,17 +754,38 @@ public class AppRuleExecutorService {
      * 处理 actionStep
      * */
     private void handleActionStep(ActionStep actionStep, String eventType, Map<String, Object> eventParams, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理action节点");
-        // TODO ，这里暂时模拟执行动作
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理 action 节点");
         ActionStep.Action action = actionStep.getAction();
-        addLog(LogConstant.INFO, eventType, waitValue, String.format("下发执行动作: '%s', 事件类型: '%s', 地点: '%s'", action.getAction_name(), eventType, eventParams.get("location")));
+        addLog(LogConstant.INFO, eventType, waitValue, "调用服务组合：" + action.getAction_name());
+        String serviceName = action.getAction_name();
+        Map<String, Object> serviceParams = new HashMap<>();
+        for(Map.Entry<String, String> entry : action.getAction_params().entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if(eventParams.containsKey(value)) {
+                serviceParams.put(key, eventParams.get(value));
+            } else if("event_type".equals(value)) {
+                serviceParams.put(key, eventType);
+            } else {
+                serviceParams.put(key, value);
+            }
+        }
+        // 调用服务组合接口
+        List<String> serviceLogs = taskFlowService.callService(serviceName, serviceParams);
+        // 加入服务调用日志
+        for(String logMessage : serviceLogs) {
+            appRuleLogMap
+                    .computeIfAbsent(eventType, k -> new HashMap<>())
+                    .computeIfAbsent(waitValue, k -> new ArrayList<>())
+                    .add(logMessage);
+        }
     }
 
     /**
      * 处理 waitStep
      * */
     private void handleWaitStep(WaitStep waitStep, String eventType, Map<String, Object> eventParams, List<ChainStep> chain, int index, String waitValue) {
-        addLog(LogConstant.INFO, eventType, waitValue, "开始处理wait节点");
+        addLog(LogConstant.INFO, eventType, waitValue, "开始处理 wait 节点");
         // 将应用加入等待
         appRuleWaitMap
                 .computeIfAbsent(eventType, k -> new HashSet<>())
@@ -763,7 +802,7 @@ public class AppRuleExecutorService {
         // 处理action_wait
         WaitStep.Wait wait = waitStep.getWait();
         if(wait.isActionWait()) {
-            addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 加入动作等待, 标识: '%s'", eventType, waitValue));
+            addLog(LogConstant.INFO, eventType, waitValue, String.format("应用加入动作等待, 标识: '%s'", waitValue));
             redisKey = RedisConstant.ActionWait + eventType + ":" + waitValue;
             // 这里设定 action_condition 的超时时间为 1 小时
             long expireTimeMillis = currentTimeMillis + 60 * 60 * 1000L;
@@ -773,7 +812,7 @@ public class AppRuleExecutorService {
         if(wait.isTimeWait()) {
             int waitDuration = Integer.parseInt(wait.getTime_wait().getDuration());
             String waitUnit = wait.getTime_wait().getUnit();
-            addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 加入时间等待, 等待时长: %d%s 标识: '%s'", eventType, waitDuration, waitUnit, waitValue));
+            addLog(LogConstant.INFO, eventType, waitValue, String.format("应用加入时间等待, 等待时长: %d%s 标识: '%s'", waitDuration, waitUnit, waitValue));
             redisKey = RedisConstant.TimeWait + eventType + ":" + waitValue;
             // 存储到期时间
             long expireTimeMillis = currentTimeMillis;
@@ -811,31 +850,43 @@ public class AppRuleExecutorService {
     public void complete(AppRuleCompleteRequest appRuleCompleteRequest) {
         String eventType = appRuleCompleteRequest.getEventType();
         String eventParam = appRuleCompleteRequest.getEventParam();
-        String redisKey = RedisConstant.ActionWait + eventType + ":" + eventParam;
-        // 从 redis 中删除
-        redisUtil.deleteSingle(redisKey);
-        // 从等待中移除
+        // 1. 优先从内存等待中移除，并进行判断（卫语句）
         Set<String> waitSet = appRuleWaitMap.get(eventType);
-        waitSet.remove(eventParam);
-        appRuleWaitMap.put(eventType, waitSet);
-        addLog(LogConstant.INFO, eventType, eventParam, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, eventParam));
-        addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束");
-        // 向前端推送应用结束消息
-        List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(eventParam);
-        AlertMessage appMessage;
-        for(AlertMessage message : messages) {
-            if(message.getType().equals("application")) {
-                appMessage = message;
-                Map<String, Object> data = appMessage.getData();
-                data.put("status", "end");
-                appMessage.setData(data);
-                appMessage.setTimestamp(LocalDateTime.now());
-                webSocketPushService.sendAlert(appMessage);
-            }
+        // 如果该类型的等待列表为空，或者列表中不包含当前标识，直接结束
+        if (waitSet == null || !waitSet.contains(eventParam)) {
+            log.warn("⚠️ 尝试结束一个不存在的等待动作: eventType={}, eventParam={}", eventType, eventParam);
+            return;
         }
-        // 删除日志
-        appRuleLogPushMap.get(eventType).remove(eventParam);
-        // 将日志存入数据库
+        // 2. 执行移除操作
+        waitSet.remove(eventParam);
+        // 如果该类型的 Set 空了，可选：从 map 中移除该 key 节省内存
+        if (waitSet.isEmpty()) {
+            appRuleWaitMap.remove(eventType);
+        }
+        // 3. 移除 Redis 标识
+        String redisKey = RedisConstant.ActionWait + eventType + ":" + eventParam;
+        redisUtil.deleteSingle(redisKey);
+        // 4. 记录日志
+        addLog(LogConstant.INFO, eventType, eventParam, String.format("应用结束动作等待, 标识: '%s'", eventParam));
+        addLog(LogConstant.INFO, eventType, eventParam, "应用流程执行结束");
+        // 5. 向前端推送应用结束消息（逻辑优化）
+        Map<String, List<AlertMessage>> locationMessagesMap = appRuleLogPushMap.get(eventType);
+        if (locationMessagesMap != null) {
+            List<AlertMessage> messages = locationMessagesMap.get(eventParam);
+            if (messages != null) {
+                for (AlertMessage message : messages) {
+                    // 只更新应用类型的消息状态
+                    if ("application".equals(message.getType())) {
+                        message.getData().put("status", "end");
+                        message.setTimestamp(LocalDateTime.now());
+                        webSocketPushService.sendAlert(message);
+                    }
+                }
+            }
+            // 从推送缓存中移除
+            locationMessagesMap.remove(eventParam);
+        }
+        // 6. 最终日志持久化
         saveLog(eventType, eventParam);
     }
 
@@ -927,7 +978,7 @@ public class AppRuleExecutorService {
                     Set<String> waitSet = appRuleWaitMap.get(eventType);
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
-                    addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束时间等待, 标识: '%s'", eventType, waitValue));
+                    addLog(LogConstant.INFO, eventType, waitValue, String.format("应用结束时间等待, 标识: '%s'", waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
                     // 向前端推送应用结束消息
                     List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);
@@ -983,7 +1034,7 @@ public class AppRuleExecutorService {
                     Set<String> waitSet = appRuleWaitMap.get(eventType);
                     waitSet.remove(waitValue);
                     appRuleWaitMap.put(eventType, waitSet);
-                    addLog(LogConstant.INFO, eventType, waitValue, String.format("事件 '%s' 结束动作等待, 标识: '%s'", eventType, waitValue));
+                    addLog(LogConstant.INFO, eventType, waitValue, String.format("应用结束动作等待, 标识: '%s'", waitValue));
                     addLog(LogConstant.INFO, eventType, waitValue, "应用流程执行结束");
                     // 向前端推送应用结束消息
                     List<AlertMessage> messages = appRuleLogPushMap.get(eventType).get(waitValue);

@@ -1,5 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -35,4 +37,20 @@ public class DataEvent extends BaseEvent {
      * 事件载荷，以键值对形式存储事件的具体数据内容
      */
     @NotNull private final Map<String, Object> payload;
+
+    @JsonCreator
+    public DataEvent(
+        @JsonProperty("timestamp") long timestamp,
+        @JsonProperty("sourceIngestor") String sourceIngestor,
+        @JsonProperty("eventSource") EventFusionRule.EventSource eventSource,
+        @JsonProperty("identifier") String identifier,
+        @JsonProperty("eventId") String eventId,
+        @JsonProperty("payload") Map<String, Object> payload
+    ) {
+        super(timestamp, sourceIngestor);
+        this.eventSource = eventSource;
+        this.identifier = identifier;
+        this.eventId = eventId;
+        this.payload = payload;
+    }
 }
