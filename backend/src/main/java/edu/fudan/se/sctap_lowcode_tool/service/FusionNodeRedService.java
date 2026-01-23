@@ -10,6 +10,7 @@ import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,6 @@ public class FusionNodeRedService {
         if (productEvent == null || productEvent.isBlank()) {
             return Collections.emptyList();
         }
-
         try {
             return objectMapper.readValue(
                     productEvent,
@@ -89,12 +89,65 @@ public class FusionNodeRedService {
     }
 
     /* =====================================================
-     * Node-RED Rule Upload（DSL 转换）
+     * Node-RED Rule Upload
      * ===================================================== */
 
-    public String handleUploadRule(JsonNode flowJson) {
-        System.out.println("FLOW JSON:");
-        System.out.println(flowJson.toPrettyString());
+    public void handleUploadRule(JsonNode flowJson) {
+        JsonNode publishNode = null;
+        JsonNode eventSourceNode = null;
+
+        for (JsonNode node : flowJson) {
+            String type = node.get("type").asText();
+            if ("Publish".equals(type)) {
+                publishNode = node;
+            }
+            if ("EventSource".equals(type)) {
+                eventSourceNode = node;
+            }
+        }
+
+        if (publishNode == null) {
+            throw new IllegalArgumentException("Publish node not found in flowJson");
+        }
+        if (eventSourceNode == null) {
+            throw new IllegalArgumentException("EventSource node not found in flowJson");
+        }
+
+        // ---------- 提取基础字段 ----------
+        String spaceEventName = publishNode.get("spaceEventName").asText();
+        String spaceEventDesc = publishNode.get("spaceEventDesc").asText();
+
+        // ---------- 构建 eventJson ----------
+        String eventJson = buildEventJson(publishNode);
+
+        // ---------- 构建 DSL ----------
+        String ruleDsl = buildDSL(flowJson);
+
+        // ---------- 判断 crossRegion ----------
+        boolean crossRegion = true;
+        if (eventSourceNode.has("gridId")) {
+            String gridId = eventSourceNode.get("gridId").asText();
+            crossRegion = "crossRegion".equals(gridId);
+        }
+
+        // ---------- 组装并入库 EnvEvent ----------
+        EnvEvent envEvent = new EnvEvent();
+        envEvent.setEventType(spaceEventName);
+        envEvent.setEventName(spaceEventName);
+        envEvent.setDescription(spaceEventDesc);
+        envEvent.setEventJson(eventJson);
+        envEvent.setCrossRegion(crossRegion);
+        envEvent.setCreateTime(LocalDateTime.now());
+        envEvent.setRuleDsl(ruleDsl);
+
+        envEventRepository.save(envEvent);
+    }
+
+    /* =====================================================
+     * DSL 转换函数
+     * ===================================================== */
+
+    private String buildDSL(JsonNode flowJson) {
 
         // ---------- 1. id -> node ----------
         Map<String, JsonNode> nodeMap = new HashMap<>();
@@ -233,12 +286,10 @@ public class FusionNodeRedService {
 
         dsl.put("publish", publish);
 
-        // ---------- 7. 输出 DSL ----------
         try {
-            String dslJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dsl);
-            System.out.println("====== DSL CONVERT RESULT ======");
-            System.out.println(dslJson);
-            return dslJson;
+            return objectMapper
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(dsl);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -248,7 +299,6 @@ public class FusionNodeRedService {
      * count 算子专用转换
      * ===================================================== */
     private void handleCountOperator(JsonNode opNode, Map<String, Object> step) {
-
         JsonNode value = opNode.get("value");
 
         List<Map<String, Object>> input = new ArrayList<>();
@@ -301,7 +351,6 @@ public class FusionNodeRedService {
         ));
 
         step.put("input", input);
-
         step.put("output", List.of(
                 Map.of(
                         "key", "count",
@@ -309,5 +358,34 @@ public class FusionNodeRedService {
                         "desc", "在指定时间窗口内，符合条件的环境事件数量。"
                 )
         ));
+    }
+
+    /* =====================================================
+     * eventJson 转换
+     * ===================================================== */
+    private String buildEventJson(JsonNode publishNode) {
+
+        Map<String, Object> eventJson = new LinkedHashMap<>();
+        eventJson.put("event_type", publishNode.get("spaceEventName").asText());
+        eventJson.put("description", publishNode.get("spaceEventDesc").asText());
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (JsonNode out : publishNode.get("outputsMapping")) {
+            params.put(
+                    out.get("key").asText(),
+                    Map.of(
+                            "type", out.get("type").asText().toLowerCase(),
+                            "description", out.get("description").asText()
+                    )
+            );
+        }
+
+        eventJson.put("event_params", params);
+
+        try {
+            return objectMapper.writeValueAsString(eventJson);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

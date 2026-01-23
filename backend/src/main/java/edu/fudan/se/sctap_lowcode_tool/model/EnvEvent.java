@@ -23,6 +23,9 @@ public class EnvEvent {
     @Column(name = "event_json", columnDefinition = "TEXT", nullable = false)
     private String eventJson;
 
+    @Column(name = "rule_dsl", columnDefinition = "TEXT")
+    private String ruleDsl;
+
     @Column(name = "event_name")
     private String eventName;
 
