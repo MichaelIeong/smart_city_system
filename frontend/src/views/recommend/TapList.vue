@@ -202,7 +202,7 @@ export default {
                 scopedSlots: { customRender: 'description' } 
             },
             {
-                title: '更新时间',
+                title: '创建时间',
                 dataIndex: 'updateTime',
                 sorter: true,
             },
