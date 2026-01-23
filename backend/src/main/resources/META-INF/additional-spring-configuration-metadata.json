@@ -1,0 +1,15 @@
+{
+  "properties": [
+    {
+      "name": "fusion.ingestor.tsl-scheduled.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用特斯联定时拉取采集器.",
+      "defaultValue": true
+    },
+    {
+      "name": "fusion.listen-network",
+      "type": "java.lang.String",
+      "description": "事件融合监听的网格列表（逗号分隔）."
+    }
+  ]
+}
