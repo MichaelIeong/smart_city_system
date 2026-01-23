@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class AppRuleCompleteRequest {
-    private String eventType;
+    private Integer appId;
 
-    private String eventParam;
+    private String waitValue;
 }

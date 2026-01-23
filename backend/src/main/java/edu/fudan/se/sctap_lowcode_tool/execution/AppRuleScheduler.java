@@ -34,8 +34,5 @@ public class AppRuleScheduler {
 
         // 每隔 10 分钟执行一次动作等待检查任务，调用 checkExpiredActionWait 方法
         scheduler.scheduleAtFixedRate(appRuleExecutorService::checkExpiredActionWait, 0, 10, TimeUnit.MINUTES);
-
-        // 每隔 30 秒执行一次执行应用规则任务，调用 getTslEventDataAndExecuteAppRule 方法
-        // scheduler.scheduleAtFixedRate(appRuleExecutorService::getTslEventDataAndExecuteAppRule, 0, 30, TimeUnit.SECONDS);
     }
 }

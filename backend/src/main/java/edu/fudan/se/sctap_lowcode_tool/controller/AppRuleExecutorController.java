@@ -33,40 +33,13 @@ public class AppRuleExecutorController {
     }
 
     /**
-     * 获取tsl事件数据
-     * */
-    @GetMapping("/tsl/getEventData")
-    public ResponseEntity<List<Map<String, Object>>> getTslEventData(@RequestParam("pageNum") int pageNum, @RequestParam("pageSize") int pageSize) {
-        List<Map<String, Object>> eventData = appRuleExecutorService.getTslEventData(pageNum, pageSize);
-        return ResponseEntity.ok(eventData);
-    }
-
-    /**
-     * 获取正在运行的事件
-     * */
-    @GetMapping("/getRunningEvents")
-    public ResponseEntity<List<Map<String, Object>>> getRunningEvents() {
-        List<Map<String, Object>> eventData = appRuleExecutorService.getRunningEvents();
-        return ResponseEntity.ok(eventData);
-    }
-
-    /**
-     * 获取某一事件的所有执行标识
-     * */
-    @GetMapping("/getWaitValueOfEvent")
-    public ResponseEntity<List<String>> getWaitValueOfEvent(@RequestParam("eventType") String eventType) {
-        List<String> waitValues = appRuleExecutorService.getWaitValueOfEvent(eventType);
-        return ResponseEntity.ok(waitValues);
-    }
-
-    /**
      * 获取日志
      * */
     @GetMapping("/getLog")
     public ResponseEntity<List<String>> getLog(
-            @RequestParam("eventType") String eventType,
+            @RequestParam("appId") Integer appId,
             @RequestParam("waitValue") String waitValue) {
-        List<String> logs = appRuleExecutorService.getLog(eventType, waitValue);
+        List<String> logs = appRuleExecutorService.getLog(appId, waitValue);
         return ResponseEntity.ok(logs);
     }
 }
