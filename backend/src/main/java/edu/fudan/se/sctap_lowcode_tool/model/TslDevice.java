@@ -8,13 +8,9 @@ import lombok.Data;
 @Table(name = "tsl_devices")
 public class TslDevice {
 
-    /**
-     * 数据库主键 (自增 ID)
-     * 对应 CSV 中的 # 列或 id 列（取决于建表时的设定，通常是自增主键）
-     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id")
+    private Integer id;
 
     /**
      * 项目 ID (对应 project_id)
