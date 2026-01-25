@@ -163,14 +163,17 @@ public class AppRuleService {
         }
         // 如果是通过Node-RED创建应用
         if(flowJson!=null&&!flowJson.isBlank()) {
-            // 转换为JSON
-            String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
-            if(jsonRule==null||jsonRule.isBlank()) {
+            AppRule appRule = nodeRedFlowJsonToAppRule(flowJson);
+            System.out.println(appRule);
+            if(appRule==null) {
                 return 0;
             }
             var appRuleInfo = getEntityFromRequest(appRuleSaveRequest);
-            appRuleInfo.setRuleJson(jsonRule);
-            var appRule = parseJsonRule(jsonRule);
+            try {
+                appRuleInfo.setRuleJson(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(appRule));
+            } catch (JsonProcessingException e) {
+                return 0;
+            }
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
             // 判断是否跨区域
             appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
@@ -752,5 +755,171 @@ public class AppRuleService {
      */
     public List<AppRuleInfo> getAppRulesByGridId(String gridId) {
         return appRuleRepository.findByGridId(gridId);
+    }
+
+    /**
+     * Node-RED导出JSON转换为AppRule
+     * */
+    public AppRule nodeRedFlowJsonToAppRule(String nodeRedFlowJson) {
+        // 反序列化为 List<Map>
+        List<Map<String, Object>> nodes;
+        try {
+            nodes = objectMapper.readValue(nodeRedFlowJson, List.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+        // 索引所有结点，方便快速查找
+        Map<String, Map<String, Object>> nodeMap = new HashMap<>();
+        for (Map<String, Object> node : nodes) {
+            nodeMap.put(node.get("id").toString(), node);
+        }
+        // 找到 Trigger，Event 节点
+        Map<String, Object> eventNode = nodes.stream()
+                .filter(n -> "Event".equals(n.get("type")))
+                .findFirst()
+                .orElse(null);
+        if(eventNode == null) {
+            return null;
+        }
+        AppRule appRule = new AppRule();
+        // 构建 Trigger
+        Trigger trigger = new Trigger();
+        trigger.setEvent_type(eventNode.get("event_type").toString());
+        trigger.setEvent_params((Map<String, String>) eventNode.get("event_params"));
+        appRule.setTrigger(trigger);
+        // 从 Event 节点开始递归构建 Response
+        Response response = new Response();
+        List<String> nextIds = getNextIds(eventNode);
+        if(!nextIds.isEmpty()) {
+            // 如果 Event 后面直接连着 Switch，则 Response 走 Branch 类型
+            Map<String, Object> nextNode = nodeMap.get(nextIds.get(0));
+            if("Switch".equals(nextNode.get("type"))) {
+                response.setBranch(buildBranchNodes(nextNode, nodeMap));
+            } else {
+                // 否则，Response 走 Chain 类型
+                response.setChain(buildChain(nextIds.get(0), nodeMap));
+            }
+        }
+        appRule.setResponse(response);
+        return appRule;
+    }
+
+    /**
+     * 构建 Chain
+     * */
+    private List<ChainStep> buildChain(String startId, Map<String, Map<String, Object>> nodeMap) {
+        List<ChainStep> chain = new ArrayList<>();
+        String currentId = startId;
+        while(currentId != null) {
+            Map<String, Object> node = nodeMap.get(currentId);
+            String type = node.get("type").toString();
+            if("Action".equals(type)) {
+                ActionStep step = new ActionStep();
+                ActionStep.Action action = new ActionStep.Action();
+                action.setAction_name(node.get("action_name").toString());
+                action.setAction_params((Map<String, String>) node.get("action_params"));
+                step.setAction(action);
+                chain.add(step);
+            } else if("Wait".equals(type)) {
+                WaitStep step = new WaitStep();
+                WaitStep.Wait wait = new WaitStep.Wait();
+                String waitType = node.get("wait_type").toString();
+                Map<String, String> waitParams = new HashMap<>();
+                waitParams.put(node.get("wait_params").toString(), node.get("wait_params").toString());
+                if("time_wait".equals(waitType)) {
+                    WaitStep.Wait.TimeWait tw = new WaitStep.Wait.TimeWait();
+                    tw.setEvent_type((String) node.get("event_type"));
+                    tw.setDuration((String) node.get("duration"));
+                    tw.setUnit((String) node.get("unit"));
+                    tw.setWait_params(waitParams);
+                    wait.setTime_wait(tw);
+                } else {
+                    WaitStep.Wait.ActionWait aw = new WaitStep.Wait.ActionWait();
+                    aw.setEvent_type((String) node.get("event_type"));
+                    aw.setWait_params(waitParams);
+                    wait.setAction_wait(aw);
+                }
+                step.setWait(wait);
+                chain.add(step);
+            } else if("Switch".equals(type)) {
+                // 如果链中遇到了 Switch，则当前 Chain 结束，开启一个 BranchStep
+                BranchStep branchStep = new BranchStep();
+                branchStep.setBranch(buildBranchNodes(node, nodeMap));
+                chain.add(branchStep);
+                return chain;
+            }
+            // 获取下一节点
+            List<String> nextIds = getNextIds(node);
+            currentId = nextIds.isEmpty() ? null : nextIds.get(0);
+        }
+        return chain;
+    }
+
+    /**
+     * 构建 Branch
+     * */
+    private List<BranchNode> buildBranchNodes(Map<String, Object> switchNode, Map<String, Map<String, Object>> nodeMap) {
+        List<BranchNode> branchNodes = new ArrayList<>();
+        List<Map<String, String>> rules = (List<Map<String, String>>) switchNode.get("rules");
+        List<List<String>> wires = (List<List<String>>) switchNode.get("wires");
+        for (int i = 0; i < rules.size(); i++) {
+            BranchNode branchNode = new BranchNode();
+            Map<String, String> rule = rules.get(i);
+            // 设置条件
+            String condType = switchNode.get("condition_type").toString();
+            if("current_condition".equals(condType)) {
+                CurrentCondition cond = new CurrentCondition();
+                CurrentCondition.CurrentLeft left = new CurrentCondition.CurrentLeft();
+                left.setType(switchNode.get("current_type").toString());
+                left.setProperty(switchNode.get("current_property").toString());
+                cond.setCurrent_left(left);
+                cond.setOperator(rule.get("t"));
+                cond.setRight(rule.get("v"));
+                branchNode.setCurrent_condition(cond);
+            } else {
+                HistoryCondition cond = new HistoryCondition();
+                HistoryCondition.HistoryLeft left = new HistoryCondition.HistoryLeft();
+                // 拼接函数名: event_count(type, duration, unit)
+                String func = String.format("event_count(%s, %s, %s)",
+                        switchNode.get("history_event_type").toString(),
+                        switchNode.get("history_time_duration").toString(),
+                        switchNode.get("history_time_unit").toString());
+                left.setFunc(func);
+                Map<String, String> funcParams = new HashMap<>();
+                String p = switchNode.get("history_params").toString();
+                if(!p.isBlank()) {
+                    funcParams.put(p, p);
+                }
+                left.setFunc_params(funcParams);
+                cond.setHistory_left(left);
+                cond.setOperator(rule.get("t"));
+                cond.setRight(rule.get("v"));
+                branchNode.setHistory_condition(cond);
+            }
+            // 递归构建该分支下的 Chain
+            if(wires.size() > i && !wires.get(i).isEmpty()) {
+                branchNode.setChain(buildChain(wires.get(i).get(0), nodeMap));
+            }
+            branchNodes.add(branchNode);
+        }
+        return branchNodes;
+    }
+
+    /**
+     * 获取下一节点的id
+     * */
+    private List<String> getNextIds(Map<String, Object> node) {
+        Object wiresObj = node.get("wires");
+        if(wiresObj instanceof List<?>) {
+            List<Object> wires = (List<Object>) wiresObj;
+            if(wires.isEmpty()) {
+                return Collections.emptyList();
+            }
+            Object firstWire = wires.get(0);
+            if(firstWire instanceof List<?>) {
+                return (List<String>) firstWire;
+            }
+        }
+        return Collections.emptyList();
     }
 }

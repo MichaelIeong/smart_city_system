@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.util.Map;
@@ -9,6 +10,7 @@ public class ActionStep implements ChainStep{
     private Action action;
 
     @Override
+    @JsonIgnore
     public String getType() {
         return "action";
     }

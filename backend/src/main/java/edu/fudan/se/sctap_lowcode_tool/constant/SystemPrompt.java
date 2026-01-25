@@ -891,38 +891,43 @@ public class SystemPrompt {
             ## 示例输入：
             [
                 {
-                    "id": "4d673c8256658a59",
+                    "id": "13c0b253c7a6feea",
                     "type": "tab",
-                    "label": "机动车违章停车处理流程",
+                    "label": "机动车违章停车处理应用",
                     "disabled": false,
-                    "info": "",
+                    "info": "当触发机动车违章停车事件时，首先检查该区域附近是否有广播设备（p_broadcast_ip_num），如果有广播，则检查该车牌号\\r\\n对应的车辆过去1小时内发生的违停次数，如果违停次数大于0次，则下发工单至相关人员进行现场处置，等待工单处理完成；\\r\\n如果违停次数等于0次， 则通过广播播报违章停车警告，等待3分钟；如果没有广播，则直接下发工单进行现场处理，等待工单\\r\\n处理完成。",
                     "env": []
                 },
                 {
-                    "id": "3db4f5f2cbe0de6a",
+                    "id": "6f4e3a099e1a992e",
                     "type": "Event",
-                    "z": "4d673c8256658a59",
+                    "z": "13c0b253c7a6feea",
                     "event_type": "ill_parking",
-                    "x": 130,
-                    "y": 360,
+                    "event_params": {
+                        "location": "string",
+                        "plateNo": "string",
+                        "vehicleImageUrl": "string"
+                    },
+                    "x": 120,
+                    "y": 260,
                     "wires": [
                         [
-                            "40a5c8e37bd30fa7"
+                            "eb597f02a97cdda9"
                         ]
                     ]
                 },
                 {
-                    "id": "40a5c8e37bd30fa7",
+                    "id": "eb597f02a97cdda9",
                     "type": "Switch",
-                    "z": "4d673c8256658a59",
-                    "description": "判断区域附近有无广播设备",
-                    "conditionType": "current_condition",
-                    "currentType": "property",
-                    "currentProperty": "p_broadcast_ip_num",
-                    "historyEventType": null,
-                    "historyTimeDuration": "",
-                    "historyTimeUnit": null,
-                    "historyParams": "",
+                    "z": "13c0b253c7a6feea",
+                    "description": "判断该区域附近是否有广播设备",
+                    "condition_type": "current_condition",
+                    "current_type": "property",
+                    "current_property": "p_broadcast_ip_num",
+                    "history_event_type": null,
+                    "history_time_duration": "",
+                    "history_time_unit": null,
+                    "history_params": null,
                     "rules": [
                         {
                             "t": ">",
@@ -936,29 +941,29 @@ public class SystemPrompt {
                         }
                     ],
                     "outputs": 2,
-                    "x": 430,
-                    "y": 360,
+                    "x": 410,
+                    "y": 260,
                     "wires": [
                         [
-                            "7ba14299de6844f2"
+                            "e4062a666a4806c6"
                         ],
                         [
-                            "eb0d59fffbb74d8f"
+                            "94e59616d094d106"
                         ]
                     ]
                 },
                 {
-                    "id": "7ba14299de6844f2",
+                    "id": "e4062a666a4806c6",
                     "type": "Switch",
-                    "z": "4d673c8256658a59",
-                    "description": "判断车辆过去1小时有无违停",
-                    "conditionType": "history_condition",
-                    "currentType": null,
-                    "currentProperty": null,
-                    "historyEventType": "ill_parking",
-                    "historyTimeDuration": "1",
-                    "historyTimeUnit": "hour",
-                    "historyParams": "plate_number",
+                    "z": "13c0b253c7a6feea",
+                    "description": "判断车辆过去1小时违停次数",
+                    "condition_type": "history_condition",
+                    "current_type": null,
+                    "current_property": null,
+                    "history_event_type": "ill_parking",
+                    "history_time_duration": "1",
+                    "history_time_unit": "hour",
+                    "history_params": "plateNo",
                     "rules": [
                         {
                             "t": ">",
@@ -972,100 +977,118 @@ public class SystemPrompt {
                         }
                     ],
                     "outputs": 2,
-                    "x": 780,
-                    "y": 280,
+                    "x": 760,
+                    "y": 180,
                     "wires": [
                         [
-                            "c25dcdefe90dabe7"
+                            "243e934fe8cf984e"
                         ],
                         [
-                            "05081e826d7b7cd3"
+                            "06ca0c26be26387d"
                         ]
                     ]
                 },
                 {
-                    "id": "c25dcdefe90dabe7",
+                    "id": "94e59616d094d106",
                     "type": "Action",
-                    "z": "4d673c8256658a59",
+                    "z": "13c0b253c7a6feea",
                     "action_name": "issue_work_order",
-                    "x": 1110,
-                    "y": 200,
+                    "action_params": {
+                        "event_type": "event_type",
+                        "location": "location",
+                        "car_id": "plateNo",
+                        "evidence_data": "vehicleImageUrl"
+                    },
+                    "x": 720,
+                    "y": 320,
                     "wires": [
                         [
-                            "42ea0369752a947c"
+                            "3abe35c537b0dd04"
                         ]
                     ]
                 },
                 {
-                    "id": "42ea0369752a947c",
+                    "id": "243e934fe8cf984e",
+                    "type": "Action",
+                    "z": "13c0b253c7a6feea",
+                    "action_name": "issue_work_order",
+                    "action_params": {
+                        "event_type": "event_type",
+                        "location": "location",
+                        "car_id": "plateNo",
+                        "evidence_data": "vehicleImageUrl"
+                    },
+                    "x": 1060,
+                    "y": 120,
+                    "wires": [
+                        [
+                            "6bde0c5d784b5b84"
+                        ]
+                    ]
+                },
+                {
+                    "id": "06ca0c26be26387d",
+                    "type": "Action",
+                    "z": "13c0b253c7a6feea",
+                    "action_name": "broadcast",
+                    "action_params": {
+                        "event_type": "event_type",
+                        "location": "location",
+                        "message": "请尽快驶离",
+                        "count": "1"
+                    },
+                    "x": 1040,
+                    "y": 220,
+                    "wires": [
+                        [
+                            "d5d3699522956f92"
+                        ]
+                    ]
+                },
+                {
+                    "id": "6bde0c5d784b5b84",
                     "type": "Wait",
-                    "z": "4d673c8256658a59",
-                    "description": "等待工单处理完成",
-                    "waitType": "action_wait",
+                    "z": "13c0b253c7a6feea",
+                    "description": "等待工单完成",
+                    "wait_type": "action_wait",
                     "event_type": "ill_parking",
-                    "waitParams": "location",
+                    "wait_params": "location",
                     "duration": "",
                     "unit": null,
-                    "x": 1380,
-                    "y": 200,
+                    "x": 1310,
+                    "y": 120,
                     "wires": [
                         []
                     ]
                 },
                 {
-                    "id": "05081e826d7b7cd3",
-                    "type": "Action",
-                    "z": "4d673c8256658a59",
-                    "action_name": "broadcast",
-                    "x": 1110,
-                    "y": 360,
-                    "wires": [
-                        [
-                            "40ad005b57924686"
-                        ]
-                    ]
-                },
-                {
-                    "id": "eb0d59fffbb74d8f",
-                    "type": "Action",
-                    "z": "4d673c8256658a59",
-                    "action_name": "issue_work_order",
-                    "x": 750,
-                    "y": 440,
-                    "wires": [
-                        [
-                            "ce569d9d464b1060"
-                        ]
-                    ]
-                },
-                {
-                    "id": "40ad005b57924686",
+                    "id": "3abe35c537b0dd04",
                     "type": "Wait",
-                    "z": "4d673c8256658a59",
-                    "description": "等待3分钟",
-                    "waitType": "time_wait",
+                    "z": "13c0b253c7a6feea",
+                    "description": "等待工单完成",
+                    "wait_type": "action_wait",
                     "event_type": "ill_parking",
-                    "waitParams": "location",
+                    "wait_params": "location",
+                    "duration": "",
+                    "unit": null,
+                    "x": 970,
+                    "y": 320,
+                    "wires": [
+                        []
+                    ]
+                },
+                {
+                    "id": "d5d3699522956f92",
+                    "type": "Wait",
+                    "z": "13c0b253c7a6feea",
+                    "description": "广播后等待三分钟",
+                    "wait_type": "time_wait",
+                    "event_type": "ill_parking",
+                    "wait_params": "location",
                     "duration": "3",
                     "unit": "minute",
-                    "x": 1360,
-                    "y": 360,
-                    "wires": [
-                        []
-                    ]
-                },
-                {
-                    "id": "ce569d9d464b1060",
-                    "type": "Wait",
-                    "z": "4d673c8256658a59",
-                    "description": "等待工单处理完成",
-                    "waitType": "action_wait",
-                    "event_type": "ill_parking",
-                    "waitParams": "location",
-                    "duration": "",
-                    "unit": null,
-                    "x": 1020,
-                    "y": 440,
+                    "x": 1280,
+                    "y": 220,
                     "wires": [
                         []
                     ]
@@ -1079,7 +1102,8 @@ public class SystemPrompt {
                     "event_type": "ill_parking",
                     "event_params": {
                         "location": "string",
-                        "plate_number": "string"
+                        "plateNo": "string",
+                        "vehicleImageUrl": "string"
                     }
                 },
                 "response": {
@@ -1101,7 +1125,7 @@ public class SystemPrompt {
                                                 "history_left": {
                                                     "func": "event_count(ill_parking, 1, hour)",
                                                     "func_params": {
-                                                        "plate_number": "plate_number"
+                                                        "plateNo": "plateNo"
                                                     }
                                                 },
                                                 "operator": ">",
@@ -1112,9 +1136,10 @@ public class SystemPrompt {
                                                     "action": {
                                                         "action_name": "issue_work_order",
                                                         "action_params": {
-                                                            "event_type": "ill_parking",
+                                                            "event_type": "event_type",
                                                             "location": "location",
-                                                            "data": "Vehicle illegal parking information"
+                                                            "car_id": "plateNo",
+                                                            "evidence_data": "vehicleImageUrl"
                                                         }
                                                     }
                                                 },
@@ -1146,9 +1171,10 @@ public class SystemPrompt {
                                                     "action": {
                                                         "action_name": "broadcast",
                                                         "action_params": {
-                                                            "event_type": "ill_parking",
+                                                           "event_type": "event_type",
                                                             "location": "location",
-                                                            "data": "You have parked illegally, please leave immediately"
+                                                            "message": "请尽快驶离",
+                                                            "count": 1
                                                         }
                                                     }
                                                 },
@@ -1184,9 +1210,10 @@ public class SystemPrompt {
                                     "action": {
                                         "action_name": "issue_work_order",
                                         "action_params": {
-                                            "event_type": "ill_parking",
+                                            "event_type": "event_type",
                                             "location": "location",
-                                            "data": "Vehicle illegal parking information"
+                                            "car_id": "plateNo",
+                                            "evidence_data": "vehicleImageUrl"
                                         }
                                     }
                                 },
