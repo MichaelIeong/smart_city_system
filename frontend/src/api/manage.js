@@ -25,7 +25,8 @@ const api = {
   sceneAdd: '/api/scene/add',
   isResources: '/api/is_resources',
   sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498',
-  envEvent: '/api/envEvent'
+  envEvent: '/api/envEvent',
+  envService: '/api/envService'
 }
 
 export default api
@@ -623,6 +624,58 @@ export function getAllEnvEvent () {
   return request({
     url: api.envEvent + '/all',
     method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 分页查询环境级事件
+export function listEnvEvent ({ eventType, eventName, pageNo, pageSize, sortField, sortOrder }) {
+  const token = store.state.token
+  return request({
+    url: api.envEvent + '/list',
+    method: 'get',
+    params: {
+      eventType,
+      eventName,
+      pageNo,
+      pageSize,
+      sortField,
+      sortOrder
+    },
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取全部环境级服务
+export function getAllEnvService () {
+  const token = store.state.token
+  return request({
+    url: api.envService + '/all',
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 分页查询环境级服务
+export function listEnvService ({ name, description, pageNo, pageSize, sortField, sortOrder }) {
+  const token = store.state.token
+  return request({
+    url: api.envService + '/list',
+    method: 'get',
+    params: {
+      name,
+      description,
+      pageNo,
+      pageSize,
+      sortField,
+      sortOrder
+    },
     headers: {
       'Authorization': `Bearer ${token}`
     }
