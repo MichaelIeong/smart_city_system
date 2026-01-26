@@ -31,7 +31,7 @@
 
         <div class="log-list">
           <div
-            v-for="(item, index) in eventLogs"
+            v-for="(item, index) in sortedLogs"
             :key="index"
             v-if="selectedEventType === 'all' || item.eventType === selectedEventType"
             class="log-item">
@@ -51,11 +51,21 @@
     <a-modal
       v-model="logModalVisible"
       title="应用日志详情"
-      :footer="null"
       :width="800"
       :destroyOnClose="true"
       :bodyStyle="{ height: '500px', padding: '0' }"
     >
+      <template slot="footer">
+        <a-button @click="logModalVisible = false">关闭</a-button>
+        <a-button
+          v-if="showWaitButton"
+          type="primary"
+          :loading="submittingWait"
+          @click="handleCompleteWait"
+        >
+          结束动作等待
+        </a-button>
+      </template>
       <a-spin :spinning="logModalLoading" wrapperClassName="full-height-spin">
         <div class="modal-content-container">
           <div v-if="!logModalLoading && logModalLogs.length === 0" class="empty-wrapper">
@@ -84,7 +94,7 @@ import { message } from 'ant-design-vue'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 import data from './F-city.json'
-import { getLog } from '@/api/manage'
+import { getLog, getAllEnvEvent, completeActionWait } from '@/api/manage'
 import { Empty } from 'ant-design-vue'
 
 export default {
@@ -100,29 +110,34 @@ export default {
       // 模拟日志数据
       eventLogs: [],
       // eventType -> label（气泡显示）
-      eventTypeLabelMap: {
-        'manhole-flooding': '井盖水浸',
-        'manhole-tilte': '井盖倾斜',
-        'truck_dect': '渣土车识别',
-        'ill_parking': '机动车违章停车',
-        'ill_parking2': '非机动车违章停车',
-        'waste_accumulate': '垃圾堆积',
-        'greenbelt_stack': '绿化带堆放',
-        'road-operate': '占道经营',
-        'out-store': '店外经营',
-        'road-feeding': '占道饲养',
-        'trash_full': '垃圾桶满溢'
-      },
+      eventTypeLabelMap: {},
       logModalVisible: false,
       logModalLoading: false,
-      logModalLogs: []
+      logModalLogs: [],
+      currentActivateItem: null,
+      submittingWait: false
     }
   },
-
+  computed: {
+    // ✅ 新增：判断是否显示“结束动作等待”按钮
+    showWaitButton() {
+      if (!this.logModalLogs || this.logModalLogs.length === 0) return false
+      const lastLine = this.logModalLogs[this.logModalLogs.length - 1]
+      return typeof lastLine === 'string' && lastLine.includes('加入动作等待')
+    },
+    sortedLogs() {
+      // 使用解构 [...] 创建新数组，避免直接修改原数组导致渲染死循环
+      return [...this.eventLogs].sort((a, b) => {
+        // 字符串格式如 "2026-01-21 19:00:00" 直接对比即可实现从早到晚
+        return a.time.localeCompare(b.time);
+      });
+    }
+  },
   mounted() {
     // ✅ 非响应式字段：放实例上，避免 Vue2 对 Map/复杂对象的坑
     this.__d3 = { svg: null, zoomG: null, bubbleLayer: null }
     this.__bubbleMap = new Map()
+    this.fetchEventOptions()
     this.handleData()
     this.$nextTick(() => {
       setTimeout(() => {
@@ -381,10 +396,11 @@ export default {
 
     async handleDetail(item) {
       try {
+        this.currentActiveItem = item
         this.logModalVisible = true
         this.logModalLoading = true
         this.logModalLogs = []
-        const logs = await getLog(item.eventType, item.waitValue)
+        const logs = await getLog(item.appId, item.waitValue)
         this.logModalLogs = Array.isArray(logs) ? logs : []
       } catch (e) {
         console.error('获取日志失败', e)
@@ -394,9 +410,43 @@ export default {
         this.logModalLoading = false
       }
     },
+    async handleCompleteWait() {
+      if (!this.currentActiveItem) return
+      const { appId, waitValue } = this.currentActiveItem
+      this.submittingWait = true
+      try {
+        await completeActionWait(appId, waitValue)
+        this.$message.success('操作成功')
+        this.logModalVisible = false
+        this.currentActiveItem = null
+      } catch (e) {
+        console.error('结束等待失败:', e)
+        this.$message.error('操作失败')
+      } finally {
+        this.submittingWait = false
+      }
+    },
+    async fetchEventOptions() {
+      try {
+        const res = await getAllEnvEvent();
+        if (res && Array.isArray(res)) {
+          const map = {};
+          res.forEach(item => {
+            // key 为 event_type，value 为 event_name
+            map[item.eventType] = item.eventName || item.eventType;
+          });
+          this.eventTypeLabelMap = map;
+        }
+      } catch (e) {
+        console.error('加载事件配置失败:', e);
+        this.$message.error('加载事件类型失败');
+      }
+    },
     handleEventMessage(payload) { 
       const location = String(payload.location || '')
       const eventType = payload?.data?.eventType
+      const waitValue = payload?.data?.waitValue
+      const appId = payload?.data?.appId
       const timestamp = payload.timestamp
       const type = payload.type
       if (!location || !eventType) return
@@ -413,7 +463,9 @@ export default {
         time: timeText,
         content: `${meshName}发生${eventLabel}事件`,
         type: type,
-        eventType: eventType
+        appId: appId,
+        eventType: eventType,
+        waitValue: waitValue
       })
     },
     handleApplicationMessage(payload) {
@@ -421,6 +473,7 @@ export default {
       const data = payload.data || {}
       const status = data.status
       const appName = data.appName
+      const appId = data.appId
       const eventType = data.eventType
       const waitValue = data.waitValue
       const timestamp = payload.timestamp
@@ -434,17 +487,19 @@ export default {
           content: `${meshName}开始执行${appName}`,
           type: type,
           status: status,
+          appId: appId,
           eventType: eventType,
           waitValue: waitValue
         })
         return
       }
       if(status === 'end') {
-        this.eventLogs.push({
-          time: timeText,
-          content: `${meshName}${appName}执行结束`,
-          eventType: eventType
-        })
+        // this.eventLogs.push({
+        //   time: timeText,
+        //   content: `${meshName}${appName}执行结束`,
+        //   eventType: eventType,
+        //   waitValue: waitValue
+        // })
         const et = String(eventType || '')
         if (et && this.__bubbleMap) {
           const arr = this.__bubbleMap.get(location) || []
@@ -453,6 +508,9 @@ export default {
           else this.__bubbleMap.delete(location)
           this.renderBubbles()
         }
+        this.eventLogs = this.eventLogs.filter(item => 
+          !(item.appId === appId && item.waitValue === waitValue)
+        )
       }
     },
     handleFilterChange() {

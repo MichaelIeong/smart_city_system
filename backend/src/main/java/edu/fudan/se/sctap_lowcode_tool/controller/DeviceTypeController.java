@@ -68,9 +68,9 @@ public class DeviceTypeController {
      */
     @GetMapping("/fromTslProduct")
     public List<Map<String, Object>> getAllDeviceTypesFromTslProduct(
-            @RequestParam(value = "mesh_nature", required = false) String meshNature // 新增参数
+            @RequestParam(value = "mesh_nature", required = false) String meshNature
     ) {
-        List<TslProduct> products = tslDeviceService.getProductTypesByScene(meshNature);
+        List<TslProduct> products = deviceTypeService.getTslProductsByScene(meshNature);
 
         // 将 Entity 转换为前端需要的 Map 结构
         return products.stream().map(p -> {
@@ -78,28 +78,45 @@ public class DeviceTypeController {
             map.put("deviceTypeId", p.getProductId());
             map.put("deviceTypeName", p.getProductName());
 
-            // 注意：假设 TslProduct 实体类中有这些字段的 getter
-            // 如果实体类里没有 mapped 到 product_property，这行可能取不到值，请检查 TslProduct.java
             map.put("deviceTypeAttributes", p.getProductProperty());
             map.put("deviceTypeFunction", p.getProductFunction());
+            map.put("deviceTypeInstruction", p.getProductInstruction()); // 映射 instruction
+            map.put("deviceTypeEvent", p.getProductEvent());             // 映射 event
+            map.put("productJson", p.getProductJson());                  // 映射 json
 
             return map;
         }).collect(Collectors.toList());
 
     }
 
+
+    /**
+     * 新增设备类型 (接收场景参数)
+     */
     @PostMapping("/add")
-    public ResponseEntity<?> addDeviceTypeFromMap(@RequestBody Map<String, String> deviceTypeData) {
+    public ResponseEntity<?> addDeviceTypeFromMap(@RequestBody Map<String, Object> deviceTypeData) { // 改为 Object
         try {
             Map<String, Object> result = deviceTypeService.addDeviceType(deviceTypeData);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("success", false, "message", "请求参数错误：" + e.getMessage()));
+                    .body(Map.of("success", false, "message", "参数错误：" + e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("success", false, "message", "新增设备类型失败：" + e.getMessage()));
+                    .body(Map.of("success", false, "message", "失败：" + e.getMessage()));
+        }
+    }
+
+    // 删除设备类型接口 (针对 TSL 表)
+    @DeleteMapping("/tsl/{productId}")
+    public ResponseEntity<?> deleteTslProduct(@PathVariable String productId) {
+        try {
+            deviceTypeService.deleteDeviceTypeTsl(productId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "删除成功"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", e.getMessage()));
         }
     }
 }

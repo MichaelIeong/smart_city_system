@@ -18,6 +18,7 @@ import org.hibernate.query.sqm.sql.ConversionException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.scheduling.annotation.Async;
@@ -113,6 +114,12 @@ public abstract class EventIngestor {
      * 通过定时任务从特斯联数据源拉取事件并发布到流水线。
      */
     @Component
+    @ConditionalOnProperty(
+        prefix = "fusion.ingestor.tsl-scheduled",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true
+    )
     public static class TslScheduledFetcher extends EventIngestor {
 
         private final TslApiUtil tslApiUtil;

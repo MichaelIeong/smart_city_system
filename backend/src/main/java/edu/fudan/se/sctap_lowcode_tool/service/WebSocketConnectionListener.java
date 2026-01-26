@@ -38,7 +38,7 @@ public class WebSocketConnectionListener {
             // ==========================
             // ① 推送真实正在执行的规则（如果有）
             // ==========================
-            Map<String, Map<String, List<AlertMessage>>> snapshot = new HashMap<>(appRuleExecutorService.getAppRuleLogPushMap());
+            Map<Integer, Map<String, List<AlertMessage>>> snapshot = new HashMap<>(appRuleExecutorService.getAppRuleLogPushMap());
             if (snapshot.isEmpty()) {
                 return;
             }

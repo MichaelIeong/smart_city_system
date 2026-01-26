@@ -99,18 +99,26 @@ public class TslDeviceController {
         return ResponseEntity.ok(appRuleService.getAppRulesByGridId("crossRegion"));
     }
 
+
+    // 新增接口
     @PostMapping("/instances")
-    public ResponseEntity<?> addDeviceInstance(@RequestBody Map<String, String> instanceData) {
+    public ResponseEntity<?> addDeviceInstance(@RequestBody Map<String, Object> params) {
         try {
-            Map<String, Object> result = tslDeviceService.addDeviceInstance(instanceData);
-            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+            return ResponseEntity.ok(tslDeviceService.addDeviceInstance(params));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("success", false, "message", "请求参数错误：" + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/batch")
+    public ResponseEntity<?> deleteDeviceInstances(@RequestBody List<String> deviceIds) {
+        try {
+            tslDeviceService.deleteDeviceInstances(deviceIds);
+            return ResponseEntity.ok(Map.of("success", true, "message", "删除成功"));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("success", false, "message", "新增设备实例失败：" + e.getMessage()));
+                    .body(Map.of("success", false, "message", "删除失败: " + e.getMessage()));
         }
     }
 }

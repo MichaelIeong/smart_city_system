@@ -13,47 +13,102 @@
                 row-key="deviceTypeId"
                 :pagination="false"
                 :scroll="{ x: 900, y: 400 }"
-                @click="handleDeviceTypeClick"
-                :customRow="customRowClick"
                 style="flex: 1; overflow: hidden;"
-                :row-class-name="rowClassName"
+                :customRow="customRowClick"
+                :rowClassName="setRowClassName"
               />
 
-              <div style="margin-top: auto; padding-top: 16px; display: flex; align-items: center;">
-                <a-button type="primary" @click="showAddDeviceTypeModal">新增设备类型</a-button>
+              <div style="margin-top: auto; padding-top: 16px; display: flex; align-items: center; gap: 8px;">
+                <a-button type="primary" @click="showAddDeviceTypeModal">
+                  新增设备类型
+                </a-button>
+                <a-button
+                  type="danger"
+                  :disabled="!selectedDeviceType"
+                  @click="confirmDeleteDeviceType"
+                >
+                  删除设备类型
+                </a-button>
               </div>
             </div>
 
             <a-modal
               v-model="isDeviceTypeModalVisible"
               title="新增设备类型"
+              width="800px"
               @ok="handleNewDeviceTypeSubmit"
               @cancel="handleCancel"
+              :bodyStyle="{ padding: '24px 40px' }"
             >
-              <a-row :gutter="24">
-                <a-col :span="12">
-                  <a-form-item label="设备类型序号">
-                    <a-input v-model="newDeviceType.deviceTypeId" placeholder="输入设备类型序号" />
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="设备类型名称">
-                    <a-input v-model="newDeviceType.deviceTypeName" placeholder="输入设备类型名称" />
-                  </a-form-item>
-                </a-col>
-              </a-row>
-              <a-row :gutter="24">
-                <a-col :span="12">
-                  <a-form-item label="设备类型属性">
-                    <a-input v-model="newDeviceType.deviceTypeAttributes" placeholder="输入设备类型属性" />
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="设备类型功能">
-                    <a-input v-model="newDeviceType.deviceTypeFunction" placeholder="输入设备类型功能" />
-                  </a-form-item>
-                </a-col>
-              </a-row>
+              <a-form :model="newDeviceType">
+                <a-row :gutter="32">
+                  <a-col :span="12">
+                    <a-form-item label="设备类型ID" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-input v-model="newDeviceType.deviceTypeId" placeholder="请输入唯一标识，如: p_ai_camera" />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="设备类型名称" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-input v-model="newDeviceType.deviceTypeName" placeholder="请输入显示名称，如: AI摄像机" />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+
+                <a-row :gutter="32">
+                  <a-col :span="12">
+                    <a-form-item label="设备类型属性" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-textarea
+                        v-model="newDeviceType.deviceTypeAttributes"
+                        placeholder="请输入属性数组，例如: [&quot;视频流地址&quot;, &quot;状态&quot;]"
+                        :auto-size="{ minRows: 3, maxRows: 5 }"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="设备类型功能" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-textarea
+                        v-model="newDeviceType.deviceTypeFunction"
+                        placeholder="请输入功能数组，例如: [&quot;获取视频流&quot;, &quot;重启&quot;]"
+                        :auto-size="{ minRows: 3, maxRows: 5 }"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+
+                <a-row :gutter="32">
+                  <a-col :span="12">
+                    <a-form-item label="设备类型指令" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-textarea
+                        v-model="newDeviceType.deviceTypeInstruction"
+                        placeholder="请输入指令数组，例如: [&quot;开机&quot;, &quot;关机&quot;]"
+                        :auto-size="{ minRows: 3, maxRows: 5 }"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="设备类型事件" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                      <a-textarea
+                        v-model="newDeviceType.deviceTypeEvent"
+                        placeholder="请输入事件数组，例如: [&quot;渣土车识别&quot;, &quot;消防通道占用&quot;]"
+                        :auto-size="{ minRows: 3, maxRows: 5 }"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+
+                <a-row>
+                  <a-col :span="24">
+                    <a-form-item label="Product JSON" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
+                      <a-textarea
+                        v-model="newDeviceType.productJson"
+                        placeholder="请输入完整的指令 JSON"
+                        :auto-size="{ minRows: 4, maxRows: 10 }"
+                        style="font-family: monospace;"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
             </a-modal>
           </a-card>
         </a-col>
@@ -159,14 +214,9 @@
               <a-input v-model="newDeviceInstance.deviceTime" placeholder="输入设备可用时间" />
             </a-form-item>
           </a-col>
-          <a-col :span="8">
+          <a-col :span="12">
             <a-form-item label="设备状态">
               <a-input v-model="newDeviceInstance.states" placeholder="输入设备状态" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="操作">
-              <a-input v-model="newDeviceInstance.operation" placeholder="输入设备操作" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -177,6 +227,8 @@
 
 <script>
 import axios from 'axios'
+// ✅ 1. 显式引入 Modal，解决 this.$confirm 可能无效的问题
+import { Modal } from 'ant-design-vue'
 
 export default {
   beforeCreate () {
@@ -185,7 +237,7 @@ export default {
   },
   data () {
     return {
-      currentScene: '', // 新增：当前场景ID (mesh_nature)
+      currentScene: '',
       selectedDeviceType: null,
       selectedRowKeys: [],
       selectedInstanceKeys: [],
@@ -215,6 +267,31 @@ export default {
           align: 'center',
           width: 250,
           customRender: (text) => <div style="white-space: pre-line;">{text || '-'}</div>
+        },
+        {
+          title: '设备类型指令',
+          dataIndex: 'deviceTypeInstruction',
+          key: 'deviceTypeInstruction',
+          align: 'center',
+          width: 200,
+          customRender: (text) => <div style="white-space: pre-line; max-height: 100px; overflow-y: auto;">{text || '-'}</div>
+        },
+        {
+          title: '设备类型事件',
+          dataIndex: 'deviceTypeEvent',
+          key: 'deviceTypeEvent',
+          align: 'center',
+          width: 200,
+          customRender: (text) => <div style="white-space: pre-line; max-height: 100px; overflow-y: auto;">{text || '-'}</div>
+        },
+        {
+          title: 'Product JSON',
+          dataIndex: 'productJson',
+          key: 'productJson',
+          align: 'center',
+          width: 200,
+          ellipsis: true,
+          customRender: (text) => <a-tooltip title={text}><span>{text ? 'JSON数据' : '-'}</span></a-tooltip>
         }
       ],
       deviceTypes: [],
@@ -223,12 +300,11 @@ export default {
         { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 120, align: 'center' },
         { title: '设备所属区域', dataIndex: 'deviceRegion', key: 'deviceRegion', width: 120, align: 'center' },
         { title: '设备状态', dataIndex: 'states', key: 'states', width: 100, align: 'center' },
-        { title: '设备可用时间', dataIndex: 'deviceTime', key: 'deviceTime', width: 140, align: 'center' },
-        { title: '操作', dataIndex: 'operation', key: 'operation', width: 120, align: 'center' }
+        { title: '设备可用时间', dataIndex: 'deviceTime', key: 'deviceTime', width: 140, align: 'center' }
       ],
       deviceInstances: [],
-      newDeviceType: { deviceTypeId: '', deviceTypeName: '', deviceTypeAttributes: '', deviceTypeFunction: '' },
-      newDeviceInstance: { deviceId: '', deviceName: '', deviceRegion: '', deviceTime: '', states: '', operation: '' },
+      newDeviceType: { deviceTypeId: '', deviceTypeName: '', deviceTypeAttributes: '', deviceTypeFunction: '', deviceTypeInstruction: '', deviceTypeEvent: '', productJson: '' },
+      newDeviceInstance: { deviceId: '', deviceName: '', deviceRegion: '', deviceTime: '', states: '' },
       loading: false
     }
   },
@@ -242,8 +318,6 @@ export default {
       })
     },
     deviceInstanceTitle () {
-      // 可以在标题中也显示当前场景，如果需要的话
-      // return this.selectedDeviceType ? `设备实例 (${this.selectedDeviceType.deviceTypeName}) - ${this.currentScene}` : '设备实例'
       return this.selectedDeviceType ? `设备实例 (${this.selectedDeviceType.deviceTypeName})` : '设备实例'
     },
     selectedDeviceNames () {
@@ -258,30 +332,20 @@ export default {
     }
   },
   mounted () {
-    // 1. 尝试从 URL 获取参数
     let scene = this.$route.query.scene
-
-    // 2. 如果 URL 没参数，尝试从 LocalStorage 读取
     if (!scene) {
       scene = localStorage.getItem('current_scene_type')
     }
-
-    // 3. 如果还是没有，默认给 'F-city'
     if (!scene) {
       scene = 'F-city'
     }
-
-    // 4. 赋值并更新状态
     this.currentScene = scene
-
     if (this.$route.query.scene !== scene) {
       this.$router.replace({
         path: this.$route.path,
         query: { ...this.$route.query, scene: scene }
       })
     }
-
-    // 5. 发起请求
     this.fetchDeviceTypes()
     this.fetchDeviceData()
     this.fetchGridList()
@@ -290,7 +354,6 @@ export default {
     async fetchGridList () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // 2. 传递 mesh_nature 参数进行过滤
         const response = await axios.get(`${baseUrl}/api/meshes/all`, {
           params: { mesh_nature: this.currentScene }
         })
@@ -307,7 +370,6 @@ export default {
       try {
         const projectId = localStorage.getItem('project_id') || '1'
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // 3. 传递 mesh_nature 参数进行过滤
         const response = await axios.get(`${baseUrl}/api/devices`, {
           params: {
             project: projectId,
@@ -329,8 +391,6 @@ export default {
     async fetchDeviceTypes () {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // 4. 传递 mesh_nature 参数进行过滤
-        // 假设获取产品类型的接口也支持 mesh_nature 过滤，或者由后端返回该场景下的类型
         const response = await axios.get(`${baseUrl}/api/deviceTypes/fromTslProduct`, {
           params: { mesh_nature: this.currentScene }
         })
@@ -338,14 +398,16 @@ export default {
           deviceTypeId: item.deviceTypeId,
           deviceTypeName: item.deviceTypeName,
           deviceTypeAttributes: this.formatArrayField(item.deviceTypeAttributes, '未知属性'),
-          deviceTypeFunction: this.formatArrayField(item.deviceTypeFunction, '无特定功能')
+          deviceTypeFunction: this.formatArrayField(item.deviceTypeFunction, '无特定功能'),
+          deviceTypeInstruction: this.formatArrayField(item.deviceTypeInstruction || item.productInstruction, '无指令'),
+          deviceTypeEvent: this.formatArrayField(item.deviceTypeEvent || item.productEvent, '无事件'),
+          productJson: item.productJson || ''
         }))
       } catch (error) { console.error('获取设备类型失败:', error) }
     },
     async fetchDeviceInstancesByType (prodId) {
       try {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        // 5. 传递 mesh_nature 参数进行过滤
         const response = await axios.get(`${baseUrl}/api/devices/instances`, {
           params: {
             prodId,
@@ -388,10 +450,6 @@ export default {
     },
     onSelectChange (selectedRowKeys) { this.selectedInstanceKeys = selectedRowKeys },
     deleteDeviceInstance () { this.isDeleteModalVisible = true },
-    confirmDeleteDevice () {
-      this.deviceInstances = this.deviceInstances.filter(d => !this.selectedInstanceKeys.includes(d.deviceId))
-      this.selectedInstanceKeys = []; this.isDeleteModalVisible = false; this.$message.success('删除成功')
-    },
     cancelDeleteDevice () { this.isDeleteModalVisible = false },
     async refreshDevice () {
       const deviceId = this.selectedInstanceKeys[0]
@@ -409,27 +467,203 @@ export default {
     },
     handleRefreshOk () { this.isRefreshModelVisible = false },
     handleRefreshCancel () { this.isRefreshModelVisible = false },
-    async handleDeviceTypeClick (record) {
+
+    // 统一处理行点击逻辑
+    handleDeviceTypeClick (record) {
+      console.log('点击选中:', record.deviceTypeName)
       this.selectedDeviceType = record
-      this.selectedRowKeys = [record.deviceTypeId]
-      this.$message.info(`加载 ${record.deviceTypeName}...`)
-      await this.fetchDeviceInstancesByType(record.deviceTypeId)
+      if (this.fetchDeviceInstancesByType) {
+        this.fetchDeviceInstancesByType(record.deviceTypeId)
+      }
     },
+
+    // 自定义行点击事件 (绑定到 customRow)
     customRowClick (record) {
-      return { on: { click: () => this.handleDeviceTypeClick(record) }, style: { cursor: 'pointer' } }
+      return {
+        on: {
+          click: () => {
+            this.handleDeviceTypeClick(record)
+          }
+        },
+        style: {
+          cursor: 'pointer'
+        }
+      }
     },
-    rowClassName (record) { return this.selectedRowKeys.includes(record.deviceTypeId) ? 'selected-row' : '' },
+
+    // 设置行样式
+    setRowClassName (record) {
+      return (this.selectedDeviceType && record.deviceTypeId === this.selectedDeviceType.deviceTypeId)
+        ? 'selected-row'
+        : ''
+    },
+
+    // 触发删除确认弹窗 (使用 Modal.confirm 确保能弹出)
+    confirmDeleteDeviceType () {
+      if (!this.selectedDeviceType) return
+
+      const that = this
+      const typeName = this.selectedDeviceType.deviceTypeName
+      const typeId = this.selectedDeviceType.deviceTypeId
+
+      Modal.confirm({
+        title: '确认删除',
+        content: `确定要删除设备类型“${typeName}”吗？此操作不可恢复。`,
+        okText: '确认删除',
+        okType: 'danger',
+        cancelText: '取消',
+        onOk () {
+          // 调用真正的删除逻辑
+          return that.handleDeleteDeviceType(typeId)
+        },
+        onCancel () {}
+      })
+    },
+
+    async handleDeleteDeviceType (deviceTypeId) {
+      try {
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        await axios.delete(`${baseUrl}/api/deviceTypes/tsl/${deviceTypeId}`)
+
+        this.$message.success('删除成功')
+
+        // 关键：清空选中状态，防止删除后还能点击
+        this.selectedDeviceType = null
+
+        // 刷新列表
+        this.fetchDeviceTypes()
+
+        // 清空右侧的实例列表
+        this.deviceInstances = []
+      } catch (error) {
+        console.error('删除设备类型失败:', error)
+        const msg = error.response?.data?.message || '删除失败，请稍后重试'
+        this.$message.error(msg)
+      }
+    },
+    /**
+     * 新增设备实例
+     */
+    async handleNewDeviceInstanceSubmit () {
+      // 1. 校验必填项
+      if (!this.newDeviceInstance.deviceId || !this.newDeviceInstance.deviceName) {
+        this.$message.warning('请填写设备序号和设备名称')
+        return
+      }
+
+      // 2. 校验是否已选中左侧设备类型
+      if (!this.selectedDeviceType) {
+        this.$message.warning('请先在左侧选择一个设备类型')
+        return
+      }
+
+      try {
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+
+        // 3. 构造提交参数 (完全匹配后端 Service 接收的 Map)
+        const payload = {
+          // 必填项
+          deviceId: this.newDeviceInstance.deviceId,
+          deviceName: this.newDeviceInstance.deviceName,
+          deviceTypeId: this.selectedDeviceType.deviceTypeId, // 关联左侧选中的类型ID
+          mesh_nature: this.currentScene, // 当前场景 (F-city 等)
+
+          // 选填项
+          deviceRegion: this.newDeviceInstance.deviceRegion, // 对应后端的 meshName
+          deviceTime: this.newDeviceInstance.deviceTime, // 对应 createdAt
+          states: this.newDeviceInstance.states // 对应 status (支持输入 "在线" 或 "1")
+        }
+
+        console.log('正在提交设备实例:', payload)
+
+        // 4. 发送 POST 请求
+        const res = await axios.post(`${baseUrl}/api/devices/instances`, payload)
+
+        if (res.status === 200 || res.status === 201) {
+          this.$message.success('设备实例添加成功')
+          this.isDeviceInstanceModalVisible = false
+
+          // 5. 清空表单
+          this.newDeviceInstance = {
+            deviceId: '',
+            deviceName: '',
+            deviceRegion: '',
+            deviceTime: '',
+            states: ''
+          }
+
+          // 6. 刷新右侧列表
+          this.fetchDeviceInstancesByType(this.selectedDeviceType.deviceTypeId)
+        }
+      } catch (error) {
+        console.error(error)
+        const msg = error.response?.data?.message || '添加失败，请检查设备序号是否重复'
+        this.$message.error(msg)
+      }
+    },
+    /**
+     * 批量删除设备实例
+     */
+    async confirmDeleteDevice () {
+      if (this.selectedInstanceKeys.length === 0) return
+
+      try {
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+
+        console.log('正在删除设备实例:', this.selectedInstanceKeys)
+
+        // 发送 DELETE 请求
+        // 注意：axios.delete 的第二个参数是 config，body 需要放在 data 字段里
+        await axios.delete(`${baseUrl}/api/devices/batch`, {
+          data: this.selectedInstanceKeys
+        })
+
+        this.$message.success('删除成功')
+        this.isDeleteModalVisible = false
+        this.selectedInstanceKeys = [] // 清空选中状态
+
+        // 刷新列表
+        if (this.selectedDeviceType) {
+          this.fetchDeviceInstancesByType(this.selectedDeviceType.deviceTypeId)
+        }
+      } catch (error) {
+        console.error('删除失败:', error)
+        const msg = error.response?.data?.message || '删除失败'
+        this.$message.error(msg)
+      }
+    },
+
     showAddDeviceTypeModal () { this.isDeviceTypeModalVisible = true },
     showDeviceInstanceModal () { this.isDeviceInstanceModalVisible = true },
-    handleNewDeviceTypeSubmit () {
-      this.deviceTypes.push({ ...this.newDeviceType })
-      this.isDeviceTypeModalVisible = false; this.$message.success('添加成功')
+
+    async handleNewDeviceTypeSubmit () {
+      if (!this.newDeviceType.deviceTypeId || !this.newDeviceType.deviceTypeName) {
+        this.$message.warning('请填写完整的设备类型信息')
+        return
+      }
+      try {
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+        const payload = {
+          ...this.newDeviceType,
+          mesh_nature: this.currentScene
+        }
+        const res = await axios.post(`${baseUrl}/api/deviceTypes/add`, payload)
+        if (res.status === 200 || res.status === 201) {
+          this.$message.success('设备类型添加成功')
+          this.isDeviceTypeModalVisible = false
+          this.newDeviceType = {
+            deviceTypeId: '', deviceTypeName: '', deviceTypeAttributes: '', deviceTypeFunction: '', deviceTypeInstruction: '', deviceTypeEvent: '', productJson: ''
+          }
+          this.fetchDeviceTypes()
+        }
+      } catch (error) {
+        console.error(error)
+        const msg = error.response?.data?.message || '添加失败'
+        this.$message.error(msg)
+      }
     },
+
     handleCancel () { this.isDeviceTypeModalVisible = false },
-    handleNewDeviceInstanceSubmit () {
-      this.deviceInstances.push({ ...this.newDeviceInstance, deviceTypeId: this.selectedDeviceType.deviceTypeId })
-      this.isDeviceInstanceModalVisible = false; this.$message.success('添加成功')
-    },
     handleCancelDeviceInstance () { this.isDeviceInstanceModalVisible = false },
     addDeviceInstance () {}
   }
@@ -442,11 +676,18 @@ export default {
 .ant-table-tbody > tr > td { text-align: center; padding: 8px 12px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 .ant-table-thead > tr > th { white-space: nowrap; text-align: center; padding: 8px 4px; font-size: 13px; }
 
-/* 强制卡片Body区域占满高度并使用Flex布局 */
 .full-height-card >>> .ant-card-body {
-  height: calc(100% - 58px); /* 减去Header高度 */
+  height: calc(100% - 58px);
   display: flex;
   flex-direction: column;
+}
+.selected-row {
+  background-color: #e6f7ff !important;
+  cursor: pointer;
+}
+.ant-table-tbody > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected) > td {
+  background-color: #f5f5f5;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) { .ant-col-12 { width: 100% !important; margin-bottom: 16px; } }
