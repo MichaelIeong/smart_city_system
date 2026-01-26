@@ -659,6 +659,11 @@ public class AppRuleService {
      * 根据网格ID获取应用规则列表
      */
     public List<AppRuleInfo> getAppRulesByGridId(String gridId) {
+        // 如果前端请求的是 "crossRegion"，则查询全局跨网格应用
+        if ("crossRegion".equals(gridId)) {
+            return appRuleRepository.findAllGlobalRules();
+        }
+        // 否则按具体的网格ID查询（通过 AppGrid 表关联）
         return appRuleRepository.findByGridId(gridId);
     }
 
