@@ -164,7 +164,6 @@ public class AppRuleService {
         // 如果是通过Node-RED创建应用
         if(flowJson!=null&&!flowJson.isBlank()) {
             AppRule appRule = nodeRedFlowJsonToAppRule(flowJson);
-            System.out.println(appRule);
             if(appRule==null) {
                 return 0;
             }
@@ -201,36 +200,11 @@ public class AppRuleService {
         return 0;
     }
 
-    /**
-     * 绑定规则到网格
-     * 如果创建时指定了 gridId，则自动在 app_grid 表中创建关联
-     */
-    private void bindRuleToGrid(Integer ruleId, String gridId) {
-        if (ruleId != null && gridId != null && !gridId.isBlank()) {
-            // 简单处理：直接保存关联，默认启用
-            AppGrid appGrid = new AppGrid();
-            appGrid.setAppRuleId(ruleId);
-            appGrid.setGridId(gridId);
-            appGrid.setEnabled(true);
-            appGridRepository.save(appGrid);
-        }
-    }
-
     public boolean updateRule(AppRuleUpdateRequest appRuleUpdateRequest) {
         // 首先判断应用是否存在
         AppRuleInfo appRuleInfo = appRuleRepository.findById(appRuleUpdateRequest.getId()).orElse(null);
         if(appRuleInfo==null) {
             return false;
-        }
-        String gridId;
-        if(appRuleInfo.getCrossRegion()) {
-            gridId = "crossRegion";
-        } else {
-            List<AppGrid> appGrids = appGridRepository.findByAppRuleId(appRuleInfo.getId());
-            if(appGrids==null || appGrids.isEmpty()) {
-                return false;
-            }
-            gridId = appGrids.get(0).getGridId();
         }
         String flowJson = appRuleUpdateRequest.getFlowJson();
         String description = appRuleUpdateRequest.getDescription();
@@ -238,12 +212,12 @@ public class AppRuleService {
             // 更新 flowJson 和 ruleJson
             if(!flowJson.equals(appRuleInfo.getFlowJson())) {
                 // 转换JSON
-                String jsonRule = convertNodeRedFlowJsonToAppRuleJson(flowJson, gridId);
-                if(jsonRule==null||jsonRule.isBlank()) {
+                AppRule appRule = nodeRedFlowJsonToAppRule(flowJson);
+                try {
+                    appRuleInfo.setRuleJson(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(appRule));
+                } catch (JsonProcessingException e) {
                     return false;
                 }
-                var appRule = parseJsonRule(jsonRule);
-                appRuleInfo.setRuleJson(jsonRule);
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
                 appRuleInfo.setFlowJson(flowJson);
             }
@@ -350,7 +324,6 @@ public class AppRuleService {
             String envPropertiesStr = String.join("\n", envProperties);
             String envServicesStr = String.join("\n", envServices);
             String systemPrompt = String.format(SystemPrompt.NATURAL_RULE_GENERATE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
-            System.out.println(systemPrompt);
             messages.add(new SystemMessage(systemPrompt));
         }
         // 加入用户消息
@@ -382,7 +355,6 @@ public class AppRuleService {
         String envPropertiesStr = String.join("\n", envProperties);
         String envServicesStr = String.join("\n", envServices);
         String systemPrompt = String.format(SystemPrompt.JSON_RULE_GENERATE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
-        System.out.println(systemPrompt);
         messages.add(new SystemMessage(systemPrompt));
         messages.add(new UserMessage(message));
         // 调用大模型
@@ -470,73 +442,6 @@ public class AppRuleService {
             log.error("解析JSON规则失败: {}", e.getMessage());
             return null;
         }
-    }
-
-    /**
-     * 将Node-RED Flow 转换成 AppRuleJson
-     * */
-    private String convertNodeRedFlowJsonToAppRuleJson(String nodeRedFlowJson, String gridId) {
-        // 构造系统消息和用户消息
-        List<ChatMessage> messages = new ArrayList<>();
-        // 根据网格ID获取环境级事件、属性、服务列表
-        List<String> envEvents = envEventService.getEnvEventJsonList(gridId);
-        List<String> envProperties = envPropertyService.getEnvPropertyStringList();
-        List<String> envServices = envServiceService.getEnvServiceJsonList(gridId);
-        String envEventsStr = String.join("\n", envEvents);
-        String envPropertiesStr = String.join("\n", envProperties);
-        String envServicesStr = String.join("\n", envServices);
-        String systemPrompt = String.format(SystemPrompt.NODE_RED_CONVERT_JSON_RULE_PROMPT, envEventsStr, envPropertiesStr, envServicesStr);
-        messages.add(new SystemMessage(systemPrompt));
-        messages.add(new UserMessage(nodeRedFlowJson));
-        // 最多重试一次
-        final int MAX_RETRY = 1;
-        for(int attempt=0; attempt<=MAX_RETRY; attempt++) {
-            ChatResponse response;
-            String rawText;
-            try{
-                // 调用大模型
-                response = chatLanguageModel.chat(messages);
-                if (response == null || response.aiMessage() == null) {
-                    appendFeedback(messages,
-                            "模型未返回有效响应（response/aiMessage 为 null）。请仅输出一个 ```json ... ``` 代码块，内容为符合约束的 AppRule JSON。");
-                    continue;
-                }
-                rawText = response.aiMessage().text();
-                if (rawText == null || rawText.isBlank()) {
-                    appendFeedback(messages,
-                            "模型返回文本为空。请仅输出一个 ```json ... ``` 代码块，且不要包含解释性文字。");
-                    continue;
-                }
-                Matcher matcher = Pattern.compile("```json\\s*(\\{.*?})\\s*```", Pattern.DOTALL).matcher(rawText);
-                // 提取JSON
-                if (!matcher.find()) {
-                    appendFeedback(messages,
-                            "未在输出中找到 ```json ... ``` 代码块。请仅输出一个 ```json ... ``` 代码块，且内容必须是单个 JSON 对象。");
-                    continue;
-                }
-                String jsonRule = matcher.group(1).trim();
-                // 判断能否被解析
-                try {
-                    AppRule appRule = parseJsonRule(jsonRule);
-                    if (appRule != null) {
-                        // 通过：返回原始 JSON 字符串
-                        return jsonRule;
-                    } else {
-                        appendFeedback(messages,
-                                "解析失败：parseJsonRule 返回 null。请根据提示修正并仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
-                    }
-                } catch (Exception parseEx) {
-                    appendFeedback(messages,
-                            "解析异常：" + parseEx.getMessage() + "。请修正并仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
-                }
-
-            } catch (Exception callEx) {
-                appendFeedback(messages,
-                        "调用模型异常：" + callEx.getMessage() + "。请仅输出一个 ```json ... ``` 代码块的有效 AppRule JSON。");
-            }
-        }
-        // 全部尝试失败
-        return null;
     }
 
     /**
