@@ -3,8 +3,11 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupDeployDetail;
+import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncResponse;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvServiceService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
@@ -63,5 +66,21 @@ public class EnvServiceController {
     public ResponseEntity<Void> deleteEnvService(@PathVariable Integer id) {
         envServiceService.deleteEnvService(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 根据服务ID获取同类型的网格
+     * */
+    @GetMapping("/typeOfService/{serviceId}")
+    public ResponseEntity<List<GridMesh>> getGridListByServiceId(@PathVariable Integer serviceId) {
+        return ResponseEntity.ok(envServiceService.getGridListByServiceId(serviceId));
+    }
+
+    /**
+     * 服务组同步下发
+     * */
+    @PostMapping("/sync")
+    public ResponseEntity<List<ServiceGroupSyncResponse>> syncServiceGroup(@RequestBody ServiceGroupSyncRequest request) {
+        return ResponseEntity.ok(envServiceService.syncServiceGroup(request));
     }
 }

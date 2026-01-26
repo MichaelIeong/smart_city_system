@@ -1,8 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionDeployDetail;
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncRequest;
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvEventService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
@@ -62,5 +65,21 @@ public class EnvEventController {
     public ResponseEntity<Void> deleteEnvEvent(@PathVariable Integer id) {
         envEventService.deleteEnvEvent(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 根据事件ID获取同类型的网格
+     * */
+    @GetMapping("/typeOfEvent/{eventId}")
+    public ResponseEntity<List<GridMesh>> getGridListByEventId(@PathVariable Integer eventId) {
+        return ResponseEntity.ok(envEventService.getGridListByEventId(eventId));
+    }
+
+    /**
+     * 事件融合同步下发
+     * */
+    @PostMapping("/sync")
+    public ResponseEntity<List<EventFusionSyncResponse>> syncEventFusion(@RequestBody EventFusionSyncRequest request) {
+        return ResponseEntity.ok(envEventService.syncEventFusion(request));
     }
 }

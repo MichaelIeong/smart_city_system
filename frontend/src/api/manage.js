@@ -745,3 +745,59 @@ export function deleteEnvService (id) {
     }
   })
 }
+
+// 根据事件ID获取同类型的网格
+export function getGridListByEventId (eventId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/typeOfEvent/${eventId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据服务ID获取同类型的网格
+export function getGridListByServiceId (serviceId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/typeOfService/${serviceId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 事件融合同步下发
+export function syncEventFusion (eventId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      eventId,
+      gridIdList
+    }
+  })
+}
+
+// 服务组同步下发
+export function syncServiceGroup (serviceId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      serviceId,
+      gridIdList
+    }
+  })
+}

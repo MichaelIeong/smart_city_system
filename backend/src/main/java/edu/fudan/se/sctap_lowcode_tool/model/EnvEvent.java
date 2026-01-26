@@ -39,4 +39,7 @@ public class EnvEvent {
 
     @Column(name = "create_time")
     private LocalDateTime createTime; // 创建时间
+
+    @Column(name = "depend_dtypes")
+    private String dependDtypes; // 依赖的设备类型
 }

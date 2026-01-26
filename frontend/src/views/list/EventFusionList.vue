@@ -66,6 +66,7 @@
       </a-table>
     </a-card>
 
+    <!-- 部署详情弹窗 -->
     <a-modal
       :title="detailModalTitle"
       :width="600"
@@ -85,6 +86,48 @@
       >
       </a-table>
     </a-modal>
+
+    <!-- 应用同步弹窗 -->
+    <a-modal
+      v-model="syncModalVisible"
+      title="事件融合同步下发"
+      :width="800"
+      :confirmLoading="syncConfirmLoading"
+      @ok="handleDoSync"
+      @cancel="handleSyncCancel"
+    >
+      <a-spin :spinning="syncModalLoading">
+        <a-table
+          :columns="gridColumns"
+          :data-source="syncGridData"
+          :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
+          rowKey="id"
+          size="small"
+          :pagination="false"
+        >
+        </a-table>
+      </a-spin>
+    </a-modal>
+
+    <!-- 同步结果弹窗 -->
+    <a-modal
+      v-model="resultModalVisible"
+      title="同步结果"
+      :width="800"
+      :footer="null"
+    >
+      <a-table
+        :columns="syncResultColumns"
+        :data-source="syncResultData"
+        rowKey="gridId"
+        size="small"
+        :pagination="false"
+      >
+        <span slot="isSuccessSlot" slot-scope="text">
+          <a-badge :status="text === 1 ? 'success' : 'error'" :text="text === 1 ? '成功' : '失败'" />
+        </span>
+      </a-table>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
@@ -93,7 +136,7 @@
 import { message, Modal } from 'ant-design-vue';
 import { ref, reactive, onMounted, computed } from 'vue';
 import dayjs from 'dayjs';
-import { listEnvEvent, getAllEnvEvent, getEventFusionDeployDetail, deleteEnvEvent } from '@/api/manage';
+import { listEnvEvent, getAllEnvEvent, getEventFusionDeployDetail, deleteEnvEvent, getGridListByEventId, syncEventFusion } from '@/api/manage';
 
 export default {
     name: 'EventFusionList',
@@ -160,6 +203,37 @@ export default {
           { title: '网格名称', dataIndex: 'meshName', key: 'meshName' }
         ];
 
+        // === 应用同步状态 ===
+        const syncModalVisible = ref(false);
+        const syncModalLoading = ref(false);
+        const syncConfirmLoading = ref(false);
+        const syncGridData = ref([]);
+        const selectedRowKeys = ref([]);
+        const currentSyncEventId = ref(null);
+
+        // === 同步网格表格列定义 ===
+        const gridColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+          { title: '网格层次', dataIndex: 'meshNature', key: 'meshNature' },
+          { title: '网格类型', dataIndex: 'meshType', key: 'meshType' }
+        ];
+
+        // === 同步结果状态 ===
+        const resultModalVisible = ref(false);
+        const syncResultData = ref([]);
+        const syncResultColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' },
+          { 
+            title: '是否成功', 
+            dataIndex: 'isSuccess', 
+            key: 'isSuccess', 
+            scopedSlots: { customRender: 'isSuccessSlot' }
+          },
+          { title: '原因/备注', dataIndex: 'message', key: 'message' }
+        ];
+
         // === 核心数据加载函数 ===
         async function loadData(pageNo, pageSize, sorter = {}, filters = {}) {
             loading.value = true;
@@ -210,9 +284,55 @@ export default {
                     }));
                 }
             } catch (e) {
-                console.error('Fetch Event Options Error:', e);
-                message.error('加载事件类型下拉框失败');
+                console.error('获取事件类型选项失败', e);
             }
+        }
+
+        // 应用同步下发
+        async function handleSync(record) {
+          currentSyncEventId.value = record.id;
+          syncModalVisible.value = true;
+          syncModalLoading.value = true;
+          selectedRowKeys.value = [];
+          
+          try {
+            const res = await getGridListByEventId(record.id);
+            syncGridData.value = res || [];
+          } catch (e) {
+            message.error('获取网格列表失败');
+            syncGridData.value = [];
+          } finally {
+            syncModalLoading.value = false;
+          }
+        }
+
+        function onSelectChange(keys) {
+          selectedRowKeys.value = keys;
+        }
+
+        function handleSyncCancel() {
+          syncModalVisible.value = false;
+          selectedRowKeys.value = [];
+        }
+
+        async function handleDoSync() {
+          if (selectedRowKeys.value.length === 0) {
+            message.warning('请至少选择一个网格');
+            return;
+          }
+          
+          syncConfirmLoading.value = true;
+          try {
+            const res = await syncEventFusion(currentSyncEventId.value, selectedRowKeys.value);
+            syncResultData.value = res || [];
+            syncModalVisible.value = false;
+            resultModalVisible.value = true;
+            selectedRowKeys.value = [];
+          } catch (e) {
+            message.error('同步下发失败：' + (e?.message || '未知错误'));
+          } finally {
+            syncConfirmLoading.value = false;
+          }
         }
 
         // === a-table 事件处理函数 ===
@@ -239,10 +359,6 @@ export default {
             currentSorter = {};
             currentFilters = {};
             loadData(pagination.current, pagination.pageSize);
-        }
-
-        function handleSync(record) {
-            alert(`应用同步事件：${record.eventName || record.id}`);
         }
 
         // 显示部署详情
@@ -309,7 +425,19 @@ export default {
           deployDetailData,
           detailModalTitle,
           detailColumns,
-          handleDetailModalClose
+          handleDetailModalClose,
+          syncModalVisible,
+          syncModalLoading,
+          syncConfirmLoading,
+          syncGridData,
+          gridColumns,
+          selectedRowKeys,
+          onSelectChange,
+          handleSyncCancel,
+          handleDoSync,
+          resultModalVisible,
+          syncResultData,
+          syncResultColumns
         }
     }
 }
