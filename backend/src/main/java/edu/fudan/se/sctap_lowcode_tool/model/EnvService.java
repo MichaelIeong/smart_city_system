@@ -15,6 +15,9 @@ public class EnvService {
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
+    @Column(name = "name")
+    private String name;
+
     @Column(name = "description")
     private String description;
 
@@ -27,4 +30,7 @@ public class EnvService {
 
     @Column(name = "cross_region")
     private boolean crossRegion;
+
+    @Column(name = "depend_dtypes")
+    private String dependDtypes;
 }
