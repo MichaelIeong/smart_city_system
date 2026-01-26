@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionDeployDetail;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvEventService;
@@ -44,5 +45,22 @@ public class EnvEventController {
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder) {
         return envEventService.list(eventType, eventName, pageNo, pageSize, sortField, sortOrder);
+    }
+
+    /**
+     * 获取事件融合部署详情
+     * */
+    @GetMapping("/deploy/detail/{id}")
+    public ResponseEntity<List<EventFusionDeployDetail>> getEventFusionDeployDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(envEventService.getEventFusionDeployDetail(id));
+    }
+
+    /**
+     * 删除环境级事件
+     * */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEnvEvent(@PathVariable Integer id) {
+        envEventService.deleteEnvEvent(id);
+        return ResponseEntity.ok().build();
     }
 }

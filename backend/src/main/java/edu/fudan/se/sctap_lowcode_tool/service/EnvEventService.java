@@ -1,8 +1,13 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionDeployDetail;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
+import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -12,12 +17,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class EnvEventService {
     @Resource
     private EnvEventRepository envEventRepository;
+
+    @Resource
+    private EnvEventGridRepository envEventGridRepository;
+
+    @Resource
+    private GridMeshRepository gridMeshRepository;
 
     /**
      * 获取环境级事件列表
@@ -106,6 +118,42 @@ public class EnvEventService {
                 repoResult.getTotalElements(), repoResult.getTotalPages(),
                 repoResult.getContent()
         );
+    }
+
+    /**
+     * 获取事件融合部署详情
+     * @param envEventId 环境级事件ID
+     * @return 部署详情列表
+     */
+    public List<EventFusionDeployDetail> getEventFusionDeployDetail(Integer envEventId) {
+        List<EnvEventGrid> envEventGridList = envEventGridRepository.findByEnvEventId(envEventId);
+        return envEventGridList.stream().map(envEventGrid -> {
+            EventFusionDeployDetail detail = new EventFusionDeployDetail();
+            detail.setGridId(envEventGrid.getGridId());
+            GridMesh gridMesh = gridMeshRepository.findById(envEventGrid.getGridId()).orElse(null);
+            if(gridMesh != null) {
+                detail.setMeshNo(gridMesh.getMeshNo());
+                detail.setMeshName(gridMesh.getMeshName());
+            }
+            return detail;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 删除环境级事件
+     * @param envEventId 环境级事件ID
+     */
+    public void deleteEnvEvent(Integer envEventId) {
+        // 1. 删除env_event_grid表中的关联记录
+        List<EnvEventGrid> envEventGridList = envEventGridRepository.findByEnvEventId(envEventId);
+        if (!envEventGridList.isEmpty()) {
+            envEventGridRepository.deleteAll(envEventGridList);
+            log.info("删除了 {} 条env_event_grid关联记录", envEventGridList.size());
+        }
+        
+        // 2. 删除env_event表中的记录
+        envEventRepository.deleteById(envEventId);
+        log.info("删除了env_event记录，ID: {}", envEventId);
     }
 
 }

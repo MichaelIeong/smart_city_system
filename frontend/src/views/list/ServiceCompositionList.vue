@@ -52,15 +52,35 @@
         </span>
       </a-table>
     </a-card>
+
+    <a-modal
+      :title="detailModalTitle"
+      :width="600"
+      :visible="detailModalVisible"
+      :confirmLoading="detailModalLoading"
+      :footer="null"
+      @cancel="handleDetailModalClose"
+      :bodyStyle="{ height: '400px', overflowY: 'auto' }"
+    >
+      <a-table
+        :columns="detailColumns"
+        :data-source="deployDetailData"
+        :loading="detailModalLoading"
+        rowKey="gridId"
+        size="small"
+        :pagination="false"
+      >
+      </a-table>
+    </a-modal>
   </page-header-wrapper>
 </template>
 
 <script>
 /* eslint-disable */
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import { ref, reactive, onMounted } from 'vue';
 import dayjs from 'dayjs';
-import { listEnvService, getAllEnvService } from '@/api/manage';
+import { listEnvService, getAllEnvService, getServiceGroupDeployDetail, deleteEnvService } from '@/api/manage';
 
 export default {
     name: 'ServiceCompositionList',
@@ -104,6 +124,18 @@ export default {
                 width: '250px',
                 scopedSlots: { customRender: 'action' }
             }
+        ];
+
+        // === 部署详情弹窗状态 ===
+        const detailModalVisible = ref(false);
+        const detailModalLoading = ref(false);
+        const deployDetailData = ref([]);
+        const detailModalTitle = ref('服务组部署详情');
+
+        // === 部署详情表格列定义 ===
+        const detailColumns = [
+          { title: '网格编号', dataIndex: 'meshNo', key: 'meshNo' },
+          { title: '网格名称', dataIndex: 'meshName', key: 'meshName' }
         ];
 
         // === 核心数据加载函数 ===
@@ -175,12 +207,45 @@ export default {
             alert(`应用同步服务：${record.name || record.id}`);
         }
 
-        function showDetail(record) {
-            alert(`查看部署详情：${record.name || record.id}`);
+        // 显示部署详情
+        async function showDetail(record) {
+            detailModalVisible.value = true;
+            detailModalLoading.value = true;
+            detailModalTitle.value = `服务组部署详情 - ${record.name} (ID: ${record.id})`;
+            
+            try {
+                const res = await getServiceGroupDeployDetail(record.id);
+                console.log('deployDetailData', res);
+                deployDetailData.value = res || []; 
+            } catch (e) {
+                message.error('获取服务组部署详情失败');
+                deployDetailData.value = [];
+            } finally {
+                detailModalLoading.value = false;
+            }
+        }
+
+        // 弹窗关闭事件
+        function handleDetailModalClose() {
+            detailModalVisible.value = false;
+            deployDetailData.value = [];
         }
 
         function handleDelete(record) {
-            alert(`删除服务：${record.name || record.id}`);
+            Modal.confirm({
+                title: '确认删除?',
+                content: `删除服务「${record.name}」后将无法恢复，请确认是否继续。`,
+                onOk () {
+                    return deleteEnvService(record.id)
+                        .then(() => {
+                            loadData(pagination.current, pagination.pageSize, currentSorter, currentFilters);
+                            message.success('删除成功');
+                        })
+                        .catch((err) => {
+                            message.error(`删除失败: ${err?.message || '未知错误'}`);
+                        });
+                }
+            });
         }
 
         onMounted(async () => {
@@ -198,7 +263,13 @@ export default {
           handleTableChange,
           handleSync,
           showDetail,
-          handleDelete
+          handleDelete,
+          detailModalVisible,
+          detailModalLoading,
+          deployDetailData,
+          detailModalTitle,
+          detailColumns,
+          handleDetailModalClose
         }
     }
 }

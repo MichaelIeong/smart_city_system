@@ -697,3 +697,51 @@ export function completeActionWait (appId, waitValue) {
     }
   })
 }
+
+// 获取事件融合部署详情
+export function getEventFusionDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取服务组部署详情
+export function getServiceGroupDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级事件
+export function deleteEnvEvent (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级服务
+export function deleteEnvService (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
