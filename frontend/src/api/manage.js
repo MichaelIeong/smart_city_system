@@ -697,3 +697,107 @@ export function completeActionWait (appId, waitValue) {
     }
   })
 }
+
+// 获取事件融合部署详情
+export function getEventFusionDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取服务组部署详情
+export function getServiceGroupDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级事件
+export function deleteEnvEvent (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级服务
+export function deleteEnvService (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据事件ID获取同类型的网格
+export function getGridListByEventId (eventId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/typeOfEvent/${eventId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据服务ID获取同类型的网格
+export function getGridListByServiceId (serviceId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/typeOfService/${serviceId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 事件融合同步下发
+export function syncEventFusion (eventId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      eventId,
+      gridIdList
+    }
+  })
+}
+
+// 服务组同步下发
+export function syncServiceGroup (serviceId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      serviceId,
+      gridIdList
+    }
+  })
+}
