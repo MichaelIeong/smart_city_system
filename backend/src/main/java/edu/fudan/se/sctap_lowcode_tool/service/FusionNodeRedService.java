@@ -136,6 +136,23 @@ public class FusionNodeRedService {
             crossRegion = "crossRegion".equals(gridId);
         }
 
+        // ---------- 解析关联设备ID ----------
+        List<String> deviceIds = new ArrayList<>();
+
+        String eventSourceType = eventSourceNode.get("eventSourceType").asText();
+        if ("sensorEvent".equals(eventSourceType)) {
+            if (eventSourceNode.has("sensorType")) {
+                JsonNode sensorTypeNode = eventSourceNode.get("sensorType");
+                if (sensorTypeNode.isArray()) {
+                    for (JsonNode s : sensorTypeNode) {
+                        deviceIds.add(s.asText());
+                    }
+                } else {
+                    deviceIds.add(sensorTypeNode.asText());
+                }
+            }
+        }
+
         // ---------- 组装并入库 EnvEvent ----------
         EnvEvent envEvent = new EnvEvent();
         envEvent.setEventType(spaceEventType);
@@ -145,6 +162,7 @@ public class FusionNodeRedService {
         envEvent.setCrossRegion(crossRegion);
         envEvent.setCreateTime(LocalDateTime.now());
         envEvent.setRuleDsl(ruleDsl);
+        envEvent.setDependDtypes(deviceIds);
 
         envEventRepository.save(envEvent);
     }
