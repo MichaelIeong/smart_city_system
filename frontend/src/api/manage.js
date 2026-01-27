@@ -825,6 +825,7 @@ export function deleteProjectById (projectId) {
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`
-    }
+    },
+    timeout: 120000
   })
 }

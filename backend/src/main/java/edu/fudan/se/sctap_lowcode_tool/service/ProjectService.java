@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -134,7 +135,8 @@ public class ProjectService {
                 .map(projects -> jsonUtil.convertListToJson((List<ProjectInfo>) projects));
     }
 
-    @Transactional(rollbackFor = Exception.class) // 开启事务，任何异常都回滚
+    // 开启事务，任何异常都回滚
+    @Transactional(transactionManager = "jpaTransactionManager", propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public Boolean deleteProjectById(Integer projectId) {
         try {
             // 1. 删除设备
@@ -160,6 +162,7 @@ public class ProjectService {
                 appGridRepository.deleteByAppRuleIdIn(appRuleIds);
                 appRuleRepository.deleteByProjectId(projectId);
             }
+            return true;
         } catch (Exception e) {
             log.error("删除项目失败，触发事务回滚. projectId: {}", projectId, e);
             // 重要：必须抛出运行时异常，@Transactional 才会生效回滚
