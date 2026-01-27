@@ -141,6 +141,15 @@ public class FusionNodeRedService {
             crossRegion = "crossRegion".equals(gridId);
         }
 
+        // ---------- 提取 projectId ----------
+        Integer projectId = null;
+        if (eventSourceNode.has("projectId") && !eventSourceNode.get("projectId").isNull()) {
+            String pid = eventSourceNode.get("projectId").asText();
+            if (!pid.isBlank()) {
+                projectId = Integer.valueOf(pid);
+            }
+        }
+
         // ---------- 解析关联设备ID ----------
         List<String> deviceIds = new ArrayList<>();
 
@@ -168,6 +177,7 @@ public class FusionNodeRedService {
         envEvent.setCreateTime(LocalDateTime.now());
         envEvent.setRuleDsl(ruleDsl);
         envEvent.setDependDtypes(deviceIds);
+        envEvent.setProjectId(projectId);
 
         EnvEvent savedEvent = envEventRepository.save(envEvent);
         Long envEventId = savedEvent.getId();
