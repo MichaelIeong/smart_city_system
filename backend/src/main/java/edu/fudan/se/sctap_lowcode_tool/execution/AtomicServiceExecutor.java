@@ -122,11 +122,10 @@ public class AtomicServiceExecutor {
         }
     }
 
-    public String executePhysical(JsonNode stepNode, Map<String, Object> finalArgs) {
+    public String executePhysical(JsonNode stepNode, String location ,Map<String, Object> finalArgs) {
         String nodeName = stepNode.path("name").asText();      
         String actionName = stepNode.path("action").asText();  
         String cmdName = stepNode.path("command").asText();    
-        String location = (String) finalArgs.get("location");  
 
         try {
             TslProduct product = tslProductRepository.findByProductName(nodeName);
@@ -134,6 +133,8 @@ public class AtomicServiceExecutor {
             String productId = product.getProductId();
 
             List<TslDevice> devices = tslDeviceRepository.findByProductProductIdAndMeshId(productId, location);
+            System.out.println("地址: " + location);
+            System.out.println("productId: " + productId);
             if (CollectionUtils.isEmpty(devices)) return formatLog("WARN", "区域内无可用设备: " + nodeName);
             Long deviceId = devices.get(0).getDeviceId();
 

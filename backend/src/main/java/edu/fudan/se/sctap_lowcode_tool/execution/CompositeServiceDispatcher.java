@@ -69,7 +69,7 @@ public class CompositeServiceDispatcher {
                                                 List<String> logs) {
         JsonNode rawStep = node.getRawNode();
         Map<String, Object> finalArgs = prepareArgs(rawStep, runtimeParams);
-
+        String location = (String) runtimeParams.getOrDefault("location", "unknown_location");
         // --- 步骤 B: 异步执行 (Execution) ---
         return CompletableFuture.supplyAsync(() -> {
             String type = rawStep.path("type").asText();
@@ -79,7 +79,7 @@ public class CompositeServiceDispatcher {
                         resultLog = atomicExecutor.executeCyber(rawStep, finalArgs); 
                         break;
                     case "physical": 
-                        resultLog = atomicExecutor.executePhysical(rawStep, finalArgs); 
+                        resultLog = atomicExecutor.executePhysical(rawStep, location, finalArgs); 
                         break;
                     case "social": 
                         resultLog = atomicExecutor.executeSocial(rawStep, finalArgs); 
