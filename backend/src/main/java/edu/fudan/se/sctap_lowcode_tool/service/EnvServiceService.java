@@ -255,28 +255,20 @@ public class EnvServiceService {
         }
         
         // 检查硬件依赖
-        String dependDtypes = envService.getDependDtypes();
-        if(dependDtypes != null && !dependDtypes.trim().isEmpty() && !dependDtypes.equals("[]")) {
-            try {
-                List<String> requiredDeviceTypes = objectMapper.readValue(dependDtypes, new TypeReference<List<String>>(){});
-                
-                // 使用ProductService获取网格的设备类型
-                List<Map<String, String>> gridDeviceTypeList = productService.getDeviceTypesByGridId(gridId);
-                List<String> gridDeviceTypes = gridDeviceTypeList.stream()
-                    .map(map -> map.get("value"))
-                    .collect(Collectors.toList());
-                
-                // 检查是否满足所有依赖
-                for(String requiredType : requiredDeviceTypes) {
-                    if(!gridDeviceTypes.contains(requiredType)) {
-                        return new ServiceGroupSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 
-                            0, "硬件不满足：缺少设备类型 " + requiredType);
-                    }
+        List<String> dependDtypes = envService.getDependDtypes();
+        if(dependDtypes != null && !dependDtypes.isEmpty()) {
+            // 使用ProductService获取网格的设备类型
+            List<Map<String, String>> gridDeviceTypeList = productService.getDeviceTypesByGridId(gridId);
+            List<String> gridDeviceTypes = gridDeviceTypeList.stream()
+                .map(map -> map.get("value"))
+                .collect(Collectors.toList());
+            
+            // 检查是否满足所有依赖
+            for(String requiredType : dependDtypes) {
+                if(!gridDeviceTypes.contains(requiredType)) {
+                    return new ServiceGroupSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 
+                        0, "硬件不满足：缺少设备类型 " + requiredType);
                 }
-            } catch (Exception e) {
-                log.error("解析depend_dtypes失败", e);
-                return new ServiceGroupSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 
-                    0, "硬件依赖检查失败：" + e.getMessage());
             }
         }
         
