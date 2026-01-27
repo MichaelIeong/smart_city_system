@@ -6,13 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceJson;
-import edu.fudan.se.sctap_lowcode_tool.execution.ServiceTaskExecutor;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
-import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
-import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.ServiceService;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
@@ -22,10 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -159,11 +154,12 @@ public class ServiceController {
 
     @PostMapping("/uploadCompositionService")
     public ResponseEntity<Void> saveService(@RequestBody ServiceJson serviceJson,
-                                            @RequestParam("gridId") String gridId){
+                                            @RequestParam("gridId") String gridId,
+                                            @RequestParam("projectId") Integer projectId){
         try {
             String compositionJson = objectMapper.writeValueAsString(serviceJson.getCompositionJson());
             String totalJson = objectMapper.writeValueAsString(serviceJson.getTotalJson());
-            String deviceTypeArray = serviceJson.getDeviceTypeArray().toString();
+            List<String> deviceTypeArray = (List<String>) serviceJson.getDeviceTypeArray();
 
             JSONObject jsonObj_comp = JSONObject.parseObject(compositionJson);
             System.out.println(jsonObj_comp.getString("action_name"));
@@ -172,6 +168,7 @@ public class ServiceController {
             envService.setRuleJson(totalJson);
             envService.setServiceName(jsonObj_comp.getString("action_name"));
             envService.setDescription(jsonObj_comp.getString("description"));
+            envService.setProjectId(projectId);
             if(gridId.equals("crossRegion")) {
                 envService.setCrossRegion(true);
             } else {
@@ -179,7 +176,7 @@ public class ServiceController {
             }
             envService.setDependDtypes(deviceTypeArray);
             envService.setCreateTime(LocalDateTime.now());
-            serviceService.saveCompositionService(envService);
+            serviceService.saveCompositionService(envService, gridId);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
@@ -188,12 +185,12 @@ public class ServiceController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/uploadDeviceServiceType")
-    public ResponseEntity<Void> saveDeviceTypeService(@RequestBody String deviceTypeArray){
-        EnvService envService = new EnvService();
-        envService.setDependDtypes(deviceTypeArray);
-        serviceService.saveCompositionService(envService);
-        return ResponseEntity.ok().build();
-    }
+//    @PostMapping("/uploadDeviceServiceType")
+//    public ResponseEntity<Void> saveDeviceTypeService(@RequestBody List<String> deviceTypeArray){
+//        EnvService envService = new EnvService();
+//        envService.setDependDtypes(deviceTypeArray);
+//        serviceService.saveCompositionService(envService);
+//        return ResponseEntity.ok().build();
+//    }
 
 }

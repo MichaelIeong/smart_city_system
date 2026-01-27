@@ -15,7 +15,7 @@ public class EnvService {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "service_name", nullable = false)
     private String serviceName;
@@ -42,7 +42,7 @@ public class EnvService {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "depend_dtypes", columnDefinition = "json")
-    private String dependDtypes;
+    private List<String> dependDtypes;
 
     @Column(name = "project_id")
     private Integer projectId;
