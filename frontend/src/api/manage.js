@@ -631,7 +631,7 @@ export function getAllEnvEvent () {
 }
 
 // 分页查询环境级事件
-export function listEnvEvent ({ eventType, eventName, pageNo, pageSize, sortField, sortOrder }) {
+export function listEnvEvent ({ eventType, eventName, projectId, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: api.envEvent + '/list',
@@ -639,6 +639,7 @@ export function listEnvEvent ({ eventType, eventName, pageNo, pageSize, sortFiel
     params: {
       eventType,
       eventName,
+      projectId,
       pageNo,
       pageSize,
       sortField,
@@ -663,7 +664,7 @@ export function getAllEnvService () {
 }
 
 // 分页查询环境级服务
-export function listEnvService ({ name, description, pageNo, pageSize, sortField, sortOrder }) {
+export function listEnvService ({ name, description, projectId, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: api.envService + '/list',
@@ -671,6 +672,7 @@ export function listEnvService ({ name, description, pageNo, pageSize, sortField
     params: {
       name,
       description,
+      projectId,
       pageNo,
       pageSize,
       sortField,

@@ -99,7 +99,7 @@ public class EnvServiceService {
     /**
      * 分页查询环境级服务
      * */
-    public PageDTO<EnvService> list(String name, String description, int pageNo, int pageSize, String sortField, String sortOrder) {
+    public PageDTO<EnvService> list(String name, String description, Integer projectId, int pageNo, int pageSize, String sortField, String sortOrder) {
         // 1. 动态创建 Sort 对象
         Sort sort;
         if (sortField != null && !sortField.isEmpty()) {
@@ -121,6 +121,7 @@ public class EnvServiceService {
         Page<EnvService> repoResult = envServiceRepository.searchWithFilters(
                 name,
                 description,
+                projectId,
                 pageable
         );
         // 4. 返回结果

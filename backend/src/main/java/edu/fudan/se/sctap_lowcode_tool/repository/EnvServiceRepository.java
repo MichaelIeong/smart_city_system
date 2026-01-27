@@ -34,9 +34,11 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
                OR LOWER(a.name) LIKE LOWER(CONCAT('%', :name, '%')))
           AND (:description IS NULL OR :description = ''
                OR LOWER(a.description) LIKE LOWER(CONCAT('%', :description, '%')))
+          AND (:projectId IS NULL OR a.projectId = :projectId)
     """)
     Page<EnvService> searchWithFilters(
             @Param("name") String name,
             @Param("description") String description,
+            @Param("projectId") Integer projectId,
             Pageable pageable);
 }
