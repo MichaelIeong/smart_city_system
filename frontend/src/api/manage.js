@@ -26,7 +26,8 @@ const api = {
   isResources: '/api/is_resources',
   sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498',
   envEvent: '/api/envEvent',
-  envService: '/api/envService'
+  envService: '/api/envService',
+  deviceBatchAdd: '/api/devices/batchAdd'
 }
 
 export default api
@@ -783,6 +784,18 @@ export function syncEventFusion (eventId, gridIdList) {
       eventId,
       gridIdList
     }
+  })
+}
+
+/**
+ * 批量添加设备
+ * @param {Array} deviceList 设备列表
+ */
+export function batchAddDevices (deviceList) {
+  return request({
+    url: api.deviceBatchAdd,
+    method: 'post',
+    data: deviceList
   })
 }
 
