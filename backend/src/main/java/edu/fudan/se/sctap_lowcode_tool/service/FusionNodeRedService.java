@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
@@ -21,16 +23,19 @@ public class FusionNodeRedService {
 
     private final TslProductRepository productRepository;
     private final EnvEventRepository envEventRepository;
+    private final EnvEventGridRepository envEventGridRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EventFusionRuleService eventFusionRuleService;
 
     public FusionNodeRedService(
         TslProductRepository productRepository,
         EnvEventRepository envEventRepository,
+        EnvEventGridRepository envEventGridRepository,
         EventFusionRuleService eventFusionRuleService
     ) {
         this.productRepository = productRepository;
         this.envEventRepository = envEventRepository;
+        this.envEventGridRepository = envEventGridRepository;
         this.eventFusionRuleService = eventFusionRuleService;
     }
 
@@ -164,7 +169,20 @@ public class FusionNodeRedService {
         envEvent.setRuleDsl(ruleDsl);
         envEvent.setDependDtypes(deviceIds);
 
-        envEventRepository.save(envEvent);
+        EnvEvent savedEvent = envEventRepository.save(envEvent);
+        Long envEventId = savedEvent.getId();
+
+        // ---------- 若非跨网格，组装并入库 EnvEventGrid ----------
+        if (!crossRegion) {
+            String gridId = eventSourceNode.get("gridId").asText();
+
+            EnvEventGrid envEventGrid = new EnvEventGrid();
+            envEventGrid.setEnvEventId(envEventId.intValue());
+            envEventGrid.setGridId(gridId);
+            envEventGrid.setEnabled(true);
+
+            envEventGridRepository.save(envEventGrid);
+        }
     }
 
     /* =====================================================
