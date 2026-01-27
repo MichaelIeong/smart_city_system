@@ -161,7 +161,19 @@ public class ServiceController {
         try {
             String compositionJson = objectMapper.writeValueAsString(serviceJson.getCompositionJson());
             String totalJson = objectMapper.writeValueAsString(serviceJson.getTotalJson());
-            String deviceTypeArray = serviceJson.getDeviceTypeArray().toString();
+            
+            // 将deviceTypeArray转换为List<String>
+            List<String> deviceTypeList = null;
+            Object deviceTypeArray = serviceJson.getDeviceTypeArray();
+            if (deviceTypeArray != null) {
+                if (deviceTypeArray instanceof List) {
+                    deviceTypeList = (List<String>) deviceTypeArray;
+                } else {
+                    deviceTypeList = objectMapper.readValue(
+                        objectMapper.writeValueAsString(deviceTypeArray), 
+                        new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
+                }
+            }
 
             JSONObject jsonObj_comp = JSONObject.parseObject(compositionJson);
             System.out.println(jsonObj_comp.getString("action_name"));
@@ -175,7 +187,7 @@ public class ServiceController {
             } else {
                 envService.setCrossRegion(false);
             }
-            envService.setDependDtypes(deviceTypeArray);
+            envService.setDependDtypes(deviceTypeList);
             serviceService.saveCompositionService(envService);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -187,10 +199,19 @@ public class ServiceController {
 
     @PostMapping("/uploadDeviceServiceType")
     public ResponseEntity<Void> saveDeviceTypeService(@RequestBody String deviceTypeArray){
-        EnvService envService = new EnvService();
-        envService.setDependDtypes(deviceTypeArray);
-        serviceService.saveCompositionService(envService);
-        return ResponseEntity.ok().build();
+        try {
+            EnvService envService = new EnvService();
+            // 将JSON字符串解析为List<String>
+            List<String> deviceTypeList = objectMapper.readValue(
+                deviceTypeArray, 
+                new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
+            envService.setDependDtypes(deviceTypeList);
+            serviceService.saveCompositionService(envService);
+            return ResponseEntity.ok().build();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
     }
 
 }
