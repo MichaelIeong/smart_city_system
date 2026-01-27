@@ -388,14 +388,25 @@ export default {
     async confirmDelete (project) {
       console.log(project)
       if (confirm(`确定要移除场景 "${project.projectName}" 吗？`)) {
-        this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
-        this.saveProjectsToLocal()
-        console.log(project)
-        const res = await deleteProjectById(project.systemId)
-        if (res) {
-          message.success('删除成功！')
-        } else {
-          message.error('删除失败')
+        const hide = message.loading('正在删除中...', 0)
+        try {
+          // 2. 调用接口（注意：这里先调接口，成功后再删本地数据，防止删错）
+          const res = await deleteProjectById(project.systemId)
+
+          if (res) {
+            // 3. 接口成功：更新本地状态
+            this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
+            this.saveProjectsToLocal()
+            message.success('删除成功！')
+          } else {
+            message.error('删除失败')
+          }
+        } catch (error) {
+          console.error(error)
+          message.error('网络错误或服务器异常')
+        } finally {
+          // 4. 无论成功失败，都关闭 Loading
+          hide()
         }
       }
     },
