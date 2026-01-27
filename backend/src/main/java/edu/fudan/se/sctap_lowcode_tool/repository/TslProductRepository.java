@@ -30,4 +30,6 @@ public interface TslProductRepository extends JpaRepository<TslProduct, String> 
             "OR (d.mesh_nature = ?2)",
             nativeQuery = true)
     List<TslProduct> findBySceneDefinitionOrUsage(Integer projectId, String meshNature);
+    // 根据产品名称查找（建议返回 List 防止重名，或者用 findFirst）
+    TslProduct findByProductName(String productName);
 }

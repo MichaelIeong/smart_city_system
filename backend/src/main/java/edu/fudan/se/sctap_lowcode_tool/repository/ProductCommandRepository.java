@@ -14,4 +14,6 @@ public interface ProductCommandRepository extends JpaRepository<ProductFunctionC
      * 根据 productId 查询所有指令
      */
     List<ProductFunctionCommand> findByProductId(String productId);
+    ProductFunctionCommand findByProductIdAndFunctionNameAndCommandName(
+            String productId, String functionName, String commandName);
 }
