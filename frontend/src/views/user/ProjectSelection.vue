@@ -113,13 +113,32 @@
       </div>
     </div>
 
+    <div v-if="importing" class="modal-mask">
+      <div class="modal-box" style="width: 400px; padding: 40px;">
+        <h3 style="margin-bottom: 20px;">正在导入场景设备...</h3>
+
+        <div class="progress-container">
+          <div
+            class="progress-bar"
+            :style="{ width: importProgress + '%' }"
+          ></div>
+        </div>
+
+        <p style="margin-top: 15px; color: #666;">
+          当前进度：{{ importProgress }}%
+        </p>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script>
-import { addScene, getSceneTypeDict } from '@/api/manage'
+import { addScene, getSceneTypeDict, deleteProjectById, batchAddDevices } from '@/api/manage'
 import { getProjects } from '@/api/login'
 import DefaultSceneImg from '@/assets/DefaultSceneImg.png'
+import { message } from 'ant-design-vue'
+import localDeviceData from '@/assets/tsl_devices.json'
 
 export default {
   data () {
@@ -135,12 +154,14 @@ export default {
 
       selectedSceneType: '',
       previewData: [],
-      sceneOptions: []
+      sceneOptions: [],
+
+      // ✅ 新增：进度百分比
+      importProgress: 0
     }
   },
 
   computed: {
-    // 自动获取预览图
     currentSelectionImage () {
       if (!this.selectedSceneType) return null
       const option = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
@@ -154,9 +175,6 @@ export default {
   },
 
   methods: {
-    // ----------------------------------------------------
-    // 本地缓存与工具
-    // ----------------------------------------------------
     loadProjectsFromLocal () {
       const savedProjects = localStorage.getItem('my_scene_list')
       if (savedProjects) {
@@ -196,9 +214,6 @@ export default {
       return DefaultSceneImg
     },
 
-    // ----------------------------------------------------
-    // 业务逻辑：字典与网格获取
-    // ----------------------------------------------------
     async fetchSceneOptions () {
       this.dictLoading = true
       try {
@@ -209,7 +224,6 @@ export default {
           const rootData = responseBody.data || {}
           const dictList = rootData.items || []
 
-          // 名称映射
           const nameMap = {
             'F-city': '永德城区',
             'F-community': '永德社区',
@@ -239,7 +253,7 @@ export default {
 
     async handleFetchData () {
       if (!this.selectedSceneType) {
-        alert('请先选择一个场景类型')
+        message.error('请先选择场景类型')
         return
       }
 
@@ -261,7 +275,6 @@ export default {
           const rawList = dataList || []
           this.previewData = rawList.map(item => {
             const pointList = this.parseRemarksPoints(item.remarks)
-            // 预览图逻辑
             let img = DefaultSceneImg
             if (item.meshNature === 'F-city') img = require('@/assets/commercial.jpg')
             else if (item.meshNature === 'F-community') img = require('@/assets/residential.jpg')
@@ -283,61 +296,115 @@ export default {
           this.showTypeModal = false
           this.showPreviewModal = true
         } else {
-          alert('获取数据失败: 状态不正确')
+          message.error('获取数据失败：状态不正确')
         }
       } catch (error) {
         console.error('API Error:', error)
-        alert('网络请求异常')
+        message.error('网络请求异常')
       } finally {
         this.loading = false
       }
     },
 
+    // ✅ 重写：包含分片上传和进度条逻辑
     confirmImportFinal () {
       const isExist = this.allProjects.some(p => p.meshData?.type === this.selectedSceneType)
       if (isExist) {
-        alert(`该场景已存在，请勿重复添加！`)
+        message.error('该场景已存在，请勿重复添加！')
         return
       }
 
       this.importing = true
+      this.importProgress = 0 // 重置进度
 
-      setTimeout(() => {
-        const selectedOption = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
+      setTimeout(async () => {
+        try {
+          const selectedOption = this.sceneOptions.find(opt => opt.value === this.selectedSceneType)
+          const typeToIdMap = { 'F-city': 1, 'F-community': 2, 'F-park': 3 }
+          const realSystemId = typeToIdMap[this.selectedSceneType] || 1
 
-        // 类型 -> 后端 ID 映射
-        const typeToIdMap = {
-          'F-city': 1,
-          'F-community': 2,
-          'F-park': 3
-        }
-        const realSystemId = typeToIdMap[this.selectedSceneType] || 1
+          const dynamicImage = selectedOption ? selectedOption.image : this.getSceneImageByType(this.selectedSceneType)
+          const sceneName = selectedOption ? selectedOption.label : this.getSceneNameByType(this.selectedSceneType)
 
-        const dynamicImage = selectedOption ? selectedOption.image : this.getSceneImageByType(this.selectedSceneType)
-        const sceneName = selectedOption ? selectedOption.label : this.getSceneNameByType(this.selectedSceneType)
-
-        const newScene = {
-          // 前端 ID：唯一字符串
-          projectId: `scene-${this.selectedSceneType}-${Date.now()}`,
-          // 后端 ID：数字 (1, 2, 3)
-          systemId: realSystemId,
-          projectName: sceneName,
-          image: dynamicImage,
-          meshData: {
-            type: this.selectedSceneType,
-            grids: this.previewData
+          const newScene = {
+            projectId: `scene-${this.selectedSceneType}-${Date.now()}`,
+            systemId: realSystemId,
+            projectName: sceneName,
+            image: dynamicImage,
+            meshData: {
+              type: this.selectedSceneType,
+              grids: this.previewData
+            }
           }
+
+          // --- 设备同步逻辑 (分片版) ---
+          console.log(`正在筛选场景 [${this.selectedSceneType}] 的设备...`)
+
+          const targetDevices = localDeviceData.filter(device =>
+            device.mesh_nature === this.selectedSceneType
+          )
+
+          if (targetDevices.length > 0) {
+            console.log(`找到 ${targetDevices.length} 个设备，准备分批上传...`)
+
+            const allDevicesToSend = targetDevices.map(d => ({
+              id: d.id,
+              projectId: realSystemId,
+              deviceName: d.device_name,
+              deviceId: d.device_id,
+              productId: d.product_id,
+              status: d.status,
+              meshId: d.mesh_id,
+              meshNo: d.mesh_no,
+              meshName: d.mesh_name,
+              meshNature: d.mesh_nature,
+              meshArea: d.mesh_area,
+              address: d.address,
+              createdAt: d.created_at
+            }))
+
+            // ✅ 分片逻辑
+            const BATCH_SIZE = 200
+            const totalCount = allDevicesToSend.length
+            const totalBatches = Math.ceil(totalCount / BATCH_SIZE)
+
+            for (let i = 0; i < totalBatches; i++) {
+              const start = i * BATCH_SIZE
+              const end = Math.min((i + 1) * BATCH_SIZE, totalCount)
+              const batchData = allDevicesToSend.slice(start, end)
+
+              await batchAddDevices(batchData)
+
+              // 更新进度条
+              this.importProgress = Math.round(((i + 1) / totalBatches) * 100)
+
+              // 可选：稍微停顿让UI渲染
+              // await new Promise(resolve => setTimeout(resolve, 20))
+            }
+            console.log('所有批次上传完成')
+          } else {
+            console.log('本地无对应设备，跳过同步')
+            this.importProgress = 100
+          }
+
+          // 完成添加
+          this.allProjects.push(newScene)
+          this.saveProjectsToLocal()
+          this.$emit('scene-added', newScene)
+
+          // 延迟关闭，让用户看到 100%
+          setTimeout(() => {
+            this.importing = false
+            this.showPreviewModal = false
+            this.previewData = []
+            message.success('导入成功！')
+          }, 500)
+        } catch (error) {
+          console.error('设备同步异常:', error)
+          message.error('同步设备时发生错误，请检查网络或日志')
+          this.importing = false
         }
-
-        this.allProjects.push(newScene)
-        this.saveProjectsToLocal()
-        this.$emit('scene-added', newScene)
-
-        this.importing = false
-        this.showPreviewModal = false
-        this.previewData = []
-        alert('导入成功！')
-      }, 600)
+      }, 100)
     },
 
     cancelPreview () {
@@ -350,7 +417,6 @@ export default {
       if (this.isDeleteMode) {
         const project = this.allProjects.find(p => p.projectId === projectId)
         if (project) {
-          // 如果是系统内置场景(ID<=3)，看需求是否允许删除，这里暂时允许
           this.confirmDelete(project)
         }
       } else {
@@ -362,10 +428,9 @@ export default {
       const project = this.allProjects.find(p => p.projectId === projectId)
 
       if (project) {
-        // 1. 获取场景类型
         const type = project.meshData?.type || 'F-city'
 
-        // 2. 获取后端 ID 并存入
+        // 强制类型映射 ID
         let apiId = 1
         if (type === 'F-city') apiId = 1
         else if (type === 'F-community') apiId = 2
@@ -373,56 +438,61 @@ export default {
         else apiId = project.systemId || project.projectId
 
         localStorage.setItem('project_id', apiId)
-
         localStorage.setItem('current_scene_type', type)
 
-        // 4. 跳转到“环境表征”页面 (根据您的路由，应该是 /space-scene)
         this.$router.push({
           path: '/space-scene'
-
         })
       }
     },
 
     async confirmDelete (project) {
+      console.log(project)
       if (confirm(`确定要移除场景 "${project.projectName}" 吗？`)) {
-        this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
-        this.saveProjectsToLocal()
+        const hide = message.loading('正在删除中...', 0)
+        try {
+          // 2. 调用接口（注意：这里先调接口，成功后再删本地数据，防止删错）
+          const res = await deleteProjectById(project.systemId)
+
+          if (res) {
+            // 3. 接口成功：更新本地状态
+            this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
+            this.saveProjectsToLocal()
+            message.success('删除成功！')
+          } else {
+            message.error('删除失败')
+          }
+        } catch (error) {
+          console.error(error)
+          message.error('网络错误或服务器异常')
+        } finally {
+          // 4. 无论成功失败，都关闭 Loading
+          hide()
+        }
       }
     },
 
     async fetchProjects () {
-      // 只有在需要拉取默认数据时才调用
+      // 备用：拉取默认数据逻辑
       try {
         const fetchedProjects = await getProjects()
-
         this.allProjects = fetchedProjects.map((project) => {
-          // 处理 project_id / projectId 并转为 Number
           const currentId = project.project_id ? Number(project.project_id) : Number(project.projectId)
-
           let imagePath = project.image
           let name = project.projectName
           let type = ''
 
-          // 根据 ID 设置默认信息
           if (currentId === 1) { name = '永德城区'; imagePath = require('@/assets/commercial.jpg'); type = 'F-city' } else if (currentId === 2) { name = '永德社区'; imagePath = require('@/assets/residential.jpg'); type = 'F-community' } else if (currentId === 3) { name = '永德园区'; imagePath = require('@/assets/Park.jpg'); type = 'F-park' }
 
           return {
             ...project,
-            // 赋值处理后的 ID
             projectId: currentId,
-            // ID 赋给 systemId
             systemId: currentId,
-
             projectName: name || '新导入场景',
             image: imagePath || DefaultSceneImg,
-            meshData: {
-              type: type,
-              grids: []
-            }
+            meshData: { type: type, grids: [] }
           }
         })
-        // 拉取完默认值后保存到本地
         this.saveProjectsToLocal()
       } catch (error) {
         console.error('获取项目数据失败:', error)
@@ -443,13 +513,16 @@ export default {
   text-align: center;
   margin-top: 40px;
 }
+
+/* ✅ 修改：按钮居中显示 */
 .button-wrapper {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center; /* 关键修改：从 flex-end 改为 center */
   margin-bottom: 20px;
   gap: 15px;
-  padding-right: 60px;
+  /* padding-right: 60px;  删除这行，避免居中偏左 */
 }
+
 .add-project-button {
   padding: 10px 20px;
   background-color: #184aa1;
@@ -474,18 +547,15 @@ export default {
 .delete-mode-button:hover { background-color: #c9302c; }
 .active-delete { background-color: #555; transform: scale(0.95); }
 
-/* ✅ 保持你要求的 Grid 布局 (3列固定) */
 .project-grid {
   display: grid;
   padding: 30px 60px;
-  /* 强制固定为 3 列，每列 250px */
   grid-template-columns: 250px 250px 250px;
   justify-content: center;
   gap: 30px;
 }
 
 .project-item {
-  /* 不需要写 width，因为 Grid 控制了列宽 */
   height: 260px;
   cursor: pointer;
   border-radius: 10px;
@@ -577,7 +647,6 @@ export default {
   font-size: 16px;
 }
 
-/* 预览图片容器样式 */
 .preview-image-box {
   margin: 10px 0 20px 0;
   text-align: center;
@@ -625,7 +694,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* 预览表格弹窗 */
 .large-modal {
   width: 800px !important;
   max-width: 90vw;
@@ -661,7 +729,25 @@ button:disabled {
 .data-table tr:hover {
   background-color: #f0f7ff;
 }
-/* 滚动条 */
 .table-container::-webkit-scrollbar { width: 6px; }
 .table-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+/* ✅ 新增：进度条样式 */
+.progress-container {
+  width: 100%;
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #184aa1;
+  width: 0%;
+  transition: width 0.3s ease;
+  background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+  background-size: 1rem 1rem;
+}
 </style>

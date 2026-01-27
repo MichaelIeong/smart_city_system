@@ -65,4 +65,7 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
     TslDevice findTopByOrderByIdDesc();
     // 根据产品 ID 和 网格 ID 查询设备列表
     List<TslDevice> findByProductProductIdAndMeshId(String productId, String meshId);
+
+    @Modifying
+    void deleteByMeshNature(String meshNature);
 }

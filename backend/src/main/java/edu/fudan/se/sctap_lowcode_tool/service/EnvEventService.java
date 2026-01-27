@@ -102,7 +102,7 @@ public class EnvEventService {
     /**
      * 分页查询环境级事件
      * */
-    public PageDTO<EnvEvent> list(String eventType, String eventName, int pageNo, int pageSize, String sortField, String sortOrder) {
+    public PageDTO<EnvEvent> list(String eventType, String eventName, Integer projectId, int pageNo, int pageSize, String sortField, String sortOrder) {
         // 1. 动态创建 Sort 对象
         Sort sort;
         if (sortField != null && !sortField.isEmpty()) {
@@ -126,6 +126,7 @@ public class EnvEventService {
         Page<EnvEvent> repoResult = envEventRepository.searchWithFilters(
                 eventType,
                 eventName,
+                projectId,
                 pageable
         );
         // 4. 返回结果
