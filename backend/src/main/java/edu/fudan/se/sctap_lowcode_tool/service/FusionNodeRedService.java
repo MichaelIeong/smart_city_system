@@ -416,7 +416,7 @@ public class FusionNodeRedService {
             params.put(
                     out.get("key").asText(),
                     Map.of(
-                            "type", out.get("type").asText().toLowerCase(),
+                            "type", adaptType(out.get("type").asText()),
                             "description", out.get("description").asText()
                     )
             );
@@ -429,5 +429,15 @@ public class FusionNodeRedService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String adaptType(String rawType) {
+        if (rawType == null) {
+            return null;
+        }
+        if ("Boolean".equals(rawType)) {
+            return "bool";
+        }
+        return rawType.toLowerCase();
     }
 }
