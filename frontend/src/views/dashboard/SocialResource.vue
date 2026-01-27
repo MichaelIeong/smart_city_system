@@ -130,9 +130,7 @@
             v-decorator="[
               'input',
               {
-                rules: [
-                  { required: false, message: '请输入输入参数描述' }
-                ]
+                rules: [{ required: false, message: '请输入输入参数描述' }]
               }
             ]"
             placeholder="请输入 JSON 格式参数"
@@ -145,16 +143,13 @@
             v-decorator="[
               'output',
               {
-                rules: [
-                  { required: false, message: '请输入输出参数描述' }
-                ]
+                rules: [{ required: false, message: '请输入输出参数描述' }]
               }
             ]"
             placeholder="请输入 JSON 格式参数"
             :rows="3"
           />
         </a-form-item>
-
       </a-form>
     </a-modal>
 
@@ -185,7 +180,10 @@ export default {
       queryResourceType: '0',
       loading: false,
       resourceTypes: [],
-      // 表格列定义：包含输入和输出
+      // ★★★ 新增：存储当前场景和项目ID ★★★
+      currentScene: '',
+      currentProjectId: '1', // 默认为 1，防止为空
+
       socialColumns: [
         { title: '资源编号', dataIndex: 'resourceId', key: 'resourceId', width: 120 },
         { title: '资源类型', dataIndex: 'resourceType', key: 'resourceType', width: 120 },
@@ -214,17 +212,57 @@ export default {
     }
   },
 
+  // ★★★ 关键修改：复用物理资源的 mounted 逻辑 ★★★
+  mounted () {
+    // 1. 获取场景 (Scene) - 逻辑与物理资源一致
+    let scene = this.$route.query.scene
+    if (!scene) {
+      scene = localStorage.getItem('current_scene_type')
+    }
+    if (!scene) {
+      scene = 'F-city' // 默认场景
+    }
+    this.currentScene = scene
+
+    // 2. 路由同步 - 逻辑与物理资源一致
+    if (this.$route.query.scene !== scene) {
+      this.$router.replace({
+        path: this.$route.path,
+        query: { ...this.$route.query, scene: scene }
+      })
+    }
+
+    // 3. ★★★ 获取 Project ID ★★★
+    // 物理资源代码中使用 localStorage.getItem('project_id')，我们也用这个
+    const storedProjectId = localStorage.getItem('project_id')
+    if (storedProjectId) {
+      this.currentProjectId = storedProjectId
+    }
+
+    console.log(`初始化完成: Scene=${this.currentScene}, ProjectId=${this.currentProjectId}`)
+
+    // 4. 加载数据
+    this.fetchData()
+  },
+
   methods: {
-    async fetchData (id) {
+    // 获取数据
+    async fetchData () {
       try {
         this.loading = true
+        // 使用 mounted 中获取到的 currentProjectId
+        const targetId = this.currentProjectId
+
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/socialResources/project/${id}`)
+
+        // 调用 socialResources 接口
+        const response = await axios.get(`${baseUrl}/api/socialResources/project/${targetId}`)
 
         if (Array.isArray(response.data)) {
           this.socialData = response.data
           this.filteredData = [...response.data]
           this.extractResourceTypes()
+          console.log(`成功获取项目 ${targetId} (场景:${this.currentScene}) 的数据`)
         } else {
           this.socialData = []
           this.filteredData = []
@@ -277,7 +315,7 @@ export default {
         this.isDeleteModalVisible = false
         this.selectedResource = null
         this.$message.success('删除成功')
-        this.fetchData(1) // 刷新
+        this.fetchData() // 刷新
       } catch (error) {
         console.error('删除出错:', error)
         this.$message.error('删除失败')
@@ -315,7 +353,8 @@ export default {
               url: values.url.trim(),
               input: values.input ? values.input.trim() : '',
               output: values.output ? values.output.trim() : '',
-              projectId: 1 // 关键参数
+              // ★★★ 使用当前的 Project ID ★★★
+              projectId: this.currentProjectId
             }
 
             await axios.post(`${baseUrl}/api/socialResources/add`, payload)
@@ -323,7 +362,7 @@ export default {
             this.$message.success('新增成功')
             this.addModalVisible = false
             this.addForm.resetFields()
-            this.fetchData(1) // 刷新
+            this.fetchData()
           } catch (error) {
             console.error('新增失败:', error)
             this.$message.error('新增失败，请检查资源编号是否重复')
@@ -333,24 +372,18 @@ export default {
         }
       })
     }
-  },
-
-  created () {
-    this.fetchData(1)
   }
 }
 </script>
 
 <style scoped>
-/* 关键修改：改用 margin-bottom，允许 TextArea 撑开高度 */
+/* 样式修复：允许文本域自动撑开高度 */
 .a-form-item {
   margin-bottom: 24px;
 }
-
 .table-page-search-wrapper {
   margin-bottom: 16px;
 }
-
 .table-page-search-submitButtons {
   display: flex;
   align-items: center;
