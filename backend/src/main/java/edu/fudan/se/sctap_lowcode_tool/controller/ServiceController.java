@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -176,6 +178,7 @@ public class ServiceController {
                 envService.setCrossRegion(false);
             }
             envService.setDependDtypes(deviceTypeArray);
+            envService.setCreateTime(LocalDateTime.now());
             serviceService.saveCompositionService(envService);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
