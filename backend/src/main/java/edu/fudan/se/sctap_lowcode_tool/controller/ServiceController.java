@@ -1,10 +1,15 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
+import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceJson;
 import edu.fudan.se.sctap_lowcode_tool.execution.ServiceTaskExecutor;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
@@ -18,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -32,8 +38,8 @@ public class ServiceController {
 
     private final TaskScheduler scheduler; // 让 Spring 负责管理
 
-
-
+    @Autowired
+    private ObjectMapper objectMapper;
     private final WorkflowParser parser;
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;
@@ -126,6 +132,64 @@ public class ServiceController {
     @GetMapping("/executorService")
     public ResponseEntity<?> executorService(@RequestParam Integer serviceId) throws Exception {
         serviceService.executeServiceById(serviceId);
+        return ResponseEntity.ok().build();
+    }
+
+    /*
+    @PostMapping("/uploadCompositionService")
+    public ResponseEntity<Void> saveCompositionService(@RequestBody String standardData,
+                                                       @RequestParam("gridId") String gridId){
+        JSONObject jsonObj = JSONObject.parseObject(standardData);
+        EnvService envService = new EnvService();
+        envService.setServiceJson(standardData);
+        envService.setServiceName(jsonObj.getString("action_name"));
+        envService.setDescription(jsonObj.getString("description"));
+        envService.setName(jsonObj.getString(""));
+        if(gridId.equals("crossRegion")) {
+            envService.setCrossRegion(true);
+        } else {
+            envService.setCrossRegion(false);
+        }
+        serviceService.saveCompositionService(envService);
+        return ResponseEntity.ok().build();
+    }
+     */
+
+    @PostMapping("/uploadCompositionService")
+    public ResponseEntity<Void> saveService(@RequestBody ServiceJson serviceJson,
+                                            @RequestParam("gridId") String gridId){
+        try {
+            String compositionJson = objectMapper.writeValueAsString(serviceJson.getCompositionJson());
+            String totalJson = objectMapper.writeValueAsString(serviceJson.getTotalJson());
+            String deviceTypeArray = serviceJson.getDeviceTypeArray().toString();
+
+            JSONObject jsonObj_comp = JSONObject.parseObject(compositionJson);
+            System.out.println(jsonObj_comp.getString("action_name"));
+            EnvService envService = new EnvService();
+            envService.setServiceJson(compositionJson);
+            envService.setRuleJson(totalJson);
+            envService.setServiceName(jsonObj_comp.getString("action_name"));
+            envService.setDescription(jsonObj_comp.getString("description"));
+            if(gridId.equals("crossRegion")) {
+                envService.setCrossRegion(true);
+            } else {
+                envService.setCrossRegion(false);
+            }
+            envService.setDependDtypes(deviceTypeArray);
+            serviceService.saveCompositionService(envService);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/uploadDeviceServiceType")
+    public ResponseEntity<Void> saveDeviceTypeService(@RequestBody String deviceTypeArray){
+        EnvService envService = new EnvService();
+        envService.setDependDtypes(deviceTypeArray);
+        serviceService.saveCompositionService(envService);
         return ResponseEntity.ok().build();
     }
 

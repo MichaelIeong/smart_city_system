@@ -1,6 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.repository;
 
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +32,15 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
         ORDER BY a.createTime DESC
     """)
     List<EnvEvent> findByEventType(@Param("eventType") String eventType);
+
+    @Query("""
+        SELECT a FROM EnvEvent a
+        WHERE (:eventType IS NULL OR :eventType = '' OR a.eventType = :eventType)
+          AND (:eventName IS NULL OR :eventName = ''
+               OR LOWER(a.eventName) LIKE LOWER(CONCAT('%', :eventName, '%')))
+    """)
+    Page<EnvEvent> searchWithFilters(
+            @Param("eventType") String eventType,
+            @Param("eventName") String eventName,
+            Pageable pageable);
 }

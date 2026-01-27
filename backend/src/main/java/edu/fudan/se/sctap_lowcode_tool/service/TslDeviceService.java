@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -155,69 +156,108 @@ public class TslDeviceService {
 
     /**
      * 新增设备实例
-     * 保持不变
      */
-    @Transactional
-    public Map<String, Object> addDeviceInstance(Map<String, String> instanceData) {
-        String productId = instanceData.get("deviceTypeId");
-        if (productId == null || productId.isEmpty()) {
-            throw new IllegalArgumentException("设备实例必须关联一个设备类型 (deviceTypeId)。");
-        }
-
-        String deviceIdStr = instanceData.get("deviceId");
-        String deviceName = instanceData.get("deviceName");
+    @Transactional("jpaTransactionManager")
+    public Map<String, Object> addDeviceInstance(Map<String, Object> instanceData) {
+        // 1. 获取参数 (前端传过来的是 String)
+        String deviceIdStr = (String) instanceData.get("deviceId");
+        String deviceName = (String) instanceData.get("deviceName");
+        String productTypeId = (String) instanceData.get("deviceTypeId");
+        String meshNature = (String) instanceData.get("mesh_nature");
 
         if (deviceIdStr == null || deviceIdStr.isEmpty() || deviceName == null || deviceName.isEmpty()) {
             throw new IllegalArgumentException("设备序号和设备名称不能为空。");
         }
 
-        TslProduct product = tslProductRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("无效的产品ID: " + productId));
+        // 2. 类型转换 (String -> Long)
+        Long deviceId;
+        try {
+            deviceId = Long.parseLong(deviceIdStr);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("设备序号必须是纯数字");
+        }
 
-        String states = instanceData.get("states");
-        int status = 2;
-        if (states != null) {
-            if (states.contains("离线") || states.contains("1")) {
+        // 3. 检查重复
+        if (tslDeviceRepository.existsByDeviceId(deviceId)) {
+            throw new IllegalArgumentException("设备序号 " + deviceId + " 已存在，请勿重复添加。");
+        }
+
+        // 4. 查询关联的 Product 对象
+        TslProduct product = tslProductRepository.findById(productTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("无效的设备类型ID: " + productTypeId));
+
+        // 5. 状态处理
+        Object statesObj = instanceData.get("states");
+        int status = 2; // 默认为在线
+        if (statesObj != null) {
+            String s = statesObj.toString();
+            if (s.contains("离线") || "1".equals(s)) {
                 status = 1;
-            } else if (states.contains("在线") || states.contains("2")) {
-                status = 2;
             }
         }
 
-        String deviceTime = instanceData.get("deviceTime");
+        // 6. 时间处理
+        String deviceTime = (String) instanceData.get("deviceTime");
         String createdAt = (deviceTime != null && !deviceTime.isEmpty()) ? deviceTime :
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
+        // 7. 构建实体
+        TslDevice device = new TslDevice();
+
+        device.setDeviceId(deviceId);
+        device.setDeviceName(deviceName);
+
+        device.setProduct(product);
+
+        device.setMeshNature(meshNature != null ? meshNature : "F-city");
+
+        String region = (String) instanceData.get("deviceRegion");
+        device.setMeshName(region != null ? region : "");
+
+        // 8. 默认值填充
+        device.setProjectId(1001L); // Integer 类型
+        device.setStatus(status);
+        device.setMeshId("");
+        device.setMeshNo("");
+        device.setAddress("");
+        device.setMeshArea(0.0);
+
         try {
-            TslDevice device = new TslDevice();
-            device.setDeviceId(Long.parseLong(deviceIdStr));
-            device.setDeviceName(deviceName);
-            device.setProduct(product);
-            device.setStatus(status);
-            device.setMeshName(instanceData.get("deviceRegion"));
-            device.setMeshId(instanceData.getOrDefault("meshId", UUID.randomUUID().toString()));
-            device.setMeshNo(instanceData.getOrDefault("meshNo", "unknown"));
+            TslDevice lastDevice = tslDeviceRepository.findTopByOrderByIdDesc();
 
-            // 优先使用前端传来的 meshNature，如果没有则默认为 F-city
-            String meshNature = instanceData.get("mesh_nature");
-            device.setMeshNature(meshNature != null ? meshNature : "F-city");
+            int newId = (lastDevice == null) ? 1 : (lastDevice.getId() + 1);
 
-            device.setCreatedAt(createdAt);
-            device.setProjectId(1001L);
+            device.setId(newId);
 
-            tslDeviceRepository.save(device);
-
-            return Map.of(
-                    "success", true,
-                    "message", "设备实例添加成功",
-                    "deviceId", deviceIdStr
-            );
-
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("设备ID必须是数字格式");
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("设备保存失败: " + e.getMessage());
+
+            device.setId((int) (System.currentTimeMillis() % 100000000));
         }
+        tslDeviceRepository.save(device); // 现在 ID 已经有值了，数据库不会再报错
+
+        return Map.of(
+                "success", true,
+                "message", "设备实例添加成功",
+                "deviceId", deviceIdStr
+        );
+    }
+
+    /**
+     * 批量删除设备实例
+     * 将前端传来的 String 列表转换为 Long 列表
+     */
+    @Transactional("jpaTransactionManager")
+    public void deleteDeviceInstances(List<String> deviceIdStrs) {
+        if (deviceIdStrs == null || deviceIdStrs.isEmpty()) {
+            return;
+        }
+
+        // 类型转换 List<String> -> List<Long>
+        List<Long> deviceIdLongs = deviceIdStrs.stream()
+                .map(Long::parseLong)
+                .collect(Collectors.toList());
+
+        // 调用 Repository
+        tslDeviceRepository.deleteByDeviceIdIn(deviceIdLongs);
     }
 }

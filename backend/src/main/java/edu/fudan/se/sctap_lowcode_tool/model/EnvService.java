@@ -17,6 +17,9 @@ public class EnvService {
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
+    @Column(name = "name")
+    private String name;
+
     @Column(name = "description")
     private String description;
 
@@ -34,4 +37,6 @@ public class EnvService {
     @Column(name = "create_time")
     private LocalDateTime createTime; // 创建时间
 
+    @Column(name = "depend_dtypes")
+    private String dependDtypes;
 }

@@ -3,12 +3,14 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeWithFunctionsDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.DeviceTypeInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ActuatingFunctionNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.DeviceTypeNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.SpaceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.DeviceTypeNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.DeviceTypeRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -30,6 +32,9 @@ public class DeviceTypeService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private TslProductRepository tslProductRepository;
 
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;
@@ -93,59 +98,129 @@ public class DeviceTypeService {
         deviceTypeRepository.deleteById(id);
     }
     /**
-     * 新增设备类型到 tsl_product 表
-     * @param productData 包含 deviceTypeId, deviceTypeName, deviceTypeAttributes, deviceTypeFunction
-     * @return 成功信息
+     * 新增设备类型
+     * 处理 JSON 字段的空值问题，防止数据库报错
      */
-    public Map<String, Object> addDeviceType(Map<String, String> productData) {
-        String productId = productData.get("deviceTypeId");
-        String productName = productData.get("deviceTypeName");
-        // 映射：使用 product_property 字段
-        String productProperty = productData.get("deviceTypeAttributes");
-        // 映射：使用 product_function 字段
-        String productFunction = productData.get("deviceTypeFunction");
-
+    @Transactional("jpaTransactionManager")
+    public Map<String, Object> addDeviceType(Map<String, Object> productData) {
+        // 1. 获取参数时需要强转为 (String)
+        String productId = (String) productData.get("deviceTypeId");
+        String productName = (String) productData.get("deviceTypeName");
+        String meshNature = (String) productData.get("mesh_nature");
         if (productId == null || productId.isEmpty() || productName == null || productName.isEmpty()) {
-            throw new IllegalArgumentException("设备类型序号和名称不能为空。");
+            throw new IllegalArgumentException("设备类型ID和名称不能为空。");
         }
 
-        // 格式化：将前端传入的属性和功能字符串转换为 JSON 数组格式
-        String propertyJson = formatStringToArrayJson(productProperty);
-        String functionJson = formatStringToArrayJson(productFunction);
-
-        // 插入 SQL 使用 product_property 和 product_function
-        String sql = "INSERT INTO tsl_product (product_id, product_name, product_property, product_function) " +
-                "VALUES (?, ?, ?, ?)";
-
-        int updated = jdbcTemplate.update(sql,
-                productId,
-                productName,
-                propertyJson,
-                functionJson);
-
-        if (updated > 0) {
-            return Map.of("success", true, "message", "设备类型添加成功", "productId", productId);
-        } else {
-            throw new RuntimeException("设备类型添加失败，数据库未更新。");
+        if (tslProductRepository.existsById(productId)) {
+            throw new IllegalArgumentException("设备类型ID " + productId + " 已存在！");
         }
+
+        // 2. 场景映射逻辑 (将 F-city 等映射为数据库的 project_id)
+        int projectId = 0;
+        if ("F-city".equals(meshNature)) {
+            projectId = 1;
+        } else if ("F-community".equals(meshNature)) {
+            projectId = 2;
+        } else if ("F-park".equals(meshNature)) {
+            projectId = 3;
+        }
+
+        // 3. 格式化 JSON 字段 (注意强转)
+        String propertyJson = formatStringToArrayJson((String) productData.get("deviceTypeAttributes"));
+        String functionJson = formatStringToArrayJson((String) productData.get("deviceTypeFunction"));
+        String instructionJson = formatStringToArrayJson((String) productData.get("deviceTypeInstruction"));
+        String eventJson = formatStringToArrayJson((String) productData.get("deviceTypeEvent"));
+
+        String rawProductJson = (String) productData.get("productJson");
+        if (rawProductJson != null && rawProductJson.trim().isEmpty()) {
+            rawProductJson = null;
+        }
+
+
+        TslProduct product = new TslProduct();
+        product.setProductId(productId);
+        product.setProductName(productName);
+        product.setProductProperty(propertyJson);
+        product.setProductFunction(functionJson);
+        product.setProductInstruction(instructionJson);
+        product.setProductEvent(eventJson);
+        product.setProductJson(rawProductJson); // 此时它要么是 valid json，要么是 null
+        product.setProjectId(projectId);
+
+        try {
+            tslProductRepository.save(product);
+        } catch (Exception e) {
+            // 捕获数据库层面的 JSON 格式错误，返回更易读的提示
+            if (e.getMessage().contains("Invalid JSON text")) {
+                throw new IllegalArgumentException("提交失败：Product JSON 内容格式不正确，请检查双引号和冒号。");
+            }
+            throw e;
+        }
+
+        return Map.of("success", true, "message", "设备类型添加成功", "productId", productId);
     }
 
-    // 辅助方法：将逗号或换行分隔的字符串转换为简单的 JSON 数组字符串 (保持与之前提供的代码一致)
+    /**
+     * 获取设备类型
+     */
+    public List<TslProduct> getTslProductsByScene(String meshNature) {
+        // 1. 确定 Project ID (用于查定义)
+        int projectId = 0;
+        if ("F-city".equals(meshNature)) projectId = 1;
+        else if ("F-community".equals(meshNature)) projectId = 2;
+        else if ("F-park".equals(meshNature)) projectId = 3;
+
+        if (meshNature == null || meshNature.isEmpty()) {
+            return tslProductRepository.findAll();
+        }
+
+        // 参数1: projectId (查新定义的)
+        // 参数2: meshNature (查正在使用的旧数据)
+        return tslProductRepository.findBySceneDefinitionOrUsage(projectId, meshNature);
+    }
+    /**
+     * 删除设备类型 (tsl_product)
+     */
+    @Transactional("jpaTransactionManager")
+    public void deleteDeviceTypeTsl(String productId) {
+        if (!tslProductRepository.existsById(productId)) {
+            throw new IllegalArgumentException("设备类型不存在: " + productId);
+        }
+        tslProductRepository.deleteById(productId);
+    }
+
+    /**
+     * 辅助工具：将逗号/换行分隔的字符串 -> JSON数组字符串
+     * 输入: "A, B" -> 输出: "[\"A\",\"B\"]"
+     */
     private String formatStringToArrayJson(String input) {
         if (input == null || input.trim().isEmpty()) {
-            return "[]";
+            return null; // 或者返回 "[]"，视数据库约束而定
         }
+        // 如果用户已经输入了 JSON 格式 (例如 ["A","B"])，则直接返回，防止二次转义
+        if (input.trim().startsWith("[")) {
+            return input;
+        }
+
         String[] elements = input.split("[,\\n\\r]+");
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < elements.length; i++) {
-            sb.append("\"").append(elements[i].trim()).append("\"");
-            if (i < elements.length - 1) {
-                sb.append(",");
+            String val = elements[i].trim();
+            if (!val.isEmpty()) {
+                sb.append("\"").append(val).append("\"");
+                if (i < elements.length - 1) {
+                    sb.append(",");
+                }
             }
+        }
+        // 处理末尾多余逗号的情况
+        if (sb.length() > 1 && sb.charAt(sb.length() - 1) == ',') {
+            sb.deleteCharAt(sb.length() - 1);
         }
         sb.append("]");
         return sb.toString();
     }
+
 
     // neo4j
     // 功能 1：新增设备类型节点

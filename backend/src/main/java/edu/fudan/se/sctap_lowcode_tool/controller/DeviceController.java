@@ -80,6 +80,9 @@ public class DeviceController {
 
     @GetMapping("/types/byGridId")
     public List<Map<String, String>> getTypesByGridId(@RequestParam String gridId) {
+        if(gridId.equals("crossRegion") ) {
+            return productService.getDeviceTypes();
+        }
         // 调用 Service 方法，传入 gridId
         return productService.getDeviceTypesByGridId(gridId);
     }

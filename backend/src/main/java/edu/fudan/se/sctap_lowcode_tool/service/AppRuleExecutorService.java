@@ -10,6 +10,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
@@ -17,10 +18,7 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCompleteRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
 import edu.fudan.se.sctap_lowcode_tool.constant.LogConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleLog;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EventHistory;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
 import jakarta.annotation.PostConstruct;
@@ -70,6 +68,9 @@ public class AppRuleExecutorService {
     private EnvEventRepository envEventRepository;
 
     @Resource
+    private EnvServiceRepository envServiceRepository;
+
+    @Resource
     private RedisUtil redisUtil;
 
     @Resource(name = "appRuleExecutor")
@@ -99,72 +100,72 @@ public class AppRuleExecutorService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostConstruct
-    public void initMockData() {
-        log.info("✅ 初始化模拟应用规则数据...");
-        String eventType = "ill_parking";
-        Integer appId = 226;
-        List<String> locations = new ArrayList<>();
-        locations.add("6b2b5be61c60401aa4c6da9828a7df68");
-        locations.add("d920d10793e64b04a4467276337fd0dd");
-        locations.add("e730178505d54b5d98cbbd2bbc01f176");
-        Map<String, List<String>> logMap = new HashMap<>();
-        Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
-        Set<String> waitLocations = new HashSet<>();
-        LocalDateTime base = LocalDateTime.now();
-        for (int i=0;i<locations.size();i++) {
-            String location = locations.get(i);
-            waitLocations.add(location);
-            // 1) 日志
-            List<String> logs = new ArrayList<>();
-            logs.add("机动车违章停车处理应用开始执行");
-            logs.add("检测到车辆违章停车");
-            logs.add("AI 识别车牌号: 沪A1001");
-            logs.add("推送至交通管理部门处理中...");
-            if(i==0) {
-                logs.add("机动车违章停车处理应用加入时间等待");
-            } else {
-                logs.add("机动车违章停车处理应用加入动作等待");
-            }
-            logMap.put(location, logs);
-            // 2) 每个 location 的消息列表
-            List<AlertMessage> alertMessages = new ArrayList<>();
-            int eventOffsetMin = ThreadLocalRandom.current().nextInt(2, 11); // 0~10
-            LocalDateTime eventTime = base.minusMinutes(eventOffsetMin);
-            // event message（每次循环都 new）
-            AlertMessage eventMessage = new AlertMessage();
-            eventMessage.setType("event");
-            eventMessage.setTimestamp(eventTime);
-            eventMessage.setLocation(location);
-            Map<String, Object> eventMessageData = new HashMap<>();
-            eventMessageData.put("appId", appId);
-            eventMessageData.put("eventType", eventType);
-            eventMessageData.put("waitValue", location);
-            eventMessage.setData(eventMessageData);
-            alertMessages.add(eventMessage);
-            // application message（每次循环都 new）
-            LocalDateTime appTime = eventTime.plusMinutes(1);
-            AlertMessage appMessage = new AlertMessage();
-            appMessage.setType("application");
-            appMessage.setTimestamp(appTime);
-            appMessage.setLocation(location);
-            Map<String, Object> appMessageData = new HashMap<>();
-            appMessageData.put("appId", appId);
-            appMessageData.put("eventType", eventType);
-            appMessageData.put("waitValue", location);
-            appMessageData.put("appName", "机动车违章停车处理应用");
-            appMessageData.put("status", "start");
-            appMessage.setData(appMessageData);
-            alertMessages.add(appMessage);
-            logPushMap.put(location, alertMessages);
-        }
-
-        appRuleLogMap.put(appId, logMap);
-        appRuleLogPushMap.put(appId, logPushMap);
-        appRuleWaitMap.put(appId, waitLocations);
-
-        log.info("✅ 模拟数据已加入");
-    }
+//    @PostConstruct
+//    public void initMockData() {
+//        log.info("✅ 初始化模拟应用规则数据...");
+//        String eventType = "ill_parking";
+//        Integer appId = 226;
+//        List<String> locations = new ArrayList<>();
+//        locations.add("6b2b5be61c60401aa4c6da9828a7df68");
+//        locations.add("d920d10793e64b04a4467276337fd0dd");
+//        locations.add("e730178505d54b5d98cbbd2bbc01f176");
+//        Map<String, List<String>> logMap = new HashMap<>();
+//        Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
+//        Set<String> waitLocations = new HashSet<>();
+//        LocalDateTime base = LocalDateTime.now();
+//        for (int i=0;i<locations.size();i++) {
+//            String location = locations.get(i);
+//            waitLocations.add(location);
+//            // 1) 日志
+//            List<String> logs = new ArrayList<>();
+//            logs.add("机动车违章停车处理应用开始执行");
+//            logs.add("检测到车辆违章停车");
+//            logs.add("AI 识别车牌号: 沪A1001");
+//            logs.add("推送至交通管理部门处理中...");
+//            if(i==0) {
+//                logs.add("机动车违章停车处理应用加入时间等待");
+//            } else {
+//                logs.add("机动车违章停车处理应用加入动作等待");
+//            }
+//            logMap.put(location, logs);
+//            // 2) 每个 location 的消息列表
+//            List<AlertMessage> alertMessages = new ArrayList<>();
+//            int eventOffsetMin = ThreadLocalRandom.current().nextInt(2, 11); // 0~10
+//            LocalDateTime eventTime = base.minusMinutes(eventOffsetMin);
+//            // event message（每次循环都 new）
+//            AlertMessage eventMessage = new AlertMessage();
+//            eventMessage.setType("event");
+//            eventMessage.setTimestamp(eventTime);
+//            eventMessage.setLocation(location);
+//            Map<String, Object> eventMessageData = new HashMap<>();
+//            eventMessageData.put("appId", appId);
+//            eventMessageData.put("eventType", eventType);
+//            eventMessageData.put("waitValue", location);
+//            eventMessage.setData(eventMessageData);
+//            alertMessages.add(eventMessage);
+//            // application message（每次循环都 new）
+//            LocalDateTime appTime = eventTime.plusMinutes(1);
+//            AlertMessage appMessage = new AlertMessage();
+//            appMessage.setType("application");
+//            appMessage.setTimestamp(appTime);
+//            appMessage.setLocation(location);
+//            Map<String, Object> appMessageData = new HashMap<>();
+//            appMessageData.put("appId", appId);
+//            appMessageData.put("eventType", eventType);
+//            appMessageData.put("waitValue", location);
+//            appMessageData.put("appName", "机动车违章停车处理应用");
+//            appMessageData.put("status", "start");
+//            appMessage.setData(appMessageData);
+//            alertMessages.add(appMessage);
+//            logPushMap.put(location, alertMessages);
+//        }
+//
+//        appRuleLogMap.put(appId, logMap);
+//        appRuleLogPushMap.put(appId, logPushMap);
+//        appRuleWaitMap.put(appId, waitLocations);
+//
+//        log.info("✅ 模拟数据已加入");
+//    }
 
     /**
      * 事件上报入口
@@ -275,34 +276,6 @@ public class AppRuleExecutorService {
             return null;
         }
     }
-
-    /**
-     * 提取事件参数
-     * */
-//    private Map<String, Object> extractEventParams(AppRule appRule, Map<String, String> params) {
-//        Map<String, Object> eventParams = new HashMap<>();
-//        for(Map.Entry<String, String> entry: appRule.getTrigger().getEvent_params().entrySet()) {
-//            String key = entry.getKey();
-//            String value = entry.getValue();
-//            if(params.containsKey(key)) {
-//                switch (value) {
-//                    case "string":
-//                        eventParams.put(key, params.get(key));
-//                        break;
-//                    case "number":
-//                        eventParams.put(key, Integer.parseInt(params.get(key)));
-//                        break;
-//                    case "bool":
-//                        eventParams.put(key, Boolean.parseBoolean(params.get(key)));
-//                        break;
-//                    default:
-//                        eventParams.put(key, params.get(key));
-//                        log.warn("未知类型: {}", value);
-//                }
-//            }
-//        }
-//        return eventParams;
-//    }
 
     /**
      * 提取wait key
@@ -758,6 +731,19 @@ public class AppRuleExecutorService {
         ActionStep.Action action = actionStep.getAction();
         addLog(LogConstant.INFO, appId, waitValue, "调用服务组合: " + action.getAction_name());
         String serviceName = action.getAction_name();
+        EnvService envService = envServiceRepository.findByServiceName(serviceName);
+        Map<String, String> paramTypeMap = new HashMap<>();
+        if(envService!=null && envService.getServiceJson()!=null) {
+            try {
+                JsonNode root = objectMapper.readTree(envService.getServiceJson());
+                JsonNode paramsNode = root.path("action_params");
+                paramsNode.fields().forEachRemaining(entry -> {
+                    paramTypeMap.put(entry.getKey(), entry.getValue().path("type").asText());
+                });
+            } catch (Exception e) {
+                addLog(LogConstant.ERROR, appId, waitValue, "解析服务元数据失败: " + e.getMessage());
+            }
+        }
         Map<String, Object> serviceParams = new HashMap<>();
         for(Map.Entry<String, String> entry : action.getAction_params().entrySet()) {
             String key = entry.getKey();
@@ -767,7 +753,14 @@ public class AppRuleExecutorService {
             } else if("event_type".equals(value)) {
                 serviceParams.put(key, eventType);
             } else {
-                serviceParams.put(key, value);
+                String targetType = paramTypeMap.getOrDefault(key, "string");
+                if(targetType.equals("number")) {
+                    serviceParams.put(key, Integer.parseInt(value));
+                } else if(targetType.equals("bool")) {
+                    serviceParams.put(key, Boolean.parseBoolean(value));
+                } else {
+                    serviceParams.put(key, value);
+                }
             }
         }
         // 调用服务组合接口

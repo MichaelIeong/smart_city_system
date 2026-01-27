@@ -30,4 +30,12 @@ public class TslProduct {
 
     @Column(name = "product_event")
     private String productEvent;
+    @Column(name = "product_json")
+    private String productJson;
+
+    @Column(name = "action_name")
+    private String actionName;
+
+    @Column(name = "project_id")
+    private Integer projectId;
 }

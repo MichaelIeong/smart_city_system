@@ -3,10 +3,12 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.ServiceNodeRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.ServiceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -25,6 +27,10 @@ public class ServiceService {
     private ServiceRepository serviceRepository;
     @Autowired
     private ServiceNodeRepository serviceNodeRepository;
+
+    @Autowired
+    private EnvServiceRepository envServiceRepository;
+
     @Autowired
     private WorkflowParser parser;
 
@@ -80,4 +86,9 @@ public class ServiceService {
         // 3. 执行工作流
         scheduler.start(parser.getStartNodeId());
     }
+
+    public void saveCompositionService(EnvService envService){
+        envServiceRepository.save(envService);
+    }
+
 }

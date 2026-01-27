@@ -2,7 +2,9 @@ package edu.fudan.se.sctap_lowcode_tool.repository;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeSummaryDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.TslDevice;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -52,4 +54,15 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
      */
     @Query("SELECT DISTINCT d.meshNo, d.meshName FROM TslDevice d WHERE d.meshNature = :meshNature")
     List<Object[]> findDistinctMeshesByScene(@Param("meshNature") String meshNature);
+    // 参数类型改为 Long
+    boolean existsByDeviceId(Long deviceId);
+
+    // 参数类型改为 Long
+    @Modifying
+    @Transactional("jpaTransactionManager")
+    void deleteByDeviceIdIn(List<Long> deviceIds);
+
+    TslDevice findTopByOrderByIdDesc();
+    // 根据产品 ID 和 网格 ID 查询设备列表
+    List<TslDevice> findByProductProductIdAndMeshId(String productId, String meshId);
 }

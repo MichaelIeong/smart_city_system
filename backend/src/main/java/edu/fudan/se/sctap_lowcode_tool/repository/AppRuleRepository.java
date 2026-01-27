@@ -45,6 +45,9 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     @Query("SELECT r FROM AppRuleInfo r JOIN AppGrid g ON r.id = g.appRuleId WHERE g.gridId = :gridId")
     List<AppRuleInfo> findByGridId(@Param("gridId") String gridId);
 
+    @Query("SELECT a FROM AppRuleInfo a WHERE a.crossRegion = TRUE ORDER BY a.updateTime DESC")
+    List<AppRuleInfo> findAllGlobalRules();
+
     @Query("""
         SELECT DISTINCT a FROM AppRuleInfo a
         WHERE a.eventType = :eventType
