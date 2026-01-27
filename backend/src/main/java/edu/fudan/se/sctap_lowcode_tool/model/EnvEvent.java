@@ -42,4 +42,7 @@ public class EnvEvent {
 
     @Column(name = "depend_dtypes")
     private String dependDtypes; // 依赖的设备类型
+
+    @Column(name = "project_id")
+    private Integer projectId;
 }

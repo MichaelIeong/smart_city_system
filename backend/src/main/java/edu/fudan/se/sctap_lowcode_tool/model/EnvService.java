@@ -39,4 +39,7 @@ public class EnvService {
 
     @Column(name = "depend_dtypes")
     private String dependDtypes;
+
+    @Column(name = "project_id")
+    private Integer projectId;
 }

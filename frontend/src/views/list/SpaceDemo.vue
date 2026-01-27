@@ -523,12 +523,14 @@ export default {
     showEventModal () {
       if (!this.gridId) return this.$message.warning('未选择网格 ID')
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
-      window.open(`${NODE_RED_URL}?type=2&gridId=${this.gridId}`, '_blank')
+      const projectId = localStorage.getItem('project_id')
+      window.open(`${NODE_RED_URL}?type=2&gridId=${this.gridId}&projectId=${projectId}`, '_blank')
     },
     showServiceModal () {
       if (!this.gridId) return this.$message.warning('未选择网格 ID')
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
-      window.open(`${NODE_RED_URL}?type=3&gridId=${this.gridId}`, '_blank')
+      const projectId = localStorage.getItem('project_id')
+      window.open(`${NODE_RED_URL}?type=3&gridId=${this.gridId}&projectId=${projectId}`, '_blank')
     },
     routeToRecommendApplication () {
       if (!this.gridId) return this.$message.warning('请选择网格')
@@ -538,12 +540,14 @@ export default {
     // 全局操作方法 (传递 crossRegion)
     showGlobalEventModal () {
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
-      window.open(`${NODE_RED_URL}?type=2&gridId=crossRegion`, '_blank')
+      const projectId = localStorage.getItem('project_id')
+      window.open(`${NODE_RED_URL}?type=2&gridId=crossRegion&projectId=${projectId}`, '_blank')
     },
 
     showGlobalServiceModal () {
       const NODE_RED_URL = process.env.VUE_APP_NODE_RED_URL
-      window.open(`${NODE_RED_URL}?type=3&gridId=crossRegion`, '_blank')
+      const projectId = localStorage.getItem('project_id')
+      window.open(`${NODE_RED_URL}?type=3&gridId=crossRegion&projectId=${projectId}`, '_blank')
     },
 
     routeToGlobalApplication () {
