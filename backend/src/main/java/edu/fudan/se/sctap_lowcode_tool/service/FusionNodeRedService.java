@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
@@ -21,16 +23,19 @@ public class FusionNodeRedService {
 
     private final TslProductRepository productRepository;
     private final EnvEventRepository envEventRepository;
+    private final EnvEventGridRepository envEventGridRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EventFusionRuleService eventFusionRuleService;
 
     public FusionNodeRedService(
         TslProductRepository productRepository,
         EnvEventRepository envEventRepository,
+        EnvEventGridRepository envEventGridRepository,
         EventFusionRuleService eventFusionRuleService
     ) {
         this.productRepository = productRepository;
         this.envEventRepository = envEventRepository;
+        this.envEventGridRepository = envEventGridRepository;
         this.eventFusionRuleService = eventFusionRuleService;
     }
 
@@ -136,6 +141,32 @@ public class FusionNodeRedService {
             crossRegion = "crossRegion".equals(gridId);
         }
 
+        // ---------- 提取 projectId ----------
+        Integer projectId = null;
+        if (eventSourceNode.has("projectId") && !eventSourceNode.get("projectId").isNull()) {
+            String pid = eventSourceNode.get("projectId").asText();
+            if (!pid.isBlank()) {
+                projectId = Integer.valueOf(pid);
+            }
+        }
+
+        // ---------- 解析关联设备ID ----------
+        List<String> deviceIds = new ArrayList<>();
+
+        String eventSourceType = eventSourceNode.get("eventSourceType").asText();
+        if ("sensorEvent".equals(eventSourceType)) {
+            if (eventSourceNode.has("sensorType")) {
+                JsonNode sensorTypeNode = eventSourceNode.get("sensorType");
+                if (sensorTypeNode.isArray()) {
+                    for (JsonNode s : sensorTypeNode) {
+                        deviceIds.add(s.asText());
+                    }
+                } else {
+                    deviceIds.add(sensorTypeNode.asText());
+                }
+            }
+        }
+
         // ---------- 组装并入库 EnvEvent ----------
         EnvEvent envEvent = new EnvEvent();
         envEvent.setEventType(spaceEventType);
@@ -145,8 +176,23 @@ public class FusionNodeRedService {
         envEvent.setCrossRegion(crossRegion);
         envEvent.setCreateTime(LocalDateTime.now());
         envEvent.setRuleDsl(ruleDsl);
+        envEvent.setDependDtypes(deviceIds);
+        envEvent.setProjectId(projectId);
 
-        envEventRepository.save(envEvent);
+        EnvEvent savedEvent = envEventRepository.save(envEvent);
+        Long envEventId = savedEvent.getId();
+
+        // ---------- 若非跨网格，组装并入库 EnvEventGrid ----------
+        if (!crossRegion) {
+            String gridId = eventSourceNode.get("gridId").asText();
+
+            EnvEventGrid envEventGrid = new EnvEventGrid();
+            envEventGrid.setEnvEventId(envEventId.intValue());
+            envEventGrid.setGridId(gridId);
+            envEventGrid.setEnabled(true);
+
+            envEventGridRepository.save(envEventGrid);
+        }
     }
 
     /* =====================================================
@@ -380,7 +426,7 @@ public class FusionNodeRedService {
             params.put(
                     out.get("key").asText(),
                     Map.of(
-                            "type", out.get("type").asText().toLowerCase(),
+                            "type", adaptType(out.get("type").asText()),
                             "description", out.get("description").asText()
                     )
             );
@@ -393,5 +439,15 @@ public class FusionNodeRedService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String adaptType(String rawType) {
+        if (rawType == null) {
+            return null;
+        }
+        if ("Boolean".equals(rawType)) {
+            return "bool";
+        }
+        return rawType.toLowerCase();
     }
 }

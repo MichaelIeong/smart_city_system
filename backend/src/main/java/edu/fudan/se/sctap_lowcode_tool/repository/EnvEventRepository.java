@@ -4,6 +4,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,9 +39,17 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
         WHERE (:eventType IS NULL OR :eventType = '' OR a.eventType = :eventType)
           AND (:eventName IS NULL OR :eventName = ''
                OR LOWER(a.eventName) LIKE LOWER(CONCAT('%', :eventName, '%')))
+          AND (:projectId IS NULL OR a.projectId = :projectId)
     """)
     Page<EnvEvent> searchWithFilters(
             @Param("eventType") String eventType,
             @Param("eventName") String eventName,
+            @Param("projectId") Integer projectId,
             Pageable pageable);
+
+    @Modifying
+    void deleteByProjectId(Integer projectId);
+
+    @Query("SELECT e.id FROM EnvEvent e WHERE e.projectId = :projectId")
+    List<Integer> findIdsByProjectId(@Param("projectId") Integer projectId);
 }

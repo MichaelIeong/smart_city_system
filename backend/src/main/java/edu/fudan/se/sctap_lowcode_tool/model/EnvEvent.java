@@ -8,6 +8,7 @@ import org.hibernate.type.SqlTypes;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -39,4 +40,12 @@ public class EnvEvent {
 
     @Column(name = "create_time")
     private LocalDateTime createTime; // 创建时间
+
+
+    @Column(name = "project_id")
+    private Integer projectId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "depend_dtypes", columnDefinition = "json")
+    private List<String> dependDtypes;
 }

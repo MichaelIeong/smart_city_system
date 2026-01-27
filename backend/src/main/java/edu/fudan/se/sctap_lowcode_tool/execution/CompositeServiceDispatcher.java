@@ -79,7 +79,7 @@ public class CompositeServiceDispatcher {
                         resultLog = atomicExecutor.executeCyber(rawStep, finalArgs); 
                         break;
                     case "physical": 
-                        resultLog = atomicExecutor.executePhysical(rawStep, 0, finalArgs); 
+                        resultLog = atomicExecutor.executePhysical(rawStep, finalArgs); 
                         break;
                     case "social": 
                         resultLog = atomicExecutor.executeSocial(rawStep, finalArgs); 

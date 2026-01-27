@@ -169,9 +169,15 @@ public class SystemPrompt {
                 + branch 表示分支结构，以上已定义其语法
                 + action 表示执行动作，由 action_name 和 action_params 组成，必须为以上提供的环境级服务，不要创造新的动作，不需要携带 description。
                   关于 action_params 的填充规则:
-                  + 如果 action_params 中包含 event_type，其值固定填充为字符串 "event_type"；如果包含 location，其值固定填充为字符串 "location"；
-                  + 检查触发事件（trigger）中的 event_params。如果服务的参数名称/描述与触发事件参数的含义匹配（例如: 服务参数 car_id 对应事件参数 plateNo；服务参数 evidence_data 对应事件参数 vehicleImageUrl），则填充触发事件参数的键名作为其 value。
-                  + 如果在触发事件参数中找不到合适的对应项，请结合环境级服务中该参数的描述和类型，手动填写合理的初始值。例如: message 参数可手动填充为 "请尽快驶离"；count 参数可根据逻辑填充为 "1"。action_params 中的所有 value 必须统一为字符串类型（String）。 如果环境级服务中定义的参数类型为数字（number）或布尔值（bool），在填充时必须将其转换为字符串格式。例如: 数量 1 需写成 "1"，布尔值 true 需写成 "true"。
+                  1. **固定字面量**:
+                     - 若参数名为 `event_type`，其值固定填充为字符串 `"event_type"` (指代当前触发事件类型)。
+                     - 若参数名为 `location`，其值固定填充为字符串 `"location"` (指代当前触发位置)。
+                  2. **变量映射**:
+                     - 检查 `trigger` 的 `event_params`。若服务参数与事件参数语义匹配，填充对应的 **参数键名** 作为字符串。
+                     - *典型映射*: `car_id` -> `"plateNo"`, `evidence_data` -> `"vehicleImageUrl"`, `device_id` -> `"deviceId"`。
+                  3. **静态常数填充**:
+                     - 若无匹配变量，根据服务中该参数的描述和类型手动填充。**必须转换为字符串**。
+                     - *示例*: `"message": "请尽快驶离"`, `"count": "1"`, `"is_retry": "true"`。
                   以下为 action 示例:
                     // 下发工单
                     "action": {
@@ -194,10 +200,8 @@ public class SystemPrompt {
                         }
                     }
                 + wait 表示等待，支持时间等待 time_wait 和动作等待 action_wait 两种。
-                wait 中需要指定等待的事件类型 event_type 和等待的事件参数 wait_params，event_type 必须为以上提供的环境级事件类型，
-                wait_params 必须从相应的环境级事件参数中选择。
-                wait_params 的选择依据可以根据执行动作的覆盖范围，如对于机动车违章停车，广播和下发工单可以覆盖整个位置区域，因此选择location；
-                而对于井盖水浸，下发工单后仅需覆盖对应的井盖，因此选择deviceId。
+                wait 中需要指定等待的事件类型 event_type 和等待的事件参数 wait_params，event_type 必须为以上提供的环境级事件类型，wait_params 必须从相应的环境级事件参数中选择。
+                wait_params 的选择依据可以根据执行动作的覆盖范围，如对于机动车违章停车，广播和下发工单可以覆盖整个位置区域，因此选择location；而对于井盖水浸，下发工单后仅需覆盖对应的井盖，因此选择deviceId。
                 此外，对于时间等待，还需要指定等待的持续时间 duration 和时间单位 unit，unit 支持 second、minute、hour。
                 以下为 wait 示例:
                     // 执行动作后等待3分钟

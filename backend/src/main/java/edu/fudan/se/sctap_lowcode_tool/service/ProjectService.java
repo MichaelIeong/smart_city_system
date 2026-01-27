@@ -1,16 +1,19 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
 import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
-import edu.fudan.se.sctap_lowcode_tool.repository.ProjectRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.JsonUtil;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
+@Slf4j
 public class ProjectService {
 
     @Autowired
@@ -18,6 +21,36 @@ public class ProjectService {
 
     @Autowired
     private JsonUtil jsonUtil;
+
+
+    @Resource
+    private TslDeviceRepository tslDeviceRepository;
+
+    @Resource
+    private EnvEventRepository envEventRepository;
+
+    @Resource
+    private EnvEventGridRepository envEventGridRepository;
+
+    @Resource
+    private EnvServiceRepository envServiceRepository;
+
+    @Resource
+    private EnvServiceGridRepository envServiceGridRepository;
+
+    @Resource
+    private AppRuleRepository appRuleRepository;
+
+    @Resource
+    private AppGridRepository appGridRepository;
+
+    // 映射 projectId 到 mesh_nature
+    private static final Map<Integer, String> MESH_NATURE_MAP = new HashMap<>();
+    static {
+        MESH_NATURE_MAP.put(1, "F-city");
+        MESH_NATURE_MAP.put(2, "F-community");
+        MESH_NATURE_MAP.put(3, "F-park");
+    }
 
     /**
      * 保存或更新项目。
@@ -102,4 +135,66 @@ public class ProjectService {
                 .map(projects -> jsonUtil.convertListToJson((List<ProjectInfo>) projects));
     }
 
+    // 开启事务，任何异常都回滚
+    @Transactional(transactionManager = "jpaTransactionManager", propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public Boolean deleteProjectById(Integer projectId) {
+        try {
+            // 1. 删除设备
+            String meshNature = MESH_NATURE_MAP.get(projectId);
+            if(meshNature != null) {
+                tslDeviceRepository.deleteByMeshNature(meshNature);
+            }
+            // 2. 删除环境级事件及其关联 Grid
+            List<Integer> eventIds = envEventRepository.findIdsByProjectId(projectId);
+            if (!eventIds.isEmpty()) {
+                envEventGridRepository.deleteByEnvEventIdIn(eventIds); // 先删子表
+                envEventRepository.deleteByProjectId(projectId);       // 后删主表
+            }
+            // 3. 删除环境级服务及其关联 Grid
+            List<Integer> serviceIds = envServiceRepository.findIdsByProjectId(projectId);
+            if (!serviceIds.isEmpty()) {
+                envServiceGridRepository.deleteByEnvServiceIdIn(serviceIds);
+                envServiceRepository.deleteByProjectId(projectId);
+            }
+            // 4. 删除应用级规则及其关联 Grid
+            List<Integer> appRuleIds = appRuleRepository.findIdsByProjectId(projectId);
+            if (!appRuleIds.isEmpty()) {
+                appGridRepository.deleteByAppRuleIdIn(appRuleIds);
+                appRuleRepository.deleteByProjectId(projectId);
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("删除项目失败，触发事务回滚. projectId: {}", projectId, e);
+            // 重要：必须抛出运行时异常，@Transactional 才会生效回滚
+            throw new RuntimeException("Delete project failed, rolling back...", e);
+        }
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

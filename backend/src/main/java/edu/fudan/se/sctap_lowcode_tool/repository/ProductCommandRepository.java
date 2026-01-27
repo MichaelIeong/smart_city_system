@@ -30,4 +30,6 @@ public interface ProductCommandRepository extends JpaRepository<ProductFunctionC
 
     @Query("SELECT DISTINCT p.commandJson FROM ProductCommandJson p WHERE p.commandId = ?1")
     String getCommandJsonById(String commandId);
+    ProductFunctionCommand findByProductIdAndFunctionNameAndCommandName(
+            String productId, String functionName, String commandName);
 }

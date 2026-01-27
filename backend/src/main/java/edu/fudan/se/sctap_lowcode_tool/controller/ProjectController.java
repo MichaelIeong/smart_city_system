@@ -184,4 +184,12 @@ public class ProjectController {
         }
     }
 
+    /**
+     * 删除场景
+     * */
+    @GetMapping("/delete/{projectId}")
+    public ResponseEntity<Boolean> deleteProjectById(@PathVariable Integer projectId) {
+        return ResponseEntity.ok(projectService.deleteProjectById(projectId));
+    }
+
 }

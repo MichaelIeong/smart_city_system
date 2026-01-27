@@ -26,7 +26,8 @@ const api = {
   isResources: '/api/is_resources',
   sceneTypeDict: '/api/metrics/dictInfo/detail/193a89ee62ed407cb3f467e249537498',
   envEvent: '/api/envEvent',
-  envService: '/api/envService'
+  envService: '/api/envService',
+  deviceBatchAdd: '/api/devices/batchAdd'
 }
 
 export default api
@@ -631,7 +632,7 @@ export function getAllEnvEvent () {
 }
 
 // 分页查询环境级事件
-export function listEnvEvent ({ eventType, eventName, pageNo, pageSize, sortField, sortOrder }) {
+export function listEnvEvent ({ eventType, eventName, projectId, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: api.envEvent + '/list',
@@ -639,6 +640,7 @@ export function listEnvEvent ({ eventType, eventName, pageNo, pageSize, sortFiel
     params: {
       eventType,
       eventName,
+      projectId,
       pageNo,
       pageSize,
       sortField,
@@ -663,7 +665,7 @@ export function getAllEnvService () {
 }
 
 // 分页查询环境级服务
-export function listEnvService ({ name, description, pageNo, pageSize, sortField, sortOrder }) {
+export function listEnvService ({ name, description, projectId, pageNo, pageSize, sortField, sortOrder }) {
   const token = store.state.token
   return request({
     url: api.envService + '/list',
@@ -671,6 +673,7 @@ export function listEnvService ({ name, description, pageNo, pageSize, sortField
     params: {
       name,
       description,
+      projectId,
       pageNo,
       pageSize,
       sortField,
@@ -695,5 +698,134 @@ export function completeActionWait (appId, waitValue) {
       appId,
       waitValue
     }
+  })
+}
+
+// 获取事件融合部署详情
+export function getEventFusionDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 获取服务组部署详情
+export function getServiceGroupDeployDetail (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/deploy/detail/${id}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级事件
+export function deleteEnvEvent (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 删除环境级服务
+export function deleteEnvService (id) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/${id}`,
+    method: 'delete',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据事件ID获取同类型的网格
+export function getGridListByEventId (eventId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/typeOfEvent/${eventId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 根据服务ID获取同类型的网格
+export function getGridListByServiceId (serviceId) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/typeOfService/${serviceId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+// 事件融合同步下发
+export function syncEventFusion (eventId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envEvent}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      eventId,
+      gridIdList
+    }
+  })
+}
+
+/**
+ * 批量添加设备
+ * @param {Array} deviceList 设备列表
+ */
+export function batchAddDevices (deviceList) {
+  return request({
+    url: api.deviceBatchAdd,
+    method: 'post',
+    data: deviceList
+  })
+}
+
+// 服务组同步下发
+export function syncServiceGroup (serviceId, gridIdList) {
+  const token = store.state.token
+  return request({
+    url: `${api.envService}/sync`,
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: {
+      serviceId,
+      gridIdList
+    }
+  })
+}
+
+// 删除场景
+export function deleteProjectById (projectId) {
+  const token = store.state.token
+  return request({
+    url: `/api/projects/delete/${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: 120000
   })
 }
