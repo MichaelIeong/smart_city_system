@@ -39,10 +39,12 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
         WHERE (:eventType IS NULL OR :eventType = '' OR a.eventType = :eventType)
           AND (:eventName IS NULL OR :eventName = ''
                OR LOWER(a.eventName) LIKE LOWER(CONCAT('%', :eventName, '%')))
+          AND (:projectId IS NULL OR a.projectId = :projectId)
     """)
     Page<EnvEvent> searchWithFilters(
             @Param("eventType") String eventType,
             @Param("eventName") String eventName,
+            @Param("projectId") Integer projectId,
             Pageable pageable);
 
     @Modifying

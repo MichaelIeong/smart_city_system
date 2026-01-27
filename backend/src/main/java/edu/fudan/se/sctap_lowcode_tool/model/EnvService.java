@@ -2,8 +2,11 @@ package edu.fudan.se.sctap_lowcode_tool.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -37,8 +40,9 @@ public class EnvService {
     @Column(name = "create_time")
     private LocalDateTime createTime; // 创建时间
 
-    @Column(name = "depend_dtypes")
-    private String dependDtypes;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "depend_dtypes", columnDefinition = "json")
+    private List<String> dependDtypes;
 
     @Column(name = "project_id")
     private Integer projectId;

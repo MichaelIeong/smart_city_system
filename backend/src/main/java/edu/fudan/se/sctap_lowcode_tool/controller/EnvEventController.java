@@ -43,11 +43,12 @@ public class EnvEventController {
     public PageDTO<EnvEvent> list(
             @RequestParam(required = false) String eventType,
             @RequestParam(required = false) String eventName,
+            @RequestParam(required = false) Integer projectId,
             @RequestParam(defaultValue = "1") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder) {
-        return envEventService.list(eventType, eventName, pageNo, pageSize, sortField, sortOrder);
+        return envEventService.list(eventType, eventName, projectId, pageNo, pageSize, sortField, sortOrder);
     }
 
     /**

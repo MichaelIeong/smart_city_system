@@ -219,10 +219,14 @@ export default {
                 // 提取排序字段和方向
                 const sortField = sorter.field;
                 const sortOrder = sorter.order;
+                
+                // 从localStorage获取projectId
+                const projectId = localStorage.getItem('project_id');
 
                 const params = {
                     name: searchParams.name,
                     description: searchParams.description,
+                    projectId: projectId ? parseInt(projectId) : null,
                     pageNo,
                     pageSize,
                     sortField: sortField, 

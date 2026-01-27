@@ -44,11 +44,12 @@ public class EnvServiceController {
     public PageDTO<EnvService> list(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String description,
+            @RequestParam(required = false) Integer projectId,
             @RequestParam(defaultValue = "1") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder) {
-        return envServiceService.list(name, description, pageNo, pageSize, sortField, sortOrder);
+        return envServiceService.list(name, description, projectId, pageNo, pageSize, sortField, sortOrder);
     }
 
     /**
