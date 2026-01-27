@@ -117,9 +117,10 @@
 </template>
 
 <script>
-import { addScene, getSceneTypeDict } from '@/api/manage'
+import { addScene, getSceneTypeDict, deleteProjectById } from '@/api/manage'
 import { getProjects } from '@/api/login'
 import DefaultSceneImg from '@/assets/DefaultSceneImg.png'
+import { message } from 'ant-design-vue'
 
 export default {
   data () {
@@ -239,7 +240,7 @@ export default {
 
     async handleFetchData () {
       if (!this.selectedSceneType) {
-        alert('请先选择一个场景类型')
+        message.error('请先选择场景类型')
         return
       }
 
@@ -283,11 +284,11 @@ export default {
           this.showTypeModal = false
           this.showPreviewModal = true
         } else {
-          alert('获取数据失败: 状态不正确')
+          message.error('获取数据失败：状态不正确')
         }
       } catch (error) {
         console.error('API Error:', error)
-        alert('网络请求异常')
+        message.error('网络请求异常')
       } finally {
         this.loading = false
       }
@@ -296,7 +297,7 @@ export default {
     confirmImportFinal () {
       const isExist = this.allProjects.some(p => p.meshData?.type === this.selectedSceneType)
       if (isExist) {
-        alert(`该场景已存在，请勿重复添加！`)
+        message.error('该场景已存在，请勿重复添加！')
         return
       }
 
@@ -336,7 +337,7 @@ export default {
         this.importing = false
         this.showPreviewModal = false
         this.previewData = []
-        alert('导入成功！')
+        message.success('导入成功！')
       }, 600)
     },
 
@@ -385,9 +386,17 @@ export default {
     },
 
     async confirmDelete (project) {
+      console.log(project)
       if (confirm(`确定要移除场景 "${project.projectName}" 吗？`)) {
         this.allProjects = this.allProjects.filter(p => p.projectId !== project.projectId)
         this.saveProjectsToLocal()
+        console.log(project)
+        const res = await deleteProjectById(project.systemId)
+        if (res) {
+          message.success('删除成功！')
+        } else {
+          message.error('删除失败')
+        }
       }
     },
 

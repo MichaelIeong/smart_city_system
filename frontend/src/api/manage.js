@@ -801,3 +801,15 @@ export function syncServiceGroup (serviceId, gridIdList) {
     }
   })
 }
+
+// 删除场景
+export function deleteProjectById (projectId) {
+  const token = store.state.token
+  return request({
+    url: `/api/projects/delete/${projectId}`,
+    method: 'get',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}

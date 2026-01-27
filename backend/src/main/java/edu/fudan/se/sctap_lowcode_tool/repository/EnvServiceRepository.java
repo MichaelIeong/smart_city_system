@@ -4,6 +4,7 @@ import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,4 +40,10 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
             @Param("name") String name,
             @Param("description") String description,
             Pageable pageable);
+
+    @Modifying
+    void deleteByProjectId(Integer projectId);
+
+    @Query("SELECT s.id FROM EnvService s WHERE s.projectId = :projectId")
+    List<Integer> findIdsByProjectId(@Param("projectId") Integer projectId);
 }
