@@ -299,7 +299,7 @@ public class FusionNodeRedService {
                     String operatorName = opNode.get("operator").asText();
                     step.put("operatorName", operatorName);
 
-                    if ("count".equals(operatorName)) {
+                    if ("Count".equals(operatorName)) {
                         handleCountOperator(opNode, step);
                     }
                 }
@@ -355,12 +355,15 @@ public class FusionNodeRedService {
 
         List<Map<String, Object>> input = new ArrayList<>();
 
-        // timeWindowMinute
+        // timeWindowSeconds（分钟 → 秒）
+        int timeWindowMinutes = value.get("timeWindowMinute").asInt();
+        int timeWindowSeconds = timeWindowMinutes * 60;
+
         input.add(Map.of(
-                "key", "timeWindowMinute",
+                "key", "timeWindowSeconds",
                 "type", "Number",
-                "desc", "时间窗口（分钟），只统计该时间段内(N分钟前～现在)的事件数量。",
-                "expr", value.get("timeWindowMinute").asText()
+                "desc", "时间窗口（秒），只统计该时间段内(N秒前～现在)的事件数量。",
+                "expr", String.valueOf(timeWindowSeconds)
         ));
 
         // spaceEventId
@@ -387,7 +390,7 @@ public class FusionNodeRedService {
             };
 
             condExprs.add(String.format(
-                    "{'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s}",
+                    "'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s",
                     c.get("jsonPath").asText(),
                     c.get("type").asText(),
                     op,
