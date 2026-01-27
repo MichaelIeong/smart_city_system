@@ -35,4 +35,17 @@ public class ProductFunctionCommandService {
             return dto;
         }).collect(Collectors.toList());
     }
+
+    public List<String> getFunctionsByProductId(String productId){
+        return productCommandRepository.getFunctionsByProductId(productId);
+    }
+
+    public List<String> getCommandsByFunctionName(String functionName){
+        return productCommandRepository.getCommandsNameByFunction(functionName);
+    }
+
+    public String getCommandJsonById(String commandId){
+        return productCommandRepository.getCommandJsonById(commandId);
+    }
+
 }
