@@ -957,37 +957,49 @@ public class AppRuleExecutorService {
                 if(now >= expireTime) {
                     Integer appId = Integer.parseInt(waitData.get("appId").toString());
                     String waitValue = waitData.get("waitValue").toString();
-                    String redisKey = RedisConstant.TimeWait + appId + ":" + waitValue;
-                    // 从 redis 中删除
-                    redisUtil.deleteSingle(redisKey);
-                    // 从等待中移除
+                    // 1. 优先从内存等待中移除，并进行判断（卫语句）
                     Set<String> waitSet = appRuleWaitMap.get(appId);
+                    // 如果该类型的等待列表为空，或者列表中不包含当前标识，直接结束
+                    if (waitSet == null || !waitSet.contains(waitValue)) {
+                        log.warn("⚠️ 尝试结束一个不存在的等待动作: appId={}, waitValue={}", appId, waitValue);
+                        return;
+                    }
+                    // 2. 执行移除操作
                     waitSet.remove(waitValue);
-                    appRuleWaitMap.put(appId, waitSet);
+                    // 如果该类型的 Set 空了，可选: 从 map 中移除该 key 节省内存
+                    if (waitSet.isEmpty()) {
+                        appRuleWaitMap.remove(appId);
+                    }
+                    // 3. 移除 Redis 标识
+                    String redisKey = RedisConstant.ActionWait + appId + ":" + waitValue;
+                    redisUtil.deleteSingle(redisKey);
+                    // 4. 记录日志
                     AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
-                    if(appRuleInfo != null && !appRuleInfo.getAppName().isBlank()) {
+                    if (appRuleInfo != null && !appRuleInfo.getAppName().isBlank()) {
                         addLog(LogConstant.INFO, appId, waitValue, String.format("%s结束时间等待, 标识: %s", appRuleInfo.getAppName(), waitValue));
-                        addLog(LogConstant.INFO, appId, waitValue, String.format("%s流程执行结束", appRuleInfo.getAppName()));
+                        addLog(LogConstant.INFO, appId, waitValue, String.format("%s应用流程执行结束", appRuleInfo.getAppName()));
                     } else {
                         addLog(LogConstant.INFO, appId, waitValue, String.format("应用结束时间等待, 标识: %s", waitValue));
                         addLog(LogConstant.INFO, appId, waitValue, "应用流程执行结束");
                     }
-                    // 向前端推送应用结束消息
-                    List<AlertMessage> messages = appRuleLogPushMap.get(appId).get(waitValue);
-                    AlertMessage appMessage;
-                    for(AlertMessage message : messages) {
-                        if(message.getType().equals("application")) {
-                            appMessage = message;
-                            Map<String, Object> data = appMessage.getData();
-                            data.put("status", "end");
-                            appMessage.setData(data);
-                            appMessage.setTimestamp(LocalDateTime.now());
-                            webSocketPushService.sendAlert(appMessage);
+                    // 5. 向前端推送应用结束消息
+                    Map<String, List<AlertMessage>> messagesMap = appRuleLogPushMap.get(appId);
+                    if (messagesMap != null) {
+                        List<AlertMessage> messages = messagesMap.get(waitValue);
+                        if (messages != null) {
+                            for (AlertMessage message : messages) {
+                                // 只更新应用类型的消息状态
+                                if ("application".equals(message.getType())) {
+                                    message.getData().put("status", "end");
+                                    message.setTimestamp(LocalDateTime.now());
+                                    webSocketPushService.sendAlert(message);
+                                }
+                            }
                         }
+                        // 删除该标识对应的消息
+                        messagesMap.remove(waitValue);
                     }
-                    // 删除日志
-                    appRuleLogPushMap.get(appId).remove(waitValue);
-                    // 存储日志
+                    // 6. 存储日志
                     saveLog(appId, waitValue);
                 }
             } catch (Exception e) {
@@ -997,7 +1009,7 @@ public class AppRuleExecutorService {
     }
 
     /**
-     * 定时任务: 每隔1小时执行一次，检查到期的ActionWait并执行
+     * 定时任务: 每隔10分钟一次，检查到期的ActionWait并执行
      * */
     public void checkExpiredActionWait() {
         log.info("开始检查到期的动作等待应用...");
@@ -1019,13 +1031,23 @@ public class AppRuleExecutorService {
                 if(now >= expireTime) {
                     Integer appId = Integer.parseInt(waitData.get("appId").toString());
                     String waitValue = waitData.get("waitValue").toString();
-                    String redisKey = RedisConstant.ActionWait + appId + ":" + waitValue;
-                    // 从 redis 中删除
-                    redisUtil.deleteSingle(redisKey);
-                    // 从等待中移除
+                    // 1. 优先从内存等待中移除，并进行判断（卫语句）
                     Set<String> waitSet = appRuleWaitMap.get(appId);
+                    // 如果该类型的等待列表为空，或者列表中不包含当前标识，直接结束
+                    if (waitSet == null || !waitSet.contains(waitValue)) {
+                        log.warn("⚠️ 尝试结束一个不存在的等待动作: appId={}, waitValue={}", appId, waitValue);
+                        return;
+                    }
+                    // 2. 执行移除操作
                     waitSet.remove(waitValue);
-                    appRuleWaitMap.put(appId, waitSet);
+                    // 如果该类型的 Set 空了，可选: 从 map 中移除该 key 节省内存
+                    if (waitSet.isEmpty()) {
+                        appRuleWaitMap.remove(appId);
+                    }
+                    // 3. 移除 Redis 标识
+                    String redisKey = RedisConstant.ActionWait + appId + ":" + waitValue;
+                    redisUtil.deleteSingle(redisKey);
+                    // 4. 记录日志
                     AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
                     if (appRuleInfo != null && !appRuleInfo.getAppName().isBlank()) {
                         addLog(LogConstant.INFO, appId, waitValue, String.format("%s结束动作等待, 标识: %s", appRuleInfo.getAppName(), waitValue));
@@ -1034,22 +1056,24 @@ public class AppRuleExecutorService {
                         addLog(LogConstant.INFO, appId, waitValue, String.format("应用结束动作等待, 标识: %s", waitValue));
                         addLog(LogConstant.INFO, appId, waitValue, "应用流程执行结束");
                     }
-                    // 向前端推送应用结束消息
-                    List<AlertMessage> messages = appRuleLogPushMap.get(appId).get(waitValue);
-                    AlertMessage appMessage;
-                    for(AlertMessage message : messages) {
-                        if(message.getType().equals("application")) {
-                            appMessage = message;
-                            Map<String, Object> data = appMessage.getData();
-                            data.put("status", "end");
-                            appMessage.setData(data);
-                            appMessage.setTimestamp(LocalDateTime.now());
-                            webSocketPushService.sendAlert(appMessage);
+                    // 5. 向前端推送应用结束消息
+                    Map<String, List<AlertMessage>> messagesMap = appRuleLogPushMap.get(appId);
+                    if(messagesMap != null) {
+                        List<AlertMessage> messages = messagesMap.get(waitValue);
+                        if(messages != null) {
+                            for (AlertMessage message : messages) {
+                                // 只更新应用类型的消息状态
+                                if ("application".equals(message.getType())) {
+                                    message.getData().put("status", "end");
+                                    message.setTimestamp(LocalDateTime.now());
+                                    webSocketPushService.sendAlert(message);
+                                }
+                            }
                         }
+                        // 删除该标识对应的消息
+                        messagesMap.remove(waitValue);
                     }
-                    // 删除日志
-                    appRuleLogPushMap.get(appId).remove(waitValue);
-                    // 存储日志
+                    // 6. 存储日志
                     saveLog(appId, waitValue);
                 }
             } catch (Exception e) {

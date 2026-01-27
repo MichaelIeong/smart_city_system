@@ -43,4 +43,7 @@ public class EnvService {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "depend_dtypes", columnDefinition = "json")
     private List<String> dependDtypes;
+
+    @Column(name = "project_id")
+    private Integer projectId;
 }
