@@ -15,7 +15,7 @@ public class EnvService {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "service_name", nullable = false)
     private String serviceName;

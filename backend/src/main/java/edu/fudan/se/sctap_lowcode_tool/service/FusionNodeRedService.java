@@ -180,7 +180,7 @@ public class FusionNodeRedService {
         envEvent.setProjectId(projectId);
 
         EnvEvent savedEvent = envEventRepository.save(envEvent);
-        Long envEventId = savedEvent.getId();
+        Integer envEventId = savedEvent.getId();
 
         // ---------- 若非跨网格，组装并入库 EnvEventGrid ----------
         if (!crossRegion) {

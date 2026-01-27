@@ -4,12 +4,15 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvServiceGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.FusionRule;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jModel.ServiceNode;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.ServiceNodeRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.ServiceRepository;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,9 @@ public class ServiceService {
 
     @Autowired
     private EnvServiceRepository envServiceRepository;
+
+    @Resource
+    private EnvServiceGridRepository envServiceGridRepository;
 
     @Autowired
     private WorkflowParser parser;
@@ -87,8 +93,15 @@ public class ServiceService {
         scheduler.start(parser.getStartNodeId());
     }
 
-    public void saveCompositionService(EnvService envService){
+    public void saveCompositionService(EnvService envService, String gridId){
         envServiceRepository.save(envService);
+        if(!envService.getCrossRegion()) {
+            EnvServiceGrid envServiceGrid = new EnvServiceGrid();
+            envServiceGrid.setGridId(gridId);
+            envServiceGrid.setEnvServiceId(envService.getId());
+            envServiceGrid.setEnabled(true);
+            envServiceGridRepository.save(envServiceGrid);
+        }
     }
 
 }
