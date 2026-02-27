@@ -3,6 +3,7 @@ package edu.fudan.se.sctap_lowcode_tool.service;
 import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.JsonUtil;
+import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ public class ProjectService {
 
     @Resource
     private AppGridRepository appGridRepository;
+
+    @Resource
+    private MilvusUtil milvusUtil;
 
     // 映射 projectId 到 mesh_nature
     private static final Map<Integer, String> MESH_NATURE_MAP = new HashMap<>();
@@ -162,6 +166,8 @@ public class ProjectService {
                 appGridRepository.deleteByAppRuleIdIn(appRuleIds);
                 appRuleRepository.deleteByProjectId(projectId);
             }
+            // 5. 清空向量数据库
+            milvusUtil.clearCollection();
             return true;
         } catch (Exception e) {
             log.error("删除项目失败，触发事务回滚. projectId: {}", projectId, e);

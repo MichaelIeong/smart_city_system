@@ -14,6 +14,7 @@ import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.collection.request.AddFieldReq;
 import io.milvus.v2.service.collection.request.CreateCollectionReq;
+import io.milvus.v2.service.collection.request.DropCollectionReq;
 import io.milvus.v2.service.collection.request.HasCollectionReq;
 import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.InsertReq;
@@ -180,5 +181,24 @@ public class MilvusUtil {
                 .ids(Collections.singletonList(id))
                 .build();
         milvusClient.delete(deleteReq);
+    }
+
+    /**
+     * 清空Collection
+     * */
+    public void clearCollection() {
+        // 1. 检查集合是否存在
+        HasCollectionReq hasCollectionReq = HasCollectionReq.builder()
+                .collectionName(COLLECTION_NAME)
+                .build();
+        if (milvusClient.hasCollection(hasCollectionReq)) {
+            // 2. 如果存在，直接删除集合
+            DropCollectionReq dropCollectionReq = DropCollectionReq.builder()
+                    .collectionName(COLLECTION_NAME)
+                    .build();
+            milvusClient.dropCollection(dropCollectionReq);
+        }
+        // 3. 重新创建一个干净的空集合
+        createCollection();
     }
 }
