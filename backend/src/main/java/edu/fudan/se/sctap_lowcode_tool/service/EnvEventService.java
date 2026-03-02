@@ -92,6 +92,14 @@ public class EnvEventService {
         return envEventRepository.findByGridId(gridId);
     }
 
+    public List<EnvEvent> getEnvEventListByProject(String gridId, Integer projectId) {
+        // 获取跨区域事件时，增加 projectId 过滤
+        if ("crossRegion".equals(gridId)) {
+            return envEventRepository.findCrossRegionByProject(projectId);
+        }
+        return envEventRepository.findByGridId(gridId);
+    }
+
     /**
      * 获取全部环境级事件
      * */

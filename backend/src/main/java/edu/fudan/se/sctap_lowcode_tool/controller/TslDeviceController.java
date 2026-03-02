@@ -85,18 +85,22 @@ public class TslDeviceController {
     }
 
     @GetMapping("/global-events")
-    public ResponseEntity<List<EnvEvent>> getGlobalEvents() {
-        return ResponseEntity.ok(envEventService.getEnvEventList("crossRegion"));
+    public ResponseEntity<List<EnvEvent>> getGlobalEvents(
+            @RequestParam(value = "projectId", required = false) Integer projectId) {
+        // 调用带项目 ID 过滤的方法
+        return ResponseEntity.ok(envEventService.getEnvEventListByProject("crossRegion", projectId));
     }
 
     @GetMapping("/global-services")
-    public ResponseEntity<List<EnvService>> getGlobalServices() {
-        return ResponseEntity.ok(envServiceService.getEnvServiceList("crossRegion"));
+    public ResponseEntity<List<EnvService>> getGlobalServices(
+            @RequestParam(value = "projectId", required = false) Integer projectId) {
+        return ResponseEntity.ok(envServiceService.getEnvServiceListByProject("crossRegion", projectId));
     }
 
     @GetMapping("/global-applications")
-    public ResponseEntity<List<AppRuleInfo>> getGlobalApplications() {
-        return ResponseEntity.ok(appRuleService.getAppRulesByGridId("crossRegion"));
+    public ResponseEntity<List<AppRuleInfo>> getGlobalApplications(
+            @RequestParam(value = "projectId", required = false) Integer projectId) {
+        return ResponseEntity.ok(appRuleService.getAppRulesByGridIdAndProject("crossRegion", projectId));
     }
 
 
