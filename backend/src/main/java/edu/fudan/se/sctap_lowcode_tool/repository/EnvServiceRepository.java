@@ -48,4 +48,12 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
 
     @Query("SELECT s.id FROM EnvService s WHERE s.projectId = :projectId")
     List<Integer> findIdsByProjectId(@Param("projectId") Integer projectId);
+
+    @Query("""
+        SELECT DISTINCT s FROM EnvService s
+        WHERE s.crossRegion = TRUE
+          AND (:projectId IS NULL OR s.projectId = :projectId)
+    """)
+    List<EnvService> findCrossRegionByProject(@Param("projectId") Integer projectId);
+
 }

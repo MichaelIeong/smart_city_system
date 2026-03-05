@@ -170,8 +170,8 @@ public class SystemPrompt {
                 + action 表示执行动作，由 action_name 和 action_params 组成，必须为以上提供的环境级服务，不要创造新的动作，不需要携带 description。
                   关于 action_params 的填充规则:
                   1. **固定字面量**:
-                     - 若参数名为 `event_type`，其值固定填充为字符串 `"event_type"` (指代当前触发事件类型)。
-                     - 若参数名为 `location`，其值固定填充为字符串 `"location"` (指代当前触发位置)。
+                     - 若参数名为 `event_type`，其值固定填充为字符串 "event_type" (指代当前触发事件类型，不要填入触发的事件类型或凭空捏造填入)。
+                     - 若参数名为 `location`，其值固定填充为字符串 "location" (指代当前触发位置)。
                   2. **变量映射**:
                      - 检查 `trigger` 的 `event_params`。若服务参数与事件参数语义匹配，填充对应的 **参数键名** 作为字符串。
                      - *典型映射*: `car_id` -> `"plateNo"`, `evidence_data` -> `"vehicleImageUrl"`, `device_id` -> `"deviceId"`。
@@ -183,7 +183,7 @@ public class SystemPrompt {
                     "action": {
                         "action_name": "issue_work_order",
                         "action_params": {
-                            "event_type": "event_type",
+                            "event_type": "event_type",  // 使用 event_type 占位即可，不要填入触发的事件类型或凭空捏造填入
                             "location": "location",
                             "car_id": "plateNo",
                             "evidence_data": "vehicleImageUrl"
@@ -193,7 +193,7 @@ public class SystemPrompt {
                     "action": {
                         "action_name": "broadcast",
                         "action_params": {
-                             "event_type": "event_type",
+                             "event_type": "event_type",  // 使用 event_type 占位即可，不要填入触发的事件类型或凭空捏造填入
                              "location": "location",
                              "message": "请尽快驶离",
                              "count": "1"

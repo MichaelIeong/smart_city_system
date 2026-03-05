@@ -764,6 +764,7 @@ public class AppRuleExecutorService {
             }
         }
         // 调用服务组合接口
+        System.out.println(serviceParams);
         List<String> serviceLogs = taskFlowService.callService(serviceName, serviceParams);
         // 加入服务调用日志
         for(String logMessage : serviceLogs) {

@@ -16,7 +16,7 @@ import java.util.List;
 public class EnvEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "event_type", nullable = false)
     private String eventType;

@@ -90,6 +90,16 @@ public class EnvServiceService {
     }
 
     /**
+     * 获取环境级服务列表 (支持项目过滤)
+     * */
+    public List<EnvService> getEnvServiceListByProject(String gridId, Integer projectId) {
+        if ("crossRegion".equals(gridId)) {
+            return envServiceRepository.findCrossRegionByProject(projectId);
+        }
+        return envServiceRepository.findByGridId(gridId);
+    }
+
+    /**
      * 获取全部环境级服务
      * */
     public List<EnvService> getAllEnvServiceList() {

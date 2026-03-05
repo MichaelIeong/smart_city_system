@@ -11,7 +11,7 @@
             </a-col>
             <a-col :md="8" :sm="24">
               <a-form-item label="资源类型">
-                <a-select v-model="queryResourceType" placeholder="请选择资源类型" default-value="0" :style="{ height: '40px' }">
+                <a-select v-model="queryResourceType" placeholder="请选择资源类型" default-value="0">
                   <a-select-option value="0">全部</a-select-option>
                   <a-select-option
                     v-for="type in resourceTypes"
@@ -130,12 +130,10 @@
             v-decorator="[
               'input',
               {
-                rules: [
-                  { required: false, message: '请输入输入参数描述' }
-                ]
+                rules: [{ required: false, message: '请输入输入参数描述' }]
               }
             ]"
-            placeholder="请输入JSON 格式参数"
+            placeholder="请输入 JSON 格式参数"
             :rows="3"
           />
         </a-form-item>
@@ -145,16 +143,13 @@
             v-decorator="[
               'output',
               {
-                rules: [
-                  { required: false, message: '请输入输出参数描述' }
-                ]
+                rules: [{ required: false, message: '请输入输出参数描述' }]
               }
             ]"
-            placeholder="请输入JSON 格式参数"
+            placeholder="请输入 JSON 格式参数"
             :rows="3"
           />
         </a-form-item>
-
       </a-form>
     </a-modal>
 
@@ -183,9 +178,12 @@ export default {
       queryId: '',
       queryResourceType: '0',
       loading: false,
-      resourceTypes: [], // 存储从数据库获取的资源类型
-      advanced: false,
-      // 修改：添加 input 和 output 列
+      resourceTypes: [],
+      // ★★★ 存储当前项目ID，默认为1 ★★★
+      currentProjectId: '1',
+      currentScene: '',
+
+      // 表格列定义
       cyberColumns: [
         { title: '资源编号', dataIndex: 'resourceId', key: 'resourceId', width: 120 },
         { title: '资源类型', dataIndex: 'resourceType', key: 'resourceType', width: 150 },
@@ -198,26 +196,14 @@ export default {
       cyberData: [],
       filteredData: [],
 
-      // 新增功能相关数据
+      // 新增功能
       addModalVisible: false,
       addSubmitLoading: false,
       addForm: this.$form.createForm(this),
 
-      // 新增资源临时存储对象
-      // 修改：添加 input 和 output 字段
-      newResource: {
-        id: '',
-        resourceId: '',
-        resourceType: '',
-        description: '',
-        url: '',
-        input: '',
-        output: ''
-      },
-
-      // 删除功能相关数据
-      selectedResource: null, // 选中要删除的资源
-      isDeleteModalVisible: false, // 删除确认弹窗显示状态
+      // 删除功能
+      selectedResource: null,
+      isDeleteModalVisible: false,
 
       // 分页配置
       paginationConfig: {
@@ -228,42 +214,68 @@ export default {
       }
     }
   },
+
+  mounted () {
+    // 1. 同步场景信息 (保持和物理资源一致)
+    let scene = this.$route.query.scene
+    if (!scene) {
+      scene = localStorage.getItem('current_scene_type')
+    }
+    if (!scene) {
+      scene = 'F-city'
+    }
+    this.currentScene = scene
+
+    // 路由同步
+    if (this.$route.query.scene !== scene) {
+      this.$router.replace({
+        path: this.$route.path,
+        query: { ...this.$route.query, scene: scene }
+      })
+    }
+
+    // 2. ★★★ 获取 Project ID (从本地存储) ★★★
+    const storedProjectId = localStorage.getItem('project_id')
+    if (storedProjectId) {
+      this.currentProjectId = storedProjectId
+    }
+
+    console.log(`初始化信息资源: Scene=${this.currentScene}, ProjectId=${this.currentProjectId}`)
+
+    // 3. 加载数据
+    this.fetchData()
+  },
+
   methods: {
-    async fetchData (id) {
+    async fetchData () {
       try {
         this.loading = true
+        // 使用当前 Project ID
+        const targetId = this.currentProjectId
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-        const response = await axios.get(`${baseUrl}/api/cyberResources/project/${id}`)
-        console.log('API response data:', response.data)
 
-        // 确保数据格式正确
+        // ★★★ 核心：调用 cyberResources 接口 ★★★
+        const response = await axios.get(`${baseUrl}/api/cyberResources/project/${targetId}`)
+
         if (Array.isArray(response.data)) {
           this.cyberData = response.data
-          this.filteredData = [...response.data] // 使用展开运算符创建新数组
-
-          // 提取所有不重复的资源类型
+          this.filteredData = [...response.data]
           this.extractResourceTypes()
-
-          console.log('表格数据已更新，共', response.data.length, '条记录')
-          console.log('资源类型列表:', this.resourceTypes)
+          console.log(`成功获取信息资源，共 ${response.data.length} 条`)
         } else {
-          console.warn('API返回的数据不是数组格式:', response.data)
           this.cyberData = []
           this.filteredData = []
-          this.resourceTypes = []
         }
       } catch (error) {
         console.error('获取数据时发生错误:', error)
-        this.$message.error('获取数据失败，请检查网络连接或联系管理员')
+        this.$message.error('获取数据失败，请检查网络连接')
         this.cyberData = []
         this.filteredData = []
-        this.resourceTypes = []
       } finally {
         this.loading = false
       }
     },
 
-    // 提取数据中的所有资源类型
     extractResourceTypes () {
       const types = new Set()
       this.cyberData.forEach(item => {
@@ -280,7 +292,6 @@ export default {
         const matchesResourceType = this.queryResourceType === '0' || (item.resourceType && item.resourceType === this.queryResourceType)
         return matchesId && matchesResourceType
       })
-
       if (this.filteredData.length === 0 && this.cyberData.length > 0) {
         this.$message.info('未找到匹配的数据')
       }
@@ -289,103 +300,43 @@ export default {
     resetQueryParam () {
       this.queryId = ''
       this.queryResourceType = '0'
-      this.filteredData = [...this.cyberData] // 使用展开运算符创建新数组
+      this.filteredData = [...this.cyberData]
       this.$message.success('查询条件已重置')
     },
 
-    // 删除设备实例
     deleteResourceInstance (record) {
-      // 保存要删除的资源记录
       this.selectedResource = record
-      // 显示删除确认弹窗
       this.isDeleteModalVisible = true
     },
 
     async confirmDeleteResource () {
       try {
-        if (!this.selectedResource || !this.selectedResource.id) {
-          this.$message.error('未找到资源ID，无法删除')
-          return
-        }
+        if (!this.selectedResource || !this.selectedResource.id) return
 
         const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 
-        // 调用后端删除接口
+        // 调用删除接口
         await axios.delete(`${baseUrl}/api/cyberResources/delete/${this.selectedResource.id}`)
 
-        // 关闭弹窗
-        this.isDeleteModalVisible = false
         this.selectedResource = null
-
+        this.isDeleteModalVisible = false
         this.$message.success('删除成功')
 
-        // 重新拉取数据
-        this.fetchData(1)
+        // 刷新列表
+        this.fetchData()
       } catch (error) {
-        console.error('删除资源时出错：', error)
+        console.error('删除实例时出错：', error)
         this.$message.error('删除失败，请稍后重试！')
       }
     },
 
-    // 取消删除
     cancelDeleteResource () {
       this.isDeleteModalVisible = false
       this.selectedResource = null
     },
 
-    // 修复后的删除操作代码
-    deleteResource (record) {
-      this.$confirm({
-        title: '确认删除',
-        content: '确定要删除该资源吗？',
-        okText: '确定',
-        cancelText: '取消',
-        okType: 'danger',
-        onOk: () => {
-          // 使用 filter 方法创建新数组，Vue 能够检测到变化并更新
-          this.cyberData = this.cyberData.filter(item => item.id !== record.id)
-          this.filteredData = this.filteredData.filter(item => item.id !== record.id)
-
-          // 重新提取资源类型，确保筛选器列表是最新的
-          this.extractResourceTypes()
-
-          this.$message.success('删除成功')
-        },
-        onCancel: () => {
-          console.log('取消删除')
-        }
-      })
-    },
-
-    // 新增资源实例
-    addResourceInstance () {
-      // 将新增的资源实例数据添加到表格中
-      this.cyberData.push({
-        id: this.newResource.id,
-        resourceId: this.newResource.resourceId,
-        resourceType: this.newResource.resourceType,
-        description: this.newResource.description,
-        url: this.newResource.url,
-        // 修改：添加 input 和 output
-        input: this.newResource.input,
-        output: this.newResource.output
-      })
-      // 清空输入框
-      this.newResource = {
-        id: '',
-        resourceId: '',
-        resourceType: '',
-        description: '',
-        url: '',
-        input: '',
-        output: ''
-      }
-    },
-
-    // 新增功能相关方法
     showAddModal () {
       this.addModalVisible = true
-      // 重置表单
       this.$nextTick(() => {
         this.addForm.resetFields()
       })
@@ -396,57 +347,51 @@ export default {
       this.addForm.resetFields()
     },
 
-    async handleAddSubmit () {
+    handleAddSubmit () {
       this.addForm.validateFields(async (err, values) => {
         if (!err) {
           this.addSubmitLoading = true
           try {
             const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
 
-            // 构造发送给后端的对象
+            // 构造对象
             const payload = {
               resourceId: values.resourceId.trim(),
               resourceType: values.resourceType.trim(),
               description: values.description.trim(),
               url: values.url.trim(),
-              // 传递新增的 input 和 output
               input: values.input ? values.input.trim() : '',
               output: values.output ? values.output.trim() : '',
-              projectId: 1
+              // ★★★ 关键：传入当前 Project ID ★★★
+              projectId: this.currentProjectId
             }
 
-            // 发送 POST 请求给后端
+            // 调用新增接口
             await axios.post(`${baseUrl}/api/cyberResources/add`, payload)
 
             this.$message.success('新增信息资源成功')
-
-            // 关闭弹窗
             this.addModalVisible = false
             this.addForm.resetFields()
 
-            // 重新从后端获取最新列表，而不是手动 push
-            this.fetchData(1)
+            // 刷新列表
+            this.fetchData()
           } catch (error) {
             console.error('新增失败:', error)
-            this.$message.error('新增失败，请检查后端服务')
+            this.$message.error('新增失败，请检查资源编号是否重复')
           } finally {
             this.addSubmitLoading = false
           }
         }
       })
     }
-  },
-
-  created () {
-    const projectId = '1'
-    this.fetchData(projectId)
   }
 }
 </script>
 
 <style scoped>
+/* CSS 修复：使用 margin-bottom 替代固定 height，确保 TextArea 能撑开 */
 .a-form-item {
-  margin-bottom: 24px; /* 稍微增加间距以适应 TextArea */
+  margin-bottom: 24px;
 }
 
 .table-page-search-wrapper {
@@ -461,26 +406,16 @@ export default {
 :global(.ant-modal-confirm) {
   border-radius: 8px !important;
 }
-
 :global(.ant-modal-confirm .ant-modal-header) {
   border-bottom: 1px solid #f0f0f0 !important;
   padding: 16px 24px !important;
 }
-
 :global(.ant-modal-confirm .ant-modal-body) {
   padding: 24px !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
 }
-
-:global(.ant-modal-confirm .ant-modal-confirm-btns) {
-  margin-top: 24px !important;
-}
-
 :global(.ant-modal-confirm .ant-btn) {
   border-radius: 4px !important;
   height: 32px !important;
   padding: 0 16px !important;
-  font-size: 14px !important;
 }
 </style>

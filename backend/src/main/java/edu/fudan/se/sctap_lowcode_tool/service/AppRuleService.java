@@ -832,4 +832,17 @@ public class AppRuleService {
         }
         return Collections.emptyList();
     }
+
+    /**
+     * 根据网格ID和项目ID获取应用规则列表
+     */
+    public List<AppRuleInfo> getAppRulesByGridIdAndProject(String gridId, Integer projectId) {
+        // 1. 如果是全局应用请求
+        if ("crossRegion".equals(gridId)) {
+            return appRuleRepository.findGlobalRulesByProject(projectId);
+        }
+
+        // 2. 如果是具体网格请求
+        return appRuleRepository.findByGridId(gridId);
+    }
 }

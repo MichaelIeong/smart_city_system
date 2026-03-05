@@ -355,6 +355,16 @@ export default {
 
   methods: {
     handleMeshTypeChange (type) {
+      // 根据不同的场景类型设置对应的 projectId
+      const projectMap = {
+        'F-city': 1,
+        'F-community': 2,
+        'F-park': 3
+      }
+
+      if (projectMap[type]) {
+        localStorage.setItem('project_id', projectMap[type])
+      }
       if (type === 'F-city') this.backgroundOffset = 'calc(50% - 180px) center'
       else this.backgroundOffset = 'center center'
 
@@ -377,18 +387,21 @@ export default {
       }
 
       const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+      const currentProjectId = localStorage.getItem('project_id')
 
       try {
         // 使用 Promise.all 同时发起请求，加快加载速度
         const [deviceRes, eventRes, serviceRes, appRes] = await Promise.all([
           // (1) 全局设备统计
           axios.get(`${baseUrl}/api/devices/global-summary`, { params: { sceneType: meshType } }),
-          // (2) 全局事件 (grid_id = crossRegion)
-          axios.get(`${baseUrl}/api/devices/global-events`),
-          // (3) 全局服务 (grid_id = crossRegion)
-          axios.get(`${baseUrl}/api/devices/global-services`),
-          // (4) 全局应用 (grid_id = crossRegion)
-          axios.get(`${baseUrl}/api/devices/global-applications`)
+          // (2) 全局事件 - 添加 projectId 参数
+          axios.get(`${baseUrl}/api/devices/global-events`, { params: { projectId: currentProjectId } }),
+
+          // (3) 全局服务 - 添加 projectId 参数
+          axios.get(`${baseUrl}/api/devices/global-services`, { params: { projectId: currentProjectId } }),
+
+          // (4) 全局应用 - 添加 projectId 参数
+          axios.get(`${baseUrl}/api/devices/global-applications`, { params: { projectId: currentProjectId } })
         ])
 
         // --- 赋值设备数据 ---
@@ -551,7 +564,8 @@ export default {
     },
 
     routeToGlobalApplication () {
-      this.$router.push(`/tap/create?gridId=crossRegion`)
+      const projectId = localStorage.getItem('project_id')
+      this.$router.push(`/tap/create?gridId=crossRegion&projectId=${projectId}`)
     }
   }
 }
