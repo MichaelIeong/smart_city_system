@@ -55,40 +55,123 @@ public class AtomicServiceExecutor {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"));
         return String.format("[%s]-[%s]: %s", level, timestamp, message);
     }
-    public String executeCyber(JsonNode stepNode, Map<String, Object> finalArgs) {
-        String nodeName = stepNode.path("name").asText();
-        
-        try {
-            // 核心改动：使用 cyberResourceRepository 查询资源配置
-            List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(nodeName);
-            if (CollectionUtils.isEmpty(resources)) {
-                return formatLog("ERROR", "未找到网络资源配置: " + nodeName);
-            }
-            
-            CyberResourceInfo resource = resources.get(0);
-            String apiUrl = resource.getUrl();
+    
+    public String executeCyber(JsonNode stepNode, String location, Map<String, Object> finalArgs) {
+    String nodeName = stepNode.path("name").asText();
 
-            // 1. 发起网络请求
-            Map<String, Object> responseMap = restTemplate.postForObject(apiUrl, finalArgs, Map.class);
-            
-            // 2. 打印日志
-            System.out.println("[网络下发] 地址: " + apiUrl + " | 响应内容: " + responseMap);
+    try {
+        //  1) 若是“工单类 cyber”，走物理统一下发接口，但日志仍然归类为“网络下发”
 
-            // 3. 业务逻辑判断 (响应不为空且 result 字段为 true)
-            if (responseMap != null && Boolean.TRUE.equals(responseMap.get("result"))) {
-                return formatLog("INFO", String.format("网络资源 [%s] 下发成功，外部响应: %s", nodeName, responseMap));
-            } else {
-                return formatLog("ERROR", String.format("网络资源 [%s] 下发业务返回失败，响应: %s", nodeName, responseMap));
-            }
+        if (isOrderLikeCyber(stepNode)) {
+            ResponseEntity<String> response = sendOrderViaPhysicalChannelReturnResponse(stepNode,"工单", location, finalArgs);
 
-        } catch (Exception e) {
-            // 捕获网络异常、超时等
-            System.err.println("[网络下发异常] 节点: " + nodeName + " | 原因: " + e.getMessage());
-            return formatLog("ERROR", "网络资源下发过程中出现异常: " + e.getMessage());
+            System.out.println("[网络下发-工单走物理] 节点: " + nodeName + " | 响应: " + response);
+
+            return formatLog("INFO",
+                    String.format("网络资源 [%s] 下发成功，响应: %s",
+                            nodeName, response.getBody()));
         }
+
+        // 2) 普通 cyber：走配置的 apiUrl
+        List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(nodeName);
+        if (CollectionUtils.isEmpty(resources)) {
+            return formatLog("ERROR", "未找到网络资源配置: " + nodeName);
+        }
+
+        CyberResourceInfo resource = resources.get(0);
+        String apiUrl = resource.getUrl();
+
+        Map<String, Object> responseMap = restTemplate.postForObject(apiUrl, finalArgs, Map.class);
+
+        System.out.println("[网络下发] 地址: " + apiUrl + " | 响应内容: " + responseMap);
+
+        if (responseMap != null && Boolean.TRUE.equals(responseMap.get("result"))) {
+            return formatLog("INFO", String.format("网络资源 [%s] 下发成功，外部响应: %s", nodeName, responseMap));
+        } else {
+            return formatLog("ERROR", String.format("网络资源 [%s] 下发业务返回失败，响应: %s", nodeName, responseMap));
+        }
+
+    } catch (Exception e) {
+        System.err.println("[网络下发异常] 节点: " + nodeName + " | 原因: " + e.getMessage());
+        return formatLog("ERROR", "网络资源下发过程中出现异常: " + e.getMessage());
+    }
+}
+
+    /**
+     * 工单识别规则：
+     * 1) 节点名包含“工单”
+     * 2) 参数里包含 “区域” 与 “类型或内容”
+     */
+    private boolean isOrderLikeCyber(JsonNode stepNode) {
+        String name = stepNode.path("name").asText("");
+        JsonNode argsNode = stepNode.path("args");
+        return name.contains("工单")
+                && argsNode.isObject()
+                && argsNode.has("区域")
+                && argsNode.has("类型或内容");
     }
 
-    public String executeSocial(JsonNode stepNode, Map<String, Object> finalArgs) {
+    private ResponseEntity<String> sendOrderViaPhysicalChannelReturnResponse(JsonNode stepNode,
+            String nodeName, String location, Map<String, Object> finalArgs) {
+
+        // --- A. 查 deviceId ---
+        TslProduct product = tslProductRepository.findByProductName(nodeName);
+        if (product == null) {
+            throw new RuntimeException("未知产品(用于查deviceId): " + nodeName);
+        }
+        String productId = product.getProductId();
+
+        List<TslDevice> devices = tslDeviceRepository.findByProductProductIdAndMeshId(productId, location);
+        System.out.println("地址: " + location);
+        System.out.println("productId: " + productId);
+        if (CollectionUtils.isEmpty(devices)) {
+            throw new RuntimeException("区域内无可用设备: " + nodeName + "；location=" + location);
+        }
+        Long deviceId = devices.get(0).getDeviceId();
+
+        // --- B. body ---
+        Map<String, Object> realPayload = new HashMap<>();
+        JsonNode argsNode = stepNode.path("args");
+        realPayload.put("区域", finalArgs.get(argsNode.path("区域").asText()));
+        realPayload.put("类型或内容", finalArgs.get(argsNode.path("类型或内容").asText())); 
+        //载荷过滤组装
+        
+
+        Map<String, Object> cmdPart = new HashMap<>();
+        cmdPart.put("function", "orders");     // 若实际是 p_orders 就换掉
+        cmdPart.put("command", "sendorder");
+        cmdPart.put("param", realPayload);
+
+        Map<String, Object> bodyParam = new HashMap<>();
+        bodyParam.put("cmd", cmdPart);
+        bodyParam.put("deviceId", deviceId.toString());
+
+        System.out.println("body: " + bodyParam);
+
+        // --- C. headers/sign ---
+        String appId = "6bdece1382b5488a";
+        String appCode = "Ubiquitous-OS";
+        String token = "ZGIWMJHKMWZHZMVMNDAYYZLLMMU5YZE0MZU0YWFJYZFMNTYZNTDJODQ5ZJQ0OTG0";
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String nonce = String.valueOf(new Random().nextInt(5));
+        String sign = DigestUtils.md5Hex(appId + token + timestamp + nonce);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("appId", appId);
+        headers.set("appCode", appCode);
+        headers.set("nonce", nonce);
+        headers.set("timestamp", timestamp);
+        headers.set("sign", sign);
+        headers.set("authorization", token);
+
+        // --- D. request ---
+        String deviceUrl = "http://60.161.136.138:32014/device/api/device/send/command";
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(bodyParam, headers);
+
+        return restTemplate.postForEntity(deviceUrl, requestEntity, String.class);
+    }
+    public String executeSocial(JsonNode stepNode,Map<String, Object> finalArgs) {
         String nodeName = stepNode.path("name").asText();
         
         try {
