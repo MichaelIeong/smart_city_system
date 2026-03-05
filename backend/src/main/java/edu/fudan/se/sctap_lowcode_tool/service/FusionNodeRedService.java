@@ -12,6 +12,9 @@ import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
+import edu.fudan.se.sctap_lowcode_tool.DTO.ProductEventDTO;
+import edu.fudan.se.sctap_lowcode_tool.model.ProductEvent;
+import edu.fudan.se.sctap_lowcode_tool.repository.ProductEventRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,17 +29,20 @@ public class FusionNodeRedService {
     private final EnvEventGridRepository envEventGridRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EventFusionRuleService eventFusionRuleService;
+    private final ProductEventRepository productEventRepository;
 
     public FusionNodeRedService(
         TslProductRepository productRepository,
         EnvEventRepository envEventRepository,
         EnvEventGridRepository envEventGridRepository,
-        EventFusionRuleService eventFusionRuleService
+        EventFusionRuleService eventFusionRuleService,
+        ProductEventRepository productEventRepository
     ) {
         this.productRepository = productRepository;
         this.envEventRepository = envEventRepository;
         this.envEventGridRepository = envEventGridRepository;
         this.eventFusionRuleService = eventFusionRuleService;
+        this.productEventRepository = productEventRepository;
     }
 
     /* =====================================================
@@ -95,6 +101,22 @@ public class FusionNodeRedService {
                 .map(EnvEvent::getEventType)
                 .filter(type -> type != null && !type.isBlank())
                 .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /* =====================================================
+    * Product Event（产品级事件）
+    * ===================================================== */
+
+    public List<ProductEventDTO> listProductEvents() {
+
+        List<ProductEvent> productEvents = productEventRepository.findAll();
+
+        return productEvents.stream()
+                .map(pe -> new ProductEventDTO(
+                        pe.getProductEvent(),  // product_event
+                        pe.getEventName()      // event_name
+                ))
                 .collect(Collectors.toList());
     }
 

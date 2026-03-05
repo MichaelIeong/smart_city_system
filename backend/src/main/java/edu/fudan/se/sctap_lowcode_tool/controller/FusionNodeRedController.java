@@ -2,6 +2,7 @@ package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
+import edu.fudan.se.sctap_lowcode_tool.DTO.ProductEventDTO;
 import edu.fudan.se.sctap_lowcode_tool.service.FusionNodeRedService;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +35,15 @@ public class FusionNodeRedController {
     @GetMapping("/spaceEventTypes")
     public List<String> listSpaceEventTypes() {
         return fusionService.listSpaceEventTypes();
+    }
+
+    /* =====================================================
+    * Product Event API
+    * ===================================================== */
+
+    @GetMapping("/allProductEvents")
+    public List<ProductEventDTO> listProductEvents() {
+        return fusionService.listProductEvents();
     }
 
     /* =====================================================
