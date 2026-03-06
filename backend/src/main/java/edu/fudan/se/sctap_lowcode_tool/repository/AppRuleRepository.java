@@ -63,4 +63,7 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
 
     @Query("SELECT a.id FROM AppRuleInfo a WHERE a.project.projectId = :projectId")
     List<Integer> findIdsByProjectId(@Param("projectId") Integer projectId);
+
+    @Query("SELECT a FROM AppRuleInfo a WHERE a.crossRegion = TRUE AND a.project.projectId = :projectId")
+    List<AppRuleInfo> findGlobalRulesByProject(@Param("projectId") Integer projectId);
 }

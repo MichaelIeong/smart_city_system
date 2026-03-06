@@ -52,4 +52,11 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
 
     @Query("SELECT e.id FROM EnvEvent e WHERE e.projectId = :projectId")
     List<Integer> findIdsByProjectId(@Param("projectId") Integer projectId);
+
+    @Query("""
+        SELECT DISTINCT a FROM EnvEvent a
+        WHERE a.crossRegion = TRUE
+          AND (:projectId IS NULL OR a.projectId = :projectId)
+    """)
+    List<EnvEvent> findCrossRegionByProject(@Param("projectId") Integer projectId);
 }

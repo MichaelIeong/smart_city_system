@@ -76,7 +76,7 @@ public class CompositeServiceDispatcher {
                 String resultLog = "";
                 switch (type.toLowerCase()) {
                     case "cyber": 
-                        resultLog = atomicExecutor.executeCyber(rawStep, finalArgs); 
+                        resultLog = atomicExecutor.executeCyber(rawStep,location, finalArgs); 
                         break;
                     case "physical": 
                         resultLog = atomicExecutor.executePhysical(rawStep, location, finalArgs); 
