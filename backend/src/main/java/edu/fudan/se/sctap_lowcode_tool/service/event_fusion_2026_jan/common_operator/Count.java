@@ -6,8 +6,8 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ErrorResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.Var;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.VarType;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.SpaceEventHistory;
-import edu.fudan.se.sctap_lowcode_tool.repository.SpaceEventHistoryRepository;
+import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.DataEventHistory;
+import edu.fudan.se.sctap_lowcode_tool.repository.DataEventHistoryRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
@@ -32,7 +32,7 @@ import static java.lang.Boolean.parseBoolean;
 /**
  * <h4>计数算子 Count</h4>
  * 
- * 基于 SpaceEventHistory 表，按事件 ID、时间窗口和 JSONPath 过滤条件统计事件数量。
+ * 基于 DataEventHistory 表，按事件 ID、时间窗口和 JSONPath 过滤条件统计事件数量。
  */
 @Service
 @RequiredArgsConstructor
@@ -43,7 +43,7 @@ public class Count extends CommonOperator {
     public static final String COUNT_CONDITIONS = "countConditions";
     public static final String COUNT = "count";
 
-    private final SpaceEventHistoryRepository repository;
+    private final DataEventHistoryRepository repository;
     private final ConversionService conversionService;
     private final ObjectMapper objectMapper;
 
@@ -64,17 +64,17 @@ public class Count extends CommonOperator {
         countConditions.forEach(this::validateCountCondition);
 
         // 构建 Specification
-        Specification<SpaceEventHistory> spaceEventSpec = Specification.where(
-            (root, query, cb) -> cb.equal(root.get(SPACE_EVENT_ID), spaceEventId)
+        Specification<DataEventHistory> spaceEventSpec = Specification.where(
+            (root, query, cb) -> cb.equal(root.get("eventId"), spaceEventId)
         );
-        Specification<SpaceEventHistory> timeWindowSpec = Specification.where(
+        Specification<DataEventHistory> timeWindowSpec = Specification.where(
             (root, query, cb) -> cb.greaterThanOrEqualTo(
                 root.get("createdAt"),
                 LocalDateTime.now().minusSeconds(timeWindowSecs)
             )
         );
-        Specification<SpaceEventHistory> countConditionSpec = this.toSpecification(countConditions);
-        Specification<SpaceEventHistory> combineSpec = spaceEventSpec.and(timeWindowSpec).and(countConditionSpec);
+        Specification<DataEventHistory> countConditionSpec = this.toSpecification(countConditions);
+        Specification<DataEventHistory> combineSpec = spaceEventSpec.and(timeWindowSpec).and(countConditionSpec);
 
         // 执行查询并返回结果
         try {
@@ -93,7 +93,7 @@ public class Count extends CommonOperator {
     @NotNull
     @Override
     public String getDescription() {
-        return "计数算子(用于在数据库中查询符合指定条件的环境事件数量)";
+        return "计数算子(用于在数据库中查询符合指定条件的数据事件数量)";
     }
 
     @NotNull
@@ -111,7 +111,7 @@ public class Count extends CommonOperator {
     public List<Var> getInputSpec() {
         return List.of(
             new Var(TIME_WINDOW_SECONDS, VarType.Number, "时间窗口（秒），只统计该时间段内(N秒前～现在)的事件数量。"),
-            new Var(SPACE_EVENT_ID, VarType.String, "环境事件ID，只统计该环境事件的数量。"),
+            new Var(SPACE_EVENT_ID, VarType.String, "数据事件ID，只统计该数据事件的数量。"),
             new Var(COUNT_CONDITIONS, VarType.Array, "计数条件，指定对事件负载数据的过滤条件，条件间为AND关系，格式为 List<CountCondition>。")
         );
     }
@@ -237,7 +237,7 @@ public class Count extends CommonOperator {
 
             /**
              * 指定该数据类型如何提取 payload 中指定 JSONPath 对应字段的表达式，用于后续 Predicate 构建。
-             * @param root 实体根，指向 SpaceEventHistory
+             * @param root 实体根，指向 DataEventHistory
              * @param cb CriteriaBuilder，用于生成函数调用或比较表达式
              * @param jsonPath JSONPath 路径，如 $.field[0].subField
              * @return 代表该字段的 JPA Expression
@@ -359,7 +359,7 @@ public class Count extends CommonOperator {
     /**
      * 将 CountCondition 列表转换为单个 Specification，所有条件以 AND 相连。
      */
-    private Specification<SpaceEventHistory> toSpecification(List<CountCondition> conditions) throws BadRequestException {
+    private Specification<DataEventHistory> toSpecification(List<CountCondition> conditions) throws BadRequestException {
         return (root, query, cb) -> {
             List<Predicate> predicates = conditions.stream().map(cond -> {
                 Expression<?> expr = cond.type().toExpression(root, cb, cond.jsonPath());
