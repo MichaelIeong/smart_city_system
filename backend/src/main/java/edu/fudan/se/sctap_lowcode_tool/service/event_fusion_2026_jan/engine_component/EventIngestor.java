@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event.BaseEvent;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.event.DataEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.SpaceEventHistory;
-import edu.fudan.se.sctap_lowcode_tool.repository.SpaceEventHistoryRepository;
+import edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan.DataEventHistory;
+import edu.fudan.se.sctap_lowcode_tool.repository.DataEventHistoryRepository;
 import edu.fudan.se.sctap_lowcode_tool.utils.TslApiUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.TslApiUtil.TslApiException;
 import jakarta.validation.constraints.Max;
@@ -31,7 +31,6 @@ import java.time.ZoneId;
 import java.util.*;
 
 import static edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule.EventSource.sensorEvent;
-import static edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule.EventSource.spaceEvent;
 
 /**
  * <h3>EventIngestor 事件采集器</h3>
@@ -70,20 +69,20 @@ public abstract class EventIngestor {
 
     /**
      * <h3>DirectPushIngestor 直接推送采集器</h3>
-     * 提供内部直接推送事件的入口，如果事件是 spaceEvent 类型，则存储到 SpaceEventHistory 中。
+     * 提供内部直接推送事件的入口，所有 DataEvent 均会存储到 DataEventHistory 中。
      */
     @Component
     public static class DirectPushIngestor extends EventIngestor {
 
-        private final SpaceEventHistoryRepository spaceEventHistoryRepository;
+        private final DataEventHistoryRepository dataEventHistoryRepository;
 
         @Autowired
         public DirectPushIngestor(
             ApplicationEventPublisher applicationEventPublisher,
-            SpaceEventHistoryRepository spaceEventHistoryRepository
+            DataEventHistoryRepository dataEventHistoryRepository
         ) {
             super(applicationEventPublisher);
-            this.spaceEventHistoryRepository = spaceEventHistoryRepository;
+            this.dataEventHistoryRepository = dataEventHistoryRepository;
         }
 
         @Override
@@ -97,12 +96,13 @@ public abstract class EventIngestor {
          * @param event 待发布事件
          */
         public void push(@NotNull BaseEvent event) {
-            // 如果事件是 DataEvent，且事件类型是 spaceEvent，则存储到 SpaceEventHistory 中
-            if (event instanceof DataEvent dataEvent && dataEvent.getEventSource().equals(spaceEvent)) {
-                var spaceEventHistory = new SpaceEventHistory();
-                spaceEventHistory.setSpaceEventId(dataEvent.getEventId());
-                spaceEventHistory.setPayload(dataEvent.getPayload());
-                spaceEventHistoryRepository.save(spaceEventHistory);
+            // 如果事件是 DataEvent，则存储到 DataEventHistory 中
+            if (event instanceof DataEvent dataEvent) {
+                var dataEventHistory = new DataEventHistory();
+                dataEventHistory.setEventId(dataEvent.getEventId());
+                dataEventHistory.setEventSource(dataEvent.getEventSource());
+                dataEventHistory.setPayload(dataEvent.getPayload());
+                dataEventHistoryRepository.save(dataEventHistory);
             }
             // 发布事件
             publish(new EventBatch(List.of(event)));
@@ -125,6 +125,7 @@ public abstract class EventIngestor {
         private final TslApiUtil tslApiUtil;
         private final ObjectMapper objectMapper;
         private final ConversionService conversionService;
+        private final DataEventHistoryRepository dataEventHistoryRepository;
 
         @Value("${tsl.app.base-url}")
         private String tslBaseUrl;
@@ -153,12 +154,14 @@ public abstract class EventIngestor {
             ApplicationEventPublisher applicationEventPublisher,
             TslApiUtil tslApiUtil,
             ObjectMapper objectMapper,
-            ConversionService conversionService
+            ConversionService conversionService,
+            DataEventHistoryRepository dataEventHistoryRepository
         ) {
             super(applicationEventPublisher);
             this.tslApiUtil = tslApiUtil;
             this.objectMapper = objectMapper;
             this.conversionService = conversionService;
+            this.dataEventHistoryRepository = dataEventHistoryRepository;
         }
 
         @Override
@@ -221,6 +224,16 @@ public abstract class EventIngestor {
                     .build()
                 )
                 .toList();
+
+            // 在发布事件前，将所有 DataEvent 存储到 DataEventHistory 中
+            var histories = results.stream().map(e -> {
+                var h = new DataEventHistory();
+                h.setEventId(e.getEventId());
+                h.setEventSource(e.getEventSource());
+                h.setPayload(e.getPayload());
+                return h;
+            }).toList();
+            dataEventHistoryRepository.saveAll(histories);
 
             publish(new EventBatch(results));
         }

@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.model.event_fusion_2026_jan;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -13,37 +14,47 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * SpaceEventHistory 环境事件历史记录
+ * DataEventHistory 数据事件历史记录
  * <p>
- * 当系统收到新发布的环境事件时，会创建一条历史记录，包含事件ID、负载数据和创建时间。
- * 该历史记录用于后续的count函数计算，以便统计特定时间窗口内的事件数量。
+ * 当系统采集到新的 DataEvent（含传感器事件与环境事件）时，会创建一条历史记录，
+ * 包含事件ID、事件来源类型、负载数据和创建时间。
+ * 该历史记录用于后续的 count 函数计算，以便统计特定时间窗口内的事件数量。
  * @author Lin Yicheng
  * @since 2026-01-12
  */
 @Data
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class SpaceEventHistory {
+public class DataEventHistory {
 
     /**
      * <b>主键ID</b><br/>
-     * 每条环境事件历史记录的唯一标识
+     * 每条数据事件历史记录的唯一标识
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     /**
-     * <b>环境事件ID</b><br/>
-     * 表明所属的环境事件，例如 "truck_spill", "truck_spill_cross_region"
+     * <b>事件ID</b><br/>
+     * 表明所属的数据事件类型，例如 "truck_spill", "truck_spill_cross_region"
      */
     @NotNull
     @Column(nullable = false)
-    private String spaceEventId;
+    private String eventId;
+
+    /**
+     * <b>事件来源类型</b><br/>
+     * 标识该事件是传感器事件（sensorEvent）还是环境事件（spaceEvent）。
+     */
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EventFusionRule.EventSource eventSource;
 
     /**
      * <b>负载数据</b><br/>
-     * 存储该次环境事件的负载信息，采用 JSON 格式存储。<br/>
+     * 存储该次数据事件的负载信息，采用 JSON 格式存储。<br/>
      * 例如：{"targetPlateNo": "云A123456", "location": "gridA"}
      */
     @Nullable
