@@ -20,6 +20,8 @@ RUN yarn build
 # 使用 nginx 作為伺服器
 FROM nginx:alpine
 
+COPY nginx.conf /etc/nginx/nginx.conf
+
 # 複製構建好的檔案
 COPY --from=builder /app/dist /usr/share/nginx/html
 

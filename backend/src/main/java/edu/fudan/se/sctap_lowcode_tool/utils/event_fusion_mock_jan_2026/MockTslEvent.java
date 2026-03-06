@@ -18,7 +18,7 @@ public class MockTslEvent {
     private final String eventName = "渣土车识别-卡口-永达路上段01-渣土车抓拍";
     private final String eventTempName = "渣土识别自动流程";
     private final int eventMain = 0;
-    private final String eventType = "truck_dect";
+    private final String eventType = "fire_alarm";
     private final String eventTypeName = "渣土车识别";
     private final String eventLevel = "level3";
     private final String fromAlarm = "AL20260121166170";
