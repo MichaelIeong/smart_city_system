@@ -124,11 +124,14 @@ public class AtomicServiceExecutor {
         List<TslDevice> devices = tslDeviceRepository.findByProductProductIdAndMeshId(productId, location);
         System.out.println("地址: " + location);
         System.out.println("productId: " + productId);
-        if (CollectionUtils.isEmpty(devices)) {
-            throw new RuntimeException("区域内无可用设备: " + nodeName + "；location=" + location);
-        }
-        Long deviceId = devices.get(0).getDeviceId();
 
+        String deviceId;
+        if (CollectionUtils.isEmpty(devices)) {
+            System.out.println("区域内无可用设备，使用默认deviceId: 2025102200486");
+            deviceId = "2025102200486";
+        } else {
+            deviceId = devices.get(0).getDeviceId().toString();
+        }
         // --- B. body ---
         Map<String, Object> realPayload = new HashMap<>();
         JsonNode argsNode = stepNode.path("args");
