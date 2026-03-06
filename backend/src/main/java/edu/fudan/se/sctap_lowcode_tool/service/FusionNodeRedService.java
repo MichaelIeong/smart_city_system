@@ -399,8 +399,8 @@ public class FusionNodeRedService {
 
         // conditions
         List<String> condExprs = new ArrayList<>();
-        for (JsonNode c : value.get("conditions")) {
-            String op = switch (c.get("operation").asText()) {
+        for (JsonNode c : value.path("conditions")) {
+            String op = switch (c.path("operation").asText()) {
                 case "Equal To" -> "EQ";
                 case "Not Equal To" -> "NE";
                 case "Greater Than" -> "GT";
@@ -408,23 +408,29 @@ public class FusionNodeRedService {
                 case "Less Than" -> "LT";
                 case "Less Than or Equal To" -> "LTE";
                 case "Like" -> "LIKE";
-                default -> throw new IllegalArgumentException("Unsupported op");
+                default -> throw new IllegalArgumentException(
+                        "Unsupported op: " + c.path("operation").asText()
+                );
             };
 
             condExprs.add(String.format(
-                    "'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s",
-                    c.get("jsonPath").asText(),
-                    c.get("type").asText(),
+                    "{'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s}",
+                    c.path("jsonPath").asText(),
+                    c.path("type").asText(),
                     op,
-                    c.get("value").asText()
+                    c.path("value").asText()
             ));
         }
+
+        String condExpr = condExprs.isEmpty()
+                ? "{}"
+                : "{" + String.join(", ", condExprs) + "}";
 
         input.add(Map.of(
                 "key", "countConditions",
                 "type", "Array",
                 "desc", "计数条件，指定对事件负载数据的过滤条件，条件间为AND关系，格式为 List<CountCondition>。",
-                "expr", "{{" + String.join(", ", condExprs) + "}}"
+                "expr", condExpr
         ));
 
         step.put("input", input);
