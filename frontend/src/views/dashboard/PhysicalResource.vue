@@ -154,11 +154,8 @@
                 <a-button type="primary" @click="showDeviceInstanceModal" :disabled="!selectedDeviceType">
                   新增设备实例
                 </a-button>
-                <a-button type="default" @click="refreshDevice" :disabled="selectedInstanceKeys.length !== 1">
-                  刷新
-                </a-button>
                 <a-button type="danger" @click="deleteDeviceInstance" :disabled="selectedInstanceKeys.length === 0">
-                  删除
+                  删除设备实例
                 </a-button>
               </div>
             </div>
