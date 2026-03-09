@@ -29,11 +29,11 @@ public class EnvEventController {
     }
 
     /**
-     * 获取全部环境级事件列表
+     * 根据projectId获取全部环境级事件列表
      * */
-    @GetMapping("/all")
-    public ResponseEntity<List<EnvEvent>> getAllEnvEventList() {
-        return ResponseEntity.ok(envEventService.getAllEnvEventList());
+    @GetMapping("/get/{projectId}")
+    public ResponseEntity<List<EnvEvent>> getEnvEventListByProjectId(@PathVariable Integer projectId) {
+        return ResponseEntity.ok(envEventService.getEnvEventListByProjectId(projectId));
     }
 
     /**

@@ -158,7 +158,7 @@
 import { message, Modal } from 'ant-design-vue';
 import { ref, reactive, onMounted, computed } from 'vue';
 import dayjs from 'dayjs';
-import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled, getGridListByAppId, syncAppRule, getAllEnvEvent } from '@/api/manage';
+import { listTapRule, deleteTap, getAppExecuteDetail, setExecuteTapEnabled, getGridListByAppId, syncAppRule, getEnvEventByProjectId } from '@/api/manage';
 
 export default {
     // 假设您在项目中启用了 setup 语法
@@ -319,7 +319,8 @@ export default {
 
         async function fetchEventOptions() {
             try {
-                const res = await getAllEnvEvent(); // 调用你提供的接口
+                const projectId = localStorage.getItem('project_id') || '';
+                const res = await getEnvEventByProjectId(projectId); // 调用你提供的接口
                 if (res) {
                     // 将后端返回的 id/eventType/eventName 转换为下拉框需要的 value/label
                     eventOptions.value = res.map(item => ({

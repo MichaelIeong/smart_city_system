@@ -619,11 +619,11 @@ export function getSceneTypeDict () {
   })
 }
 
-// 获取全部环境级事件
-export function getAllEnvEvent () {
+// 根据projectId获取全部环境级事件
+export function getEnvEventByProjectId (projectId) {
   const token = store.state.token
   return request({
-    url: api.envEvent + '/all',
+    url: api.envEvent + `/get/${projectId}`,
     method: 'get',
     headers: {
       'Authorization': `Bearer ${token}`

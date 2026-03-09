@@ -59,4 +59,6 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
           AND (:projectId IS NULL OR a.projectId = :projectId)
     """)
     List<EnvEvent> findCrossRegionByProject(@Param("projectId") Integer projectId);
+
+    List<EnvEvent> findByProjectId(Integer projectId);
 }

@@ -136,7 +136,7 @@
 import { message, Modal } from 'ant-design-vue';
 import { ref, reactive, onMounted, computed } from 'vue';
 import dayjs from 'dayjs';
-import { listEnvEvent, getAllEnvEvent, getEventFusionDeployDetail, deleteEnvEvent, getGridListByEventId, syncEventFusion } from '@/api/manage';
+import { listEnvEvent, getEnvEventByProjectId, getEventFusionDeployDetail, deleteEnvEvent, getGridListByEventId, syncEventFusion } from '@/api/manage';
 
 export default {
     name: 'EventFusionList',
@@ -280,7 +280,8 @@ export default {
 
         async function fetchEventOptions() {
             try {
-                const res = await getAllEnvEvent();
+                const projectId = localStorage.getItem('project_id') || '';
+                const res = await getEnvEventByProjectId(projectId);
                 if (res) {
                     eventOptions.value = res.map(item => ({
                         value: item.eventType,

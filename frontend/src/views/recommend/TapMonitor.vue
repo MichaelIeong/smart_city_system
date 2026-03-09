@@ -1,6 +1,6 @@
 <template>
   <page-header-wrapper>
-    <div class="mesh-card">
+    <div class="mesh-card" :style="meshCardStyle">
       <div class="mesh-container">
         <svg ref="svg" class="svg-container"></svg>
       </div>
@@ -93,8 +93,13 @@ import * as d3 from 'd3'
 import { message } from 'ant-design-vue'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
-import data from './F-city.json'
-import { getLog, getAllEnvEvent, completeActionWait } from '@/api/manage'
+import cityData from './F-city.json'
+import communityData from './F-community.json'
+import parkData from './F-park.json'
+import cityBg from '@/assets/city2.png'
+import parkBg from '@/assets/Park.jpg'
+import communityBg from '@/assets/Community.jpg'
+import { getLog, getEnvEventByProjectId, completeActionWait } from '@/api/manage'
 import { Empty } from 'ant-design-vue'
 
 export default {
@@ -104,6 +109,7 @@ export default {
   },
   data () {
     return {
+      projectId: localStorage.getItem('project_id') || '1',
       polygons: [],
       stompClient: null,
       selectedEventType: 'all', // 默认为显示全部
@@ -119,7 +125,50 @@ export default {
     }
   },
   computed: {
-    // ✅ 新增：判断是否显示“结束动作等待”按钮
+    // 根据 projectId 统一管理数据源、背景图和 D3 视图配置
+    projectConfig() {
+      const configs = {
+        '1': {
+          type: 'city',
+          dataList: cityData.cityData, 
+          bgImage: cityBg,
+          bgOffset: 'center center',
+          bgSize: 'cover',
+          scale: 1.3,
+          offsetX: -1870,
+          offsetY: -275
+        },
+        '2': {
+          type: 'community',
+          dataList: communityData.communityData || communityData.data || communityData,
+          bgImage: communityBg,
+          bgOffset: 'calc(50% - 180px) center',
+          bgSize: 'contain',
+          scale: 0.8,
+          offsetX: -35,
+          offsetY: 0
+        },
+        '3': {
+          type: 'park',
+          dataList: parkData.parkData || parkData.data || parkData, 
+          bgImage: parkBg,
+          bgOffset: 'calc(50% - 200px) center',
+          bgSize: 'contain',
+          scale: 0.7,
+          offsetX: -55,
+          offsetY: 0
+        }
+      }
+      return configs[this.projectId] || configs['1']
+    },
+    meshCardStyle() {
+      return {
+        backgroundImage: `url(${this.projectConfig.bgImage})`,
+        backgroundPosition: this.projectConfig.bgOffset,
+        backgroundSize: this.projectConfig.bgSize
+      }
+    },
+    // 新增：判断是否显示“结束动作等待”按钮
     showWaitButton() {
       if (!this.logModalLogs || this.logModalLogs.length === 0) return false
       const lastLine = this.logModalLogs[this.logModalLogs.length - 1]
@@ -156,7 +205,8 @@ export default {
 
   methods: {
     handleData() {
-      const list = Array.isArray(data.data) ? data.data : []
+      const rawData = this.projectConfig.dataList;
+      const list = Array.isArray(rawData) ? rawData : []
       this.polygons = list.map((item) => {
         const info = item.meshInfo || {}
         const gridList = info.meshGridList || []
@@ -186,9 +236,7 @@ export default {
 
       const zoomG = svgEl.append('g').attr('class', 'zoom-group')
 
-      const scale = 1.3
-      const offsetX = -1870
-      const offsetY = -275
+      const { scale, offsetX, offsetY } = this.projectConfig
       zoomG.attr('transform', `translate(${offsetX}, ${offsetY}) scale(${scale})`)
 
       // 保存引用
@@ -428,7 +476,8 @@ export default {
     },
     async fetchEventOptions() {
       try {
-        const res = await getAllEnvEvent();
+        const projectId = localStorage.getItem('project_id') || '';
+        const res = await getEnvEventByProjectId(projectId);
         if (res && Array.isArray(res)) {
           const map = {};
           res.forEach(item => {
@@ -494,12 +543,6 @@ export default {
         return
       }
       if(status === 'end') {
-        // this.eventLogs.push({
-        //   time: timeText,
-        //   content: `${meshName}${appName}执行结束`,
-        //   eventType: eventType,
-        //   waitValue: waitValue
-        // })
         const et = String(eventType || '')
         if (et && this.__bubbleMap) {
           const arr = this.__bubbleMap.get(location) || []
@@ -549,9 +592,6 @@ export default {
   border-radius: 12px;
   overflow: hidden;
   background-color: #000c17;
-  background-image: url('@/assets/city2.png');
-  background-size: cover;
-  background-position: center;
 }
 
 .mesh-container {

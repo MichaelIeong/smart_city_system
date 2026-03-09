@@ -101,10 +101,10 @@ public class EnvEventService {
     }
 
     /**
-     * 获取全部环境级事件
+     * 根据projectId获取全部环境级事件
      * */
-    public List<EnvEvent> getAllEnvEventList() {
-        return envEventRepository.findAll();
+    public List<EnvEvent> getEnvEventListByProjectId(Integer projectId) {
+        return envEventRepository.findByProjectId(projectId);
     }
 
     /**
