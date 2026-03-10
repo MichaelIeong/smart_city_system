@@ -696,6 +696,9 @@ public class AppRuleExecutorService {
                 }
             }
         }
+        if(!serviceParams.containsKey("location")) {
+            serviceParams.put("location", eventParams.get("location"));
+        }
         // 调用服务组合接口
         List<String> serviceLogs = taskFlowService.callService(serviceName, serviceParams);
         // 加入服务调用日志
