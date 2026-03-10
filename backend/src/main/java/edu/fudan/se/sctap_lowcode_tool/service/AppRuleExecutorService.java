@@ -100,73 +100,6 @@ public class AppRuleExecutorService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-//    @PostConstruct
-//    public void initMockData() {
-//        log.info("✅ 初始化模拟应用规则数据...");
-//        String eventType = "ill_parking";
-//        Integer appId = 226;
-//        List<String> locations = new ArrayList<>();
-//        locations.add("6b2b5be61c60401aa4c6da9828a7df68");
-//        locations.add("d920d10793e64b04a4467276337fd0dd");
-//        locations.add("e730178505d54b5d98cbbd2bbc01f176");
-//        Map<String, List<String>> logMap = new HashMap<>();
-//        Map<String, List<AlertMessage>> logPushMap = new HashMap<>();
-//        Set<String> waitLocations = new HashSet<>();
-//        LocalDateTime base = LocalDateTime.now();
-//        for (int i=0;i<locations.size();i++) {
-//            String location = locations.get(i);
-//            waitLocations.add(location);
-//            // 1) 日志
-//            List<String> logs = new ArrayList<>();
-//            logs.add("机动车违章停车处理应用开始执行");
-//            logs.add("检测到车辆违章停车");
-//            logs.add("AI 识别车牌号: 沪A1001");
-//            logs.add("推送至交通管理部门处理中...");
-//            if(i==0) {
-//                logs.add("机动车违章停车处理应用加入时间等待");
-//            } else {
-//                logs.add("机动车违章停车处理应用加入动作等待");
-//            }
-//            logMap.put(location, logs);
-//            // 2) 每个 location 的消息列表
-//            List<AlertMessage> alertMessages = new ArrayList<>();
-//            int eventOffsetMin = ThreadLocalRandom.current().nextInt(2, 11); // 0~10
-//            LocalDateTime eventTime = base.minusMinutes(eventOffsetMin);
-//            // event message（每次循环都 new）
-//            AlertMessage eventMessage = new AlertMessage();
-//            eventMessage.setType("event");
-//            eventMessage.setTimestamp(eventTime);
-//            eventMessage.setLocation(location);
-//            Map<String, Object> eventMessageData = new HashMap<>();
-//            eventMessageData.put("appId", appId);
-//            eventMessageData.put("eventType", eventType);
-//            eventMessageData.put("waitValue", location);
-//            eventMessage.setData(eventMessageData);
-//            alertMessages.add(eventMessage);
-//            // application message（每次循环都 new）
-//            LocalDateTime appTime = eventTime.plusMinutes(1);
-//            AlertMessage appMessage = new AlertMessage();
-//            appMessage.setType("application");
-//            appMessage.setTimestamp(appTime);
-//            appMessage.setLocation(location);
-//            Map<String, Object> appMessageData = new HashMap<>();
-//            appMessageData.put("appId", appId);
-//            appMessageData.put("eventType", eventType);
-//            appMessageData.put("waitValue", location);
-//            appMessageData.put("appName", "机动车违章停车处理应用");
-//            appMessageData.put("status", "start");
-//            appMessage.setData(appMessageData);
-//            alertMessages.add(appMessage);
-//            logPushMap.put(location, alertMessages);
-//        }
-//
-//        appRuleLogMap.put(appId, logMap);
-//        appRuleLogPushMap.put(appId, logPushMap);
-//        appRuleWaitMap.put(appId, waitLocations);
-//
-//        log.info("✅ 模拟数据已加入");
-//    }
-
     /**
      * 事件上报入口
      * */
@@ -764,7 +697,6 @@ public class AppRuleExecutorService {
             }
         }
         // 调用服务组合接口
-        System.out.println(serviceParams);
         List<String> serviceLogs = taskFlowService.callService(serviceName, serviceParams);
         // 加入服务调用日志
         for(String logMessage : serviceLogs) {
@@ -972,7 +904,7 @@ public class AppRuleExecutorService {
                         appRuleWaitMap.remove(appId);
                     }
                     // 3. 移除 Redis 标识
-                    String redisKey = RedisConstant.ActionWait + appId + ":" + waitValue;
+                    String redisKey = RedisConstant.TimeWait + appId + ":" + waitValue;
                     redisUtil.deleteSingle(redisKey);
                     // 4. 记录日志
                     AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
