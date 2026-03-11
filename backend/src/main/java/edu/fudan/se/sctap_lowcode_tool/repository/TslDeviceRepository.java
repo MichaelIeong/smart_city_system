@@ -2,6 +2,8 @@ package edu.fudan.se.sctap_lowcode_tool.repository;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.DeviceTypeSummaryDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.TslDevice;
+import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
+
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -68,4 +70,14 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
 
     @Modifying
     void deleteByMeshNature(String meshNature);
+
+    /**
+     * 查询指定网格下存在的设备类型（去重）
+     */
+    @Query("""
+        SELECT DISTINCT d.product
+        FROM TslDevice d
+        WHERE d.meshId = :gridId
+        """)
+    List<TslProduct> findDistinctProductsByMeshId(@Param("gridId") String gridId);
 }
