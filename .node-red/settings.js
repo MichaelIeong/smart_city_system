@@ -451,7 +451,7 @@ module.exports = {
         header: {
             title: "SC-UOS 低代码平台",     
             image: "/Fudan_University_Logo.svg",
-            url: "http://10.176.65.202:1880"
+            url: "http://10.192.48.41:1880"
         },
         /** The following property can be used to set a custom theme for the editor.
          * See https://github.com/node-red-contrib-themes/theme-collection for

@@ -57,10 +57,10 @@ public class  SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://127.0.0.1:8000");
         configuration.addAllowedOrigin("http://localhost:8000");
-        configuration.addAllowedOrigin("http://10.176.65.202:8000");
+        configuration.addAllowedOrigin("http://10.192.48.41:8000");
         configuration.addAllowedOrigin("http://127.0.0.1:1880");
         configuration.addAllowedOrigin("http://localhost:1880");
-        configuration.addAllowedOrigin("http://10.176.65.202:1880");
+        configuration.addAllowedOrigin("http://10.192.48.41:1880");
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
