@@ -11,4 +11,5 @@ public class ServiceJson implements Serializable {
     private Object compositionJson;
     private Object totalJson;
     private Object deviceTypeArray;
+    private String nameCN;
 }

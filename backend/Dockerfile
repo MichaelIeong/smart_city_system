@@ -17,7 +17,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # 使用来自Docker Hub的官方OpenJDK镜像作为运行阶段
-FROM openjdk:17
+FROM eclipse-temurin:17-jdk-alpine
 
 # 设置时区为上海
 ENV TIME_ZONE=Asia/Shanghai

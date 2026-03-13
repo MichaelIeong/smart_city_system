@@ -57,107 +57,100 @@ public class AtomicServiceExecutor {
     }
     
     public String executeCyber(JsonNode stepNode, String location, Map<String, Object> finalArgs) {
-    String nodeName = stepNode.path("name").asText();
+        String nodeName = stepNode.path("name").asText();
 
-    try {
-        //  1) 若是“工单类 cyber”，走物理统一下发接口，但日志仍然归类为“网络下发”
+        try {
+            // 工单类 cyber：走工单创建接口
+            if (isOrderLikeCyber(stepNode)) {
+                Map<String, Object> responseMap = createOrder(location, finalArgs);
 
-        if (isOrderLikeCyber(stepNode)) {
-            ResponseEntity<String> response = sendOrderViaPhysicalChannelReturnResponse(stepNode,"工单", location, finalArgs);
+                System.out.println("[网络下发-新工单创建] 节点: " + nodeName + " | 响应: " + responseMap);
 
-            System.out.println("[网络下发-工单走物理] 节点: " + nodeName + " | 响应: " + response);
+                boolean success = responseMap != null
+                        && Boolean.TRUE.equals(responseMap.get("success"))
+                        && "00000".equals(String.valueOf(responseMap.get("code")));
 
-            return formatLog("INFO",
-                    String.format("网络资源 [%s] 下发成功，响应: %s",
-                            nodeName, response.getBody()));
+                if (success) {
+                    return formatLog("INFO",
+                            String.format("网络资源 [%s] 工单创建成功，工单ID: %s，响应: %s",
+                                    nodeName, responseMap.get("data"), responseMap));
+                } else {
+                    return formatLog("ERROR",
+                            String.format("网络资源 [%s] 工单创建失败，响应: %s",
+                                    nodeName, responseMap));
+                }
+            }
+
+            // 普通 cyber：走配置的 apiUrl
+            List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(nodeName);
+            if (CollectionUtils.isEmpty(resources)) {
+                return formatLog("ERROR", "未找到网络资源配置: " + nodeName);
+            }
+
+            CyberResourceInfo resource = resources.get(0);
+            String apiUrl = resource.getUrl();
+
+            Map<String, Object> responseMap = restTemplate.postForObject(apiUrl, finalArgs, Map.class);
+
+            System.out.println("[网络下发] 地址: " + apiUrl + " | 响应内容: " + responseMap);
+
+            if (responseMap != null && Boolean.TRUE.equals(responseMap.get("result"))) {
+                return formatLog("INFO", String.format("网络资源 [%s] 下发成功，外部响应: %s", nodeName, responseMap));
+            } else {
+                return formatLog("ERROR", String.format("网络资源 [%s] 下发业务返回失败，响应: %s", nodeName, responseMap));
+            }
+
+        } catch (Exception e) {
+            System.err.println("[网络下发异常] 节点: " + nodeName + " | 原因: " + e.getMessage());
+            return formatLog("ERROR", "网络资源下发过程中出现异常: " + e.getMessage());
         }
-
-        // 2) 普通 cyber：走配置的 apiUrl
-        List<CyberResourceInfo> resources = cyberResourceRepository.findByResourceType(nodeName);
-        if (CollectionUtils.isEmpty(resources)) {
-            return formatLog("ERROR", "未找到网络资源配置: " + nodeName);
-        }
-
-        CyberResourceInfo resource = resources.get(0);
-        String apiUrl = resource.getUrl();
-
-        Map<String, Object> responseMap = restTemplate.postForObject(apiUrl, finalArgs, Map.class);
-
-        System.out.println("[网络下发] 地址: " + apiUrl + " | 响应内容: " + responseMap);
-
-        if (responseMap != null && Boolean.TRUE.equals(responseMap.get("result"))) {
-            return formatLog("INFO", String.format("网络资源 [%s] 下发成功，外部响应: %s", nodeName, responseMap));
-        } else {
-            return formatLog("ERROR", String.format("网络资源 [%s] 下发业务返回失败，响应: %s", nodeName, responseMap));
-        }
-
-    } catch (Exception e) {
-        System.err.println("[网络下发异常] 节点: " + nodeName + " | 原因: " + e.getMessage());
-        return formatLog("ERROR", "网络资源下发过程中出现异常: " + e.getMessage());
     }
-}
 
-    /**
-     * 工单识别规则：
-     * 1) 节点名包含“工单”
-     * 2) 参数里包含 “区域” 与 “类型或内容”
-     */
     private boolean isOrderLikeCyber(JsonNode stepNode) {
         String name = stepNode.path("name").asText("");
-        JsonNode argsNode = stepNode.path("args");
-        return name.contains("工单")
-                && argsNode.isObject()
-                && argsNode.has("区域")
-                && argsNode.has("类型或内容");
+        return name.contains("工单");
     }
 
-    private ResponseEntity<String> sendOrderViaPhysicalChannelReturnResponse(JsonNode stepNode,
-            String nodeName, String location, Map<String, Object> finalArgs) {
-
-        // --- A. 查 deviceId ---
-        TslProduct product = tslProductRepository.findByProductName(nodeName);
-        if (product == null) {
-            throw new RuntimeException("未知产品(用于查deviceId): " + nodeName);
-        }
-        String productId = product.getProductId();
-
-        List<TslDevice> devices = tslDeviceRepository.findByProductProductIdAndMeshId(productId, location);
-        System.out.println("地址: " + location);
-        System.out.println("productId: " + productId);
-
-        String deviceId;
-        if (CollectionUtils.isEmpty(devices)) {
-            System.out.println("区域内无可用设备，使用默认deviceId: 2025102200486");
-            deviceId = "2025102200486";
-        } else {
-            deviceId = devices.get(0).getDeviceId().toString();
-        }
-        // --- B. body ---
-        Map<String, Object> realPayload = new HashMap<>();
-        JsonNode argsNode = stepNode.path("args");
-        realPayload.put("区域", finalArgs.get(argsNode.path("区域").asText()));
-        realPayload.put("类型或内容", finalArgs.get(argsNode.path("类型或内容").asText())); 
-        //载荷过滤组装
-        
-
-        Map<String, Object> cmdPart = new HashMap<>();
-        cmdPart.put("function", "orders");     // 若实际是 p_orders 就换掉
-        cmdPart.put("command", "sendorder");
-        cmdPart.put("param", realPayload);
+    private Map<String, Object> createOrder(String location, Map<String, Object> finalArgs) {
+        String orderUrl = "http://60.161.136.138:32014//metrics/workOrder/add";
 
         Map<String, Object> bodyParam = new HashMap<>();
-        bodyParam.put("cmd", cmdPart);
-        bodyParam.put("deviceId", deviceId.toString());
 
-        System.out.println("body: " + bodyParam);
+        String orderName = firstNonEmpty(
+                getString(finalArgs.get("orderName")),
+                getString(finalArgs.get("工单名称"))
+        );
 
-        // --- C. headers/sign ---
+        String address = firstNonEmpty(
+                getString(finalArgs.get("address")),
+                getString(finalArgs.get("准确地址"))
+        );
+
+        String assignTarget = "{\"orgId\":\"fudan\",\"roleId\":\"\",\"userId\":[\"01f61be9b332490983542b986e8f06c6\"],\"deptApp\":\"\"}";
+
+        bodyParam.put("address", address);
+        bodyParam.put("assignTarget", assignTarget);
+        bodyParam.put("deviceRef", "");
+        bodyParam.put("dutyNetwork", getString(location));
+        bodyParam.put("fromEvent", "");
+        bodyParam.put("latitude", null);
+        bodyParam.put("longitude", null);
+        bodyParam.put("orderName", orderName);
+        bodyParam.put("orderType", "intside");
+        bodyParam.put("photos", "");
+        bodyParam.put("remarks", "");
+        bodyParam.put("validTime", "one_day");
+
+        System.out.println("[新工单创建请求体] " + bodyParam);
+
+        // --- 计算签名与 Headers（复用 executePhysical 的鉴权逻辑） ---
         String appId = "6bdece1382b5488a";
         String appCode = "Ubiquitous-OS";
         String token = "ZGIWMJHKMWZHZMVMNDAYYZLLMMU5YZE0MZU0YWFJYZFMNTYZNTDJODQ5ZJQ0OTG0";
         String timestamp = String.valueOf(System.currentTimeMillis());
-        String nonce = String.valueOf(new Random().nextInt(5));
-        String sign = DigestUtils.md5Hex(appId + token + timestamp + nonce);
+        String nonce = String.valueOf(new Random().nextInt(5)); // 如需更稳可换成 UUID
+        String signStr = appId + token + timestamp + nonce;
+        String sign = org.apache.commons.codec.digest.DigestUtils.md5Hex(signStr);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -168,12 +161,39 @@ public class AtomicServiceExecutor {
         headers.set("sign", sign);
         headers.set("authorization", token);
 
-        // --- D. request ---
-        String deviceUrl = "http://60.161.136.138:32014/device/api/device/send/command";
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(bodyParam, headers);
 
-        return restTemplate.postForEntity(deviceUrl, requestEntity, String.class);
+        // ===== 打印请求信息 =====
+        System.out.println("========== 工单创建请求开始 ==========");
+        System.out.println("URL: " + orderUrl);
+        System.out.println("Headers: " + headers);
+        System.out.println("Body: " + bodyParam);
+        System.out.println("signStr: " + signStr);
+        System.out.println("sign: " + sign);
+        System.out.println("========== 工单创建请求结束 ==========");
+
+        Map<String, Object> responseMap = restTemplate.postForObject(orderUrl, requestEntity, Map.class);
+        System.out.println("[新工单创建响应] " + responseMap);
+
+        return responseMap;
     }
+
+    private String getString(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String firstNonEmpty(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String v : values) {
+            if (v != null && !v.trim().isEmpty()) {
+                return v;
+            }
+        }
+        return "";
+    }    
+
     public String executeSocial(JsonNode stepNode,Map<String, Object> finalArgs) {
         String nodeName = stepNode.path("name").asText();
         
@@ -208,10 +228,12 @@ public class AtomicServiceExecutor {
         }
     }
 
-    public String executePhysical(JsonNode stepNode, String location ,Map<String, Object> finalArgs) {
-        String nodeName = stepNode.path("name").asText();      
-        String actionName = stepNode.path("action").asText();  
-        String cmdName = stepNode.path("command").asText();    
+    public String executePhysical(JsonNode stepNode, String location, Map<String, Object> finalArgs) {
+        String nodeName = stepNode.path("name").asText();
+        String actionName = stepNode.path("action").asText();
+        String cmdName = stepNode.path("command").asText();
+
+        Long deviceId = null; // 提前定义，方便成功/异常日志都能拿到
 
         try {
             TslProduct product = tslProductRepository.findByProductName(nodeName);
@@ -222,13 +244,14 @@ public class AtomicServiceExecutor {
             System.out.println("地址: " + location);
             System.out.println("productId: " + productId);
             if (CollectionUtils.isEmpty(devices)) return formatLog("WARN", "区域内无可用设备: " + nodeName);
-            Long deviceId = devices.get(0).getDeviceId();
+
+            deviceId = devices.get(0).getDeviceId();
 
             ProductFunctionCommand cmdEntity = productCommandRepository
                     .findByProductIdAndFunctionNameAndCommandName(productId, actionName, cmdName);
             if (cmdEntity == null) return formatLog("ERROR", "指令映射失败: " + cmdName);
 
-            //载荷过滤组装
+            // 载荷过滤组装
             ProductCommandJson jsonDetail = cmdEntity.getCommandJsonDetail();
             Map<String, Object> realPayload = new HashMap<>();
             if (jsonDetail != null && jsonDetail.getCommandJson() != null) {
@@ -277,15 +300,26 @@ public class AtomicServiceExecutor {
             // --- 5. 真实请求下发 ---
             String deviceUrl = "http://60.161.136.138:32014/device/api/device/send/command";
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(bodyParam, headers);
-            
+
             ResponseEntity<String> response = restTemplate.postForEntity(deviceUrl, requestEntity, String.class);
             System.out.println("响应: " + response);
 
-            return formatLog("INFO", String.format("物理设备 [%s] 下发成功! 指令: %s, 响应: %s", 
-                    nodeName, cmdName, response.getBody()));
+            return formatLog(
+                    "INFO",
+                    String.format(
+                            "物理设备 [%s] 下发成功! deviceId: %s, 指令: %s, 响应: %s",
+                            nodeName, deviceId, cmdName, response.getBody()
+                    )
+            );
 
         } catch (Exception e) {
-            return formatLog("ERROR", "物理执行异常: " + e.getMessage());
+            return formatLog(
+                    "ERROR",
+                    String.format(
+                            "物理执行异常: deviceId=%s, error=%s",
+                            deviceId, e.getMessage()
+                    )
+            );
         }
     }
 }

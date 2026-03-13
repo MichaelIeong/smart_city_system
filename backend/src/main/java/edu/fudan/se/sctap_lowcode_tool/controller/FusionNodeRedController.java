@@ -24,9 +24,9 @@ public class FusionNodeRedController {
     /* =====================================================
      * Sensor Event API
      * ===================================================== */
-    @GetMapping("/sensorTypes")
-    public List<SensorTypeDTO> listSensorTypes() {
-        return fusionService.listSensorTypes();
+    @GetMapping("/sensorTypesInGrid")
+    public List<SensorTypeDTO> listSensorTypesInGrid(@RequestParam String gridId) {
+        return fusionService.listSensorTypesInGrid(gridId);
     }
 
     /* =====================================================

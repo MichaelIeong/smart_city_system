@@ -160,7 +160,7 @@ public class ServiceController {
             String compositionJson = objectMapper.writeValueAsString(serviceJson.getCompositionJson());
             String totalJson = objectMapper.writeValueAsString(serviceJson.getTotalJson());
             List<String> deviceTypeArray = (List<String>) serviceJson.getDeviceTypeArray();
-
+            String nameCN = serviceJson.getNameCN();
             JSONObject jsonObj_comp = JSONObject.parseObject(compositionJson);
             System.out.println(jsonObj_comp.getString("action_name"));
             EnvService envService = new EnvService();
@@ -169,6 +169,7 @@ public class ServiceController {
             envService.setServiceName(jsonObj_comp.getString("action_name"));
             envService.setDescription(jsonObj_comp.getString("description"));
             envService.setProjectId(projectId);
+            envService.setName(nameCN);
             if(gridId.equals("crossRegion")) {
                 envService.setCrossRegion(true);
             } else {

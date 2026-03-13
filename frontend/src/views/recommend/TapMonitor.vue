@@ -499,12 +499,13 @@ export default {
       const timestamp = payload.timestamp
       const type = payload.type
       if (!location || !eventType) return
+      const mesh = this.polygons.find(p => String(p.id) === location)
+      if (!mesh) return // 如果不在网格中，直接丢弃，不渲染气泡也不写日志
       // 写入/覆盖该网格的气泡
       this.addBubble({
         location,
         eventType
       })
-      const mesh = this.polygons.find(p => String(p.id) === location)
       const meshName = mesh?.name || `网格(${location.slice(0, 6)}...)`
       const eventLabel = this.eventTypeLabelMap?.[eventType] || eventType
       const timeText = this.formatLogTime(timestamp)
@@ -528,6 +529,7 @@ export default {
       const timestamp = payload.timestamp
       const type = payload.type
       const mesh = this.polygons.find(p => String(p.id) === location)
+      if (!mesh) return // 如果不在网格中，直接丢弃，不渲染气泡也不写日志
       const meshName = mesh?.name || `网格(${location.slice(0, 6)}...)`
       const timeText = this.formatLogTime(timestamp)
       if(status === 'start') {
