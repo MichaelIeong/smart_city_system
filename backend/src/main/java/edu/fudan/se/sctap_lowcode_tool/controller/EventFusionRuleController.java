@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import edu.fudan.se.sctap_lowcode_tool.DTO.BadRequestException;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
@@ -41,7 +42,7 @@ class EventFusionRuleController {
                     .headers(tslApiUtil.buildHeaders(null))
                     .body(eventData.getPayload())
                     .retrieve(),
-                10
+                10, new TypeReference<String>() {}
             );
         } catch (TslApiUtil.TslApiException e) {
             log.warn("Mock事件发生后试图向特斯联推送该事件时发生异常: {}", e.getMessage());
