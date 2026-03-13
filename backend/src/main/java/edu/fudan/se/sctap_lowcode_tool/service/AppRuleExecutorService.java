@@ -109,9 +109,9 @@ public class AppRuleExecutorService {
     public void triggerAppRule(EventTriggerRequest eventTriggerRequest) {
         // 假设 eventTriggerRequest 里有一个能唯一标识这次业务行为的 ID，比如 eventId 或者 eventType+location+waitValue
         String uniqueEventKey = generateUniqueKey(eventTriggerRequest);
-        // 如果 0.5 秒内已经收到过相同的事件，直接丢弃（防抖）
+        // 如果 2 秒内已经收到过相同的事件，直接丢弃（防抖）
         Long lastTime = eventDebounceMap.putIfAbsent(uniqueEventKey, System.currentTimeMillis());
-        if (lastTime != null && (System.currentTimeMillis() - lastTime < 500)) {
+        if (lastTime != null && (System.currentTimeMillis() - lastTime < 2000)) {
             log.warn("检测到重复并发事件，已拦截: {}", uniqueEventKey);
             return;
         }
