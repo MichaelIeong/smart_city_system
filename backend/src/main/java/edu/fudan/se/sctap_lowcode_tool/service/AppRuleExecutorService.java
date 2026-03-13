@@ -34,6 +34,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
@@ -98,14 +99,31 @@ public class AppRuleExecutorService {
     // 记录处于等待中的应用规则
     Map<Integer, Set<String>> appRuleWaitMap = new ConcurrentHashMap<>();
 
+    private final Map<String, Long> eventDebounceMap = new ConcurrentHashMap<>();
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 事件上报入口
      * */
     public void triggerAppRule(EventTriggerRequest eventTriggerRequest) {
+        // 假设 eventTriggerRequest 里有一个能唯一标识这次业务行为的 ID，比如 eventId 或者 eventType+location+waitValue
+        String uniqueEventKey = generateUniqueKey(eventTriggerRequest);
+        // 如果 0.5 秒内已经收到过相同的事件，直接丢弃（防抖）
+        Long lastTime = eventDebounceMap.putIfAbsent(uniqueEventKey, System.currentTimeMillis());
+        if (lastTime != null && (System.currentTimeMillis() - lastTime < 500)) {
+            log.warn("检测到重复并发事件，已拦截: {}", uniqueEventKey);
+            return;
+        }
         // 提交线程池执行
         appRuleExecutor.execute(() -> executeAppRule(eventTriggerRequest));
+    }
+
+    private String generateUniqueKey(EventTriggerRequest request) {
+        String eventType = request.getEvent_type();
+        Map<String, Object> params = request.getEvent_params();
+        String location = params.get("location").toString();
+        return "debounce:" + eventType + ":" + location;
     }
 
     /**
