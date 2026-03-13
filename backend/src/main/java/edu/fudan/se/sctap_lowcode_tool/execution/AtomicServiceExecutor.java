@@ -21,6 +21,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.Arrays; 
 import java.util.List;
@@ -33,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 原子服务执行器：负责执行工作流中最小单元的具体业务逻辑
@@ -55,6 +61,7 @@ public class AtomicServiceExecutor {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"));
         return String.format("[%s]-[%s]: %s", level, timestamp, message);
     }
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     
     public String executeCyber(JsonNode stepNode, String location, Map<String, Object> finalArgs) {
         String nodeName = stepNode.path("name").asText();
@@ -246,6 +253,21 @@ public class AtomicServiceExecutor {
             if (CollectionUtils.isEmpty(devices)) return formatLog("WARN", "区域内无可用设备: " + nodeName);
 
             deviceId = devices.get(0).getDeviceId();
+
+            // 状态变更逻辑 (2 -> 3) ---
+            tslDeviceRepository.updateStatusById(deviceId, 3);
+            System.out.println("设备状态已修改为 3, deviceId: " + deviceId);
+
+            // 开启定时任务，30秒后还原 (3 -> 2) ---
+            final Long finalDeviceId = deviceId; // 匿名内部类需要 final
+            scheduler.schedule(() -> {
+                try {
+                    tslDeviceRepository.updateStatusById(finalDeviceId, 2);
+                    System.out.println("30秒到，设备状态已还原为 2, deviceId: " + finalDeviceId);
+                } catch (Exception e) {
+                    System.err.println("还原设备状态失败: " + e.getMessage());
+                }
+            }, 30, TimeUnit.SECONDS);
 
             ProductFunctionCommand cmdEntity = productCommandRepository
                     .findByProductIdAndFunctionNameAndCommandName(productId, actionName, cmdName);
