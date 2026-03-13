@@ -682,7 +682,7 @@ public class AppRuleExecutorService {
         ActionStep.Action action = actionStep.getAction();
         addLog(LogConstant.INFO, appId, waitValue, "调用服务组合: " + action.getAction_name());
         String serviceName = action.getAction_name();
-        EnvService envService = envServiceRepository.findByServiceName(serviceName);
+        EnvService envService = envServiceRepository.findLatestByServiceName(serviceName);
         Map<String, String> paramTypeMap = new HashMap<>();
         if(envService!=null && envService.getServiceJson()!=null) {
             try {
