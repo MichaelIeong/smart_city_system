@@ -687,12 +687,21 @@ public class AppRuleExecutorService {
                 serviceParams.put(key, eventType);
             } else {
                 String targetType = paramTypeMap.getOrDefault(key, "string");
-                if(targetType.equals("number")) {
-                    serviceParams.put(key, Integer.parseInt(value));
-                } else if(targetType.equals("bool")) {
-                    serviceParams.put(key, Boolean.parseBoolean(value));
-                } else {
-                    serviceParams.put(key, value);
+                try {
+                    if(targetType.equals("number")) {
+                        serviceParams.put(key, Integer.parseInt(value));
+                    } else if(targetType.equals("bool")) {
+                        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+                            serviceParams.put(key, Boolean.parseBoolean(value));
+                        } else {
+                            throw new IllegalArgumentException("非法的布尔字符串格式: " + value);
+                        }
+                    } else {
+                        serviceParams.put(key, value);
+                    }
+                } catch (Exception e) {
+                    addLog(LogConstant.ERROR, appId, waitValue, "参数解析异常 [key=" + key + ", value=" + value + "]，中止调用服务");
+                    return; 
                 }
             }
         }
