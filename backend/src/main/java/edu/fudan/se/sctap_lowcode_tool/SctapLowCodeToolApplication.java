@@ -27,10 +27,5 @@ public class SctapLowCodeToolApplication {
 		SpringApplication.run(SctapLowCodeToolApplication.class, args);
 	}
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-
 }
 

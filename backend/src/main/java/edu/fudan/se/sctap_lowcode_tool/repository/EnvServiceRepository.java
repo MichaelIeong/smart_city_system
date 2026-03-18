@@ -24,6 +24,14 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
     EnvService findByServiceName(String serviceName);
 
     @Query("""
+        SELECT e FROM EnvService e
+        WHERE e.serviceName = :serviceName
+        ORDER BY e.createTime DESC
+        LIMIT 1
+    """)
+    EnvService findLatestByServiceName(@Param("serviceName") String serviceName);
+
+    @Query("""
         SELECT DISTINCT a FROM EnvService a
         WHERE a.crossRegion = TRUE
     """)

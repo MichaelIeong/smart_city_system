@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AppRuleCompleteRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventTriggerRequest;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleExecutorService;
@@ -8,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tapExecutor")
@@ -41,5 +41,13 @@ public class AppRuleExecutorController {
             @RequestParam("waitValue") String waitValue) {
         List<String> logs = appRuleExecutorService.getLog(appId, waitValue);
         return ResponseEntity.ok(logs);
+    }
+
+    /**
+     * 接收边缘端消息
+     * */
+    @PostMapping("/receiveMessage")
+    public void receiveMessage(@RequestBody AlertMessage alertMessage) {
+        appRuleExecutorService.receiveEdgeMessage(alertMessage);
     }
 }

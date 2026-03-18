@@ -1,4 +1,9 @@
+version: '3.8' # 建议加上版本号
+
 services:
+  # ==============================
+  # 云端中心节点 (Cloud Node)
+  # ==============================
   smart_city_backend:
     container_name: smart-city-backend
     build:
@@ -6,10 +11,73 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - APP_NODE_ROLE=cloud # 明确指定为云端
     networks:
       - app-network
     restart: always
 
+  # ==============================
+  # 边端节点 1 (Edge Node 1)
+  # ==============================
+  smart_city_edge_1:
+    container_name: smart-city-edge-1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - smart_city_backend # 确保云端先启动
+    ports:
+      - "8081:8080" # 宿主机 8081 映射到容器 8080
+    environment:
+      - APP_NODE_ROLE=edge
+      # 利用 Docker 内部 DNS，直接通过服务名 smart_city_backend 访问云端
+      - APP_CLOUD_URL=http://smart_city_backend:8080/api/tapExecutor/receiveMessage
+    networks:
+      - app-network
+    restart: always
+
+  # ==============================
+  # 边端节点 2 (Edge Node 2)
+  # ==============================
+  smart_city_edge_2:
+    container_name: smart-city-edge-2
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - smart_city_backend
+    ports:
+      - "8082:8080" # 宿主机 8082 映射到容器 8080
+    environment:
+      - APP_NODE_ROLE=edge
+      - APP_CLOUD_URL=http://smart_city_backend:8080/api/tapExecutor/receiveMessage
+    networks:
+      - app-network
+    restart: always
+
+  # ==============================
+  # 边端节点 3 (Edge Node 3)
+  # ==============================
+  smart_city_edge_3:
+    container_name: smart-city-edge-3
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - smart_city_backend
+    ports:
+      - "8083:8080" # 宿主机 8083 映射到容器 8080
+    environment:
+      - APP_NODE_ROLE=edge
+      - APP_CLOUD_URL=http://smart_city_backend:8080/api/tapExecutor/receiveMessage
+    networks:
+      - app-network
+    restart: always
+
+  # ==============================
+  # 前端服务
+  # ==============================
   smart_city_frontend:
     container_name: smart-city-frontend
     environment:
@@ -24,6 +92,9 @@ services:
       - app-network
     restart: always
 
+  # ==============================
+  # Node-RED 服务
+  # ==============================
   smart_city_node-red:
     container_name: smart_city_node-red
     build: ./node-red

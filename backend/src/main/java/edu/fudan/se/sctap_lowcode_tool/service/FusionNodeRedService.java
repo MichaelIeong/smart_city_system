@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
@@ -10,10 +9,10 @@ import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ProductEventDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.ProductEvent;
+import edu.fudan.se.sctap_lowcode_tool.repository.TslDeviceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.ProductEventRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 public class FusionNodeRedService {
 
-    private final TslProductRepository productRepository;
+    private final TslDeviceRepository deviceRepository;
     private final EnvEventRepository envEventRepository;
     private final EnvEventGridRepository envEventGridRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -32,13 +31,13 @@ public class FusionNodeRedService {
     private final ProductEventRepository productEventRepository;
 
     public FusionNodeRedService(
-        TslProductRepository productRepository,
+        TslDeviceRepository deviceRepository,
         EnvEventRepository envEventRepository,
         EnvEventGridRepository envEventGridRepository,
         EventFusionRuleService eventFusionRuleService,
         ProductEventRepository productEventRepository
     ) {
-        this.productRepository = productRepository;
+        this.deviceRepository = deviceRepository;
         this.envEventRepository = envEventRepository;
         this.envEventGridRepository = envEventGridRepository;
         this.eventFusionRuleService = eventFusionRuleService;
@@ -49,44 +48,17 @@ public class FusionNodeRedService {
      * Sensor Event（设备事件）
      * ===================================================== */
 
-    /**
-     * Node-RED 事件融合：
-     * 查询所有 Sensor Types
-     */
-    public List<SensorTypeDTO> listSensorTypes() {
+    public List<SensorTypeDTO> listSensorTypesInGrid(String gridId) {
 
-        List<TslProduct> products = productRepository.findAll();
+        List<TslProduct> products =
+                deviceRepository.findDistinctProductsByMeshId(gridId);
 
         return products.stream()
-                .map(this::toSensorTypeDTO)
+                .map(p -> new SensorTypeDTO(
+                        p.getProductId(),
+                        p.getProductName()
+                ))
                 .collect(Collectors.toList());
-    }
-
-    private SensorTypeDTO toSensorTypeDTO(TslProduct product) {
-        List<String> sensingEvents = parseEvents(product.getProductEvent());
-
-        return new SensorTypeDTO(
-                product.getProductId(),
-                product.getProductName(),
-                sensingEvents
-        );
-    }
-
-    /**
-     * 将 product_event JSON 字符串解析成 List<String>
-     */
-    private List<String> parseEvents(String productEvent) {
-        if (productEvent == null || productEvent.isBlank()) {
-            return Collections.emptyList();
-        }
-        try {
-            return objectMapper.readValue(
-                    productEvent,
-                    new TypeReference<List<String>>() {}
-            );
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
     }
 
     /* =====================================================
