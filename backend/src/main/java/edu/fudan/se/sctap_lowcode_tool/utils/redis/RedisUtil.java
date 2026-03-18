@@ -17,7 +17,6 @@ public class RedisUtil {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     /**
      * 查询单条
      * */
@@ -29,17 +28,7 @@ public class RedisUtil {
      * 存入redis，同时设置1个小时的过期时间
      * */
     public void setSingle(String key, String value){
-        stringRedisTemplate.opsForValue().set(key, value, Duration.ofHours(1));
-    }
-
-    /**
-     * 存储wait
-     * */
-    public void setWait(String key, Map<String, Object> data) throws JsonProcessingException {
-        // 序列化 Map<String, Object> 为 JSON 字符串
-        String jsonData = objectMapper.writeValueAsString(data);
-        // 写入 Redis
-        stringRedisTemplate.opsForValue().set(key, jsonData);
+        stringRedisTemplate.opsForValue().set(key, value);
     }
 
     /**
@@ -102,5 +91,65 @@ public class RedisUtil {
      * */
     public void deleteSingle(String key) {
         stringRedisTemplate.delete(key);
+    }
+
+    /**
+     * 将元素加入 Set
+     * */
+    public void addSetMember(String key, String member, long expireDays) {
+        stringRedisTemplate.opsForSet().add(key, member);
+        stringRedisTemplate.expire(key, Duration.ofDays(expireDays));
+    }
+
+    /**
+     * 检查元素是否存在于 Set 中
+     * */
+    public boolean isSetMember(String key, String member) {
+        return Boolean.TRUE.equals(stringRedisTemplate.opsForSet().isMember(key, member));
+    }
+
+    /**
+     * 从 set 中移除元素
+     * */
+    public boolean removeSetMember(String key, String member) {
+        Long removed = stringRedisTemplate.opsForSet().remove(key, member);
+        return removed != null && removed > 0;
+    }
+
+    /*
+    * 向 List 的右侧追加元素
+    * */
+    public void rightPushList(String key, String value, long expireDays) {
+        stringRedisTemplate.opsForList().rightPush(key, value);
+        stringRedisTemplate.expire(key, Duration.ofDays(expireDays));
+    }
+
+    /**
+     * 获取 List 中的所有元素
+     * */
+    public List<String> getListAll(String key) {
+        List<String> list = stringRedisTemplate.opsForList().range(key, 0, -1);
+        return list != null ? list : new ArrayList<>();
+    }
+
+    /**
+     * 匹配查询所有的 Key 集合 (不获取值，仅获取 Key)
+     */
+    public Set<String> getKeys(String pattern) {
+        ScanOptions scanOptions = ScanOptions.scanOptions()
+                .match(pattern + "*")
+                .count(100)
+                .build();
+        return stringRedisTemplate.execute((RedisCallback<Set<String>>) connection -> {
+            Set<String> result = new HashSet<>();
+            try (Cursor<byte[]> cursor = connection.keyCommands().scan(scanOptions)) {
+                while (cursor.hasNext()) {
+                    result.add(new String(cursor.next()));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return result;
+        });
     }
 }

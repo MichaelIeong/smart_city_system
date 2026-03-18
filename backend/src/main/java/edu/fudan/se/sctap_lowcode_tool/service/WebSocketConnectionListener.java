@@ -1,6 +1,11 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.AlertMessage;
+import edu.fudan.se.sctap_lowcode_tool.constant.RedisConstant;
+import edu.fudan.se.sctap_lowcode_tool.utils.redis.RedisUtil;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -16,9 +21,15 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class WebSocketConnectionListener {
+
+    @Resource
     private final WebSocketPushService webSocketPushService;
 
-    private final AppRuleExecutorService appRuleExecutorService;
+    @Resource
+    private RedisUtil redisUtil;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 前端建立连接时触发
@@ -35,25 +46,33 @@ public class WebSocketConnectionListener {
                 Thread.sleep(1000); // 确保前端订阅建立完成
             } catch (InterruptedException ignored) {}
 
-            // ==========================
-            // ① 推送真实正在执行的规则（如果有）
-            // ==========================
-            Map<Integer, Map<String, List<AlertMessage>>> snapshot = new HashMap<>(appRuleExecutorService.getAppRuleLogPushMap());
-            if (snapshot.isEmpty()) {
+            // 1. 获取推送消息的 redis key
+            Set<String> pushKeys = redisUtil.getKeys(RedisConstant.PUSH_LIST_PREFIX);
+            if (pushKeys == null || pushKeys.isEmpty()) {
                 return;
             }
-            // 收集所有 AlertMessage
-            List<AlertMessage> allMessages = snapshot.values().stream()
-                    .flatMap(gridMap -> gridMap.values().stream())
-                    .flatMap(List::stream)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+
+            // 2. 遍历每个 Key，获取 List 里的所有 JSON 字符串并反序列化
+            List<AlertMessage> allMessages = new ArrayList<>();
+            for (String key : pushKeys) {
+                List<String> msgListStr = redisUtil.getListAll(key);
+                for (String msgStr : msgListStr) {
+                    try {
+                        AlertMessage message = objectMapper.readValue(msgStr, AlertMessage.class);
+                        allMessages.add(message);
+                    } catch (JsonProcessingException e) {
+                        log.error("WebSocket 初始化推送反序列化失败, 数据: {}, 错误: {}", msgStr, e.getMessage());
+                    }
+                }
+            }
             if (allMessages.isEmpty()) {
                 return;
             }
-            // 按时间戳从早到晚排序
+
+            // 3. 按时间戳从早到晚排序
             allMessages.sort(Comparator.comparing(AlertMessage::getTimestamp));
-            // 依次推送到前端
+
+            // 4. 依次推送到前端
             for (AlertMessage message : allMessages) {
                 webSocketPushService.sendAlert(message);
             }

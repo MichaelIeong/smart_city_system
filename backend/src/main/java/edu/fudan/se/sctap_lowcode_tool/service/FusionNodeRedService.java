@@ -1,6 +1,5 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
@@ -10,7 +9,6 @@ import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.TslProductRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ProductEventDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.ProductEvent;
