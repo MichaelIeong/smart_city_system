@@ -45,7 +45,7 @@ public class AppRuleExecutorService {
     private TslDeviceRepository tslDeviceRepository;
 
     @Resource
-    private WebSocketPushService webSocketPushService;
+    private UnifiedPushService unifiedPushService;
 
     @Resource
     private TaskFlowService taskFlowService;
@@ -143,7 +143,7 @@ public class AppRuleExecutorService {
         eventMessageData.put("eventType", eventType);
         eventMessageData.put("waitValue", waitValue);
         eventMessage.setData(eventMessageData);
-        webSocketPushService.sendAlert(eventMessage);
+        unifiedPushService.pushAlert(eventMessage);
         cachePushMessage(appId, waitValue, eventMessage);
         // 将事件加入数据库历史事件中
         storeEventHistory(appId, eventType, eventParams, waitValue);
@@ -165,7 +165,7 @@ public class AppRuleExecutorService {
         appMessageData.put("appName", appRuleInfo.getAppName());
         appMessageData.put("status", "start");
         appMessage.setData(appMessageData);
-        webSocketPushService.sendAlert(appMessage);
+        unifiedPushService.pushAlert(appMessage);
         cachePushMessage(appId, waitValue, appMessage);
         // 处理response
         Response response = appRule.getResponse();
@@ -800,7 +800,7 @@ public class AppRuleExecutorService {
                     if ("application".equals(message.getType())) {
                         message.getData().put("status", "end");
                         message.setTimestamp(LocalDateTime.now());
-                        webSocketPushService.sendAlert(message);
+                        unifiedPushService.pushAlert(message);
                     }
                 } catch (JsonProcessingException e) {
                     log.error("反序列化推送消息失败: {}", e.getMessage());
@@ -924,5 +924,13 @@ public class AppRuleExecutorService {
                 log.error("反序列化 wait 数据失败: {}", e.getMessage());
             }
         }
+    }
+
+    /**
+     * 接收边缘端消息
+     * */
+    public void receiveEdgeMessage(AlertMessage alertMessage) {
+        // 将边缘端消息推送至前端
+        unifiedPushService.pushAlert(alertMessage);
     }
 }
