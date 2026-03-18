@@ -70,7 +70,7 @@ services:
       - "8083:8080" # 宿主机 8083 映射到容器 8080
     environment:
       - APP_NODE_ROLE=edge
-      - APP_CLOUD_URL=http://smart_city_backend:8080/api/tapExecutor/receiveMessage
+      - APP_CLOUD_URL=http://10.176.65.202:8080
     networks:
       - app-network
     restart: always

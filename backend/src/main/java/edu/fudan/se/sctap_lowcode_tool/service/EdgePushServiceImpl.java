@@ -24,7 +24,7 @@ public class EdgePushServiceImpl implements UnifiedPushService {
     public void pushAlert(AlertMessage alertMessage) {
         // 边端模式：通过 HTTP 转发给云端的 REST 接口
         try {
-            restTemplate.postForEntity(cloudUrl, alertMessage, Void.class);
+            restTemplate.postForEntity(cloudUrl + "/api/tapExecutor/receiveMessage", alertMessage, Void.class);
             log.info("【边端模式】已将消息转发至云端接口: {}", alertMessage.getType());
         } catch (Exception e) {
             log.error("【边端模式】消息转发云端失败，请检查网络或配置的云端地址[{}]: {}", cloudUrl, e.getMessage());
