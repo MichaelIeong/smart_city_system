@@ -3,7 +3,9 @@ package edu.fudan.se.sctap_lowcode_tool.execution;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleExecutorService;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Executors;
@@ -11,6 +13,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
+@Slf4j
+@ConditionalOnProperty(name = "app.node-role", havingValue = "cloud", matchIfMissing = true)
 public class AppRuleScheduler {
     private final AppRuleService appRuleService;
     private final AppRuleExecutorService appRuleExecutorService;
@@ -24,6 +28,7 @@ public class AppRuleScheduler {
 
     @PostConstruct
     public void init() {
+        log.info("【云端模式】定时调度器已启动，负责清理数据与检查超时等待...");
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
         // 每隔 1 小时执行一次清理任务，调用 cleanUpOldData 方法

@@ -69,6 +69,11 @@ public interface TslDeviceRepository extends JpaRepository<TslDevice, Long> {
     List<TslDevice> findByProductProductIdAndMeshId(String productId, String meshId);
 
     @Modifying
+    @Transactional
+    @Query("update TslDevice d set d.status = :status where d.deviceId = :id")
+    void updateStatusById(@Param("id") Long id, @Param("status") Integer status);
+    
+    @Modifying
     void deleteByMeshNature(String meshNature);
 
     /**

@@ -128,10 +128,10 @@ public class TslDeviceService {
                 devMap.put("deviceRegion", device.getMeshName());
                 devMap.put("deviceTime", device.getCreatedAt());
 
-                String statusLabel = "未知";
+                String statusLabel = "运行";
                 Integer status = device.getStatus();
                 if (status != null) {
-                    statusLabel = (status == 1) ? "离线" : (status == 2) ? "在线" : "未知";
+                    statusLabel = (status == 1) ? "离线" : (status == 2) ? "在线" : "运行";
                 }
                 devMap.put("states", List.of(Map.of("stateKey", "状态", "stateValue", statusLabel)));
                 devMap.put("operation", finalProductOps);

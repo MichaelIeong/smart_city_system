@@ -92,14 +92,27 @@ public class TslApiUtil {
     }
 
     /**
-     * 发起请求并解析响应
+     * 发起请求并将特斯联API响应中的data字段解析为Map&lt;String, Object&gt;。
      *
      * @param action 请求动作
      * @param timeoutSec 超时时间（秒）
-     * @return 解析后的 data 字段
+     * @return 解析后的 data 字段 (Map&lt;String, Object&gt;)
      * @throws TslApiException 调用或解析失败时抛出
      */
     public Map<String, Object> fetch(RequestAction action, int timeoutSec) throws TslApiException {
+        return fetch(action, timeoutSec, new TypeReference<>() {});
+    }
+
+    /**
+     * 发起请求并将特斯联API响应中的data字段解析为指定类型。
+     * @param action 请求动作
+     * @param timeoutSec 超时时间（秒）
+     * @param dataType data字段解析为指定类型的 TypeReference
+     * @return 解析得到的data字段
+     * @param <T> data字段解析为指定类型
+     * @throws TslApiException 调用或解析失败时抛出
+     */
+    public <T> T fetch(RequestAction action, int timeoutSec, TypeReference<T> dataType) throws TslApiException {
         // 构建 RestClient
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(timeoutSec));
@@ -110,7 +123,7 @@ public class TslApiUtil {
         String rawResponse = fetchRaw(restClient, action);
 
         // 解析响应
-        return getData(rawResponse);
+        return getData(rawResponse, dataType);
     }
 
     /**
@@ -142,10 +155,12 @@ public class TslApiUtil {
      * 解析响应并提取 data 字段
      *
      * @param raw 原始响应体
+     * @param dataType data 字段的目标类型 (如 String, Map&lt;String, Object&gt; 等)
+     * @param <T> data 字段的类型参数
      * @return data 字段内容
      * @throws TslApiException 解析失败或响应格式不正确时抛出
      */
-    private Map<String, Object> getData(String raw) throws TslApiException {
+    private <T> T getData(String raw, TypeReference<T> dataType) throws TslApiException {
 
         // 解析响应体 JSON 字符串为 Map<String, Object>
         Map<String, Object> responseBody;
@@ -181,11 +196,11 @@ public class TslApiUtil {
         // 提取 data 字段
         Object dataObj = responseBody.get("data");
         try {
-            return objectMapper.convertValue(dataObj, new TypeReference<>() {});
+            return objectMapper.convertValue(dataObj, dataType);
         } catch (IllegalArgumentException e) {
             String msg = String.format(
-                "解析特斯联API接口的响应data字段失败: %s\n响应体:\n%s",
-                e.getMessage(), raw
+                "解析特斯联API接口的响应data字段为(%s类型)失败: %s\n响应体:\n%s",
+                dataType.toString(), e.getMessage(), raw
             );
             throw new TslApiException(msg, e);
         }

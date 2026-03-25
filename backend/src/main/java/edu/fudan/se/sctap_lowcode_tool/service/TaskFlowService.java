@@ -42,7 +42,7 @@ public class TaskFlowService {
      */
     public CompletableFuture<List<String>> executeByName(String serviceName, Map<String, Object> params) throws Exception {
         // 1. 按名字从数据库找数据
-        EnvService info = envServiceRepository.findByServiceName(serviceName);
+        EnvService info = envServiceRepository.findLatestByServiceName(serviceName);
         if (info == null) {
             throw new RuntimeException("数据库中未找到名为 [" + serviceName + "] 的服务配置");
         }
