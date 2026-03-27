@@ -50,12 +50,13 @@ public class FusionNodeRedController {
      * Node-RED Upload Rule API
      * ===================================================== */
     @PostMapping("/uploadRule")
-    public Map<String, Object> uploadRule(@RequestBody JsonNode flowJson) {
+    public Map<String, Object> uploadRule(@RequestBody JsonNode flowJson,
+                                          @RequestParam(value = "id", required = false) Integer id) {
 
         Map<String, Object> response = new HashMap<>();
 
         try {
-            fusionService.handleUploadRule(flowJson);
+            fusionService.handleUploadRule(flowJson, id);
 
             response.put("success", true);
             response.put("message", "规则上传成功");

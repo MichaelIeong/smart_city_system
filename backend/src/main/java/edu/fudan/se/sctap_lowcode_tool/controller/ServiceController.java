@@ -6,23 +6,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceBriefResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceJson;
+import edu.fudan.se.sctap_lowcode_tool.constant.RoleConstant;
 import edu.fudan.se.sctap_lowcode_tool.execution.TaskScheduler;
 import edu.fudan.se.sctap_lowcode_tool.execution.WorkflowParser;
+import edu.fudan.se.sctap_lowcode_tool.model.EdgeNode;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvServiceGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.ServiceInfo;
 import edu.fudan.se.sctap_lowcode_tool.neo4jRepository.SpaceNodeRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EdgeNodeRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceGridRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.ServiceService;
 import edu.fudan.se.sctap_lowcode_tool.service.SpaceService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/services")
 public class ServiceController {
@@ -40,6 +51,21 @@ public class ServiceController {
     private final WorkflowParser parser;
     @Autowired
     private SpaceNodeRepository spaceNodeRepository;
+
+    @Value("${app.node-role:edge}")
+    private String nodeRole;
+
+    @Autowired
+    private EdgeNodeRepository edgeNodeRepository;
+
+    @Resource
+    private RestTemplate restTemplate;
+
+    @Resource
+    private EnvServiceRepository envServiceRepository;
+
+    @Resource
+    private EnvServiceGridRepository envServiceGridRepository;
 
     @Autowired
     public ServiceController(WorkflowParser parser, TaskScheduler scheduler) {
@@ -155,7 +181,8 @@ public class ServiceController {
     @PostMapping("/uploadCompositionService")
     public ResponseEntity<Void> saveService(@RequestBody ServiceJson serviceJson,
                                             @RequestParam("gridId") String gridId,
-                                            @RequestParam("projectId") Integer projectId){
+                                            @RequestParam("projectId") Integer projectId,
+                                            @RequestParam(value = "id", required = false) Integer id){
         try {
             String compositionJson = objectMapper.writeValueAsString(serviceJson.getCompositionJson());
             String totalJson = objectMapper.writeValueAsString(serviceJson.getTotalJson());
@@ -177,13 +204,64 @@ public class ServiceController {
             }
             envService.setDependDtypes(deviceTypeArray);
             envService.setCreateTime(LocalDateTime.now());
-            serviceService.saveCompositionService(envService, gridId);
+            // 如果是边缘节点，使用云端节点的id
+            if(RoleConstant.EDGE.equals(nodeRole)) {
+                envService.setId(id);
+            }
+            envServiceRepository.save(envService);
+            if(!envService.getCrossRegion()) {
+                EnvServiceGrid envServiceGrid = new EnvServiceGrid();
+                envServiceGrid.setGridId(gridId);
+                envServiceGrid.setEnvServiceId(envService.getId());
+                envServiceGrid.setEnabled(true);
+                envServiceGridRepository.save(envServiceGrid);
+            }
+            // 如果当前是云端节点，保存完毕后，向边端下发请求，并带上刚刚生成的 ID
+            if(RoleConstant.CLOUD.equals(nodeRole)) {
+                // 将 envService.getId() 传递给下发方法
+                dispatchCompositionService(serviceJson, gridId, projectId, envService.getId());
+            }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 根据 gridId 将请求下发给对应的边缘节点
+     */
+    private void dispatchCompositionService(ServiceJson serviceJson, String gridId, Integer projectId, Integer cloudGeneratedId) {
+        if (!"crossRegion".equals(gridId)) {
+            EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
+            if (targetNode != null) {
+                sendToEdge(targetNode, serviceJson, gridId, projectId, cloudGeneratedId);
+            }
+        }
+    }
+
+    /**
+     * 执行 HTTP POST 请求，发送给边端（带上 id 参数）
+     */
+    private void sendToEdge(EdgeNode node, ServiceJson serviceJson, String gridId, Integer projectId, Integer id) {
+        String ipAddress = node.getIpAddress();
+        // 注意这里：URL 后面追加了 &id={id}
+        String url = ipAddress + "/api/services/uploadCompositionService?gridId={gridId}&projectId={projectId}&id={id}";
+        try {
+            // 使用 RestTemplate 的占位符特性，安全地传入 gridId, projectId, 和 id
+            restTemplate.postForEntity(
+                    url,
+                    serviceJson,
+                    Void.class,
+                    gridId,
+                    projectId,
+                    id // 对应 URL 中的 {id}
+            );
+            log.info("边缘节点 [{}] 服务组合下发成功", ipAddress);
+        } catch (Exception e) {
+            log.error("向边缘节点 [{}] 服务组合下发失败，网络或服务异常: {}", ipAddress, e.getMessage());
+        }
     }
 
 //    @PostMapping("/uploadDeviceServiceType")

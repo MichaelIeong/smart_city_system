@@ -33,8 +33,9 @@ public class AppRuleController {
      * 保存应用
      * */
     @PostMapping("/create")
-    public ResponseEntity<Integer> create(@RequestBody AppRuleSaveRequest appRuleSaveRequest) {
-        return ResponseEntity.ok(appRuleService.createRule(appRuleSaveRequest));
+    public ResponseEntity<Integer> create(@RequestBody AppRuleSaveRequest appRuleSaveRequest,
+                                          @RequestParam(value = "id", required = false) Integer id) {
+        return ResponseEntity.ok(appRuleService.createRule(appRuleSaveRequest, id));
     }
 
     @PostMapping("/update")

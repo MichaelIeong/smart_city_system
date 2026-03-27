@@ -5,7 +5,10 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncResponse;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvEventService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,12 @@ public class EnvEventController {
 
     @Resource
     private EnvEventService envEventService;
+
+    @Resource
+    private EnvEventRepository envEventRepository;
+
+    @Resource
+    private EnvEventGridRepository envEventGridRepository;
 
     /**
      * 根据网格Id获取环境级事件列表
@@ -74,6 +83,20 @@ public class EnvEventController {
     @GetMapping("/typeOfEvent/{eventId}")
     public ResponseEntity<List<GridMesh>> getGridListByEventId(@PathVariable Integer eventId) {
         return ResponseEntity.ok(envEventService.getGridListByEventId(eventId));
+    }
+
+    /**
+     * 插入环境级事件
+     * */
+    @PostMapping("/add")
+    public ResponseEntity<Integer> add(@RequestBody EnvEvent envEvent, @RequestParam("gridId") String gridId) {
+        envEventRepository.save(envEvent);
+        EnvEventGrid envEventGrid = new EnvEventGrid();
+        envEventGrid.setEnvEventId(envEvent.getId());
+        envEventGrid.setGridId(gridId);
+        envEventGrid.setEnabled(true);
+        envEventGridRepository.save(envEventGrid);
+        return ResponseEntity.ok(envEvent.getId());
     }
 
     /**
