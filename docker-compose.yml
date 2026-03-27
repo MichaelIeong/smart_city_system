@@ -31,7 +31,7 @@ services:
     environment:
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_adge_1
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_1
     networks:
       - app-network
     restart: always
@@ -51,7 +51,7 @@ services:
     environment:
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_adge_2
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_2
     networks:
       - app-network
     restart: always
@@ -71,7 +71,7 @@ services:
     environment:
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_adge_3
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_3
     networks:
       - app-network
     restart: always

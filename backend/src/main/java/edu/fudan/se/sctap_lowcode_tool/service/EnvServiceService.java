@@ -346,7 +346,7 @@ public class EnvServiceService {
         }
         String ipAddress = targetNode.getIpAddress();
         // 复用带 id 参数的 /add 接口
-        String url = ipAddress + "/api/envService/add?gridId={gridId}&id={id}";
+        String url = ipAddress + "/api/envService/add?gridId={gridId}";
         try {
             restTemplate.postForEntity(
                     url,
