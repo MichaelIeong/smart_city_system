@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -66,4 +67,11 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
 
     @Query("SELECT a FROM AppRuleInfo a WHERE a.crossRegion = TRUE AND a.project.projectId = :projectId")
     List<AppRuleInfo> findGlobalRulesByProject(@Param("projectId") Integer projectId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO app_rule_info (id, project_id, description, rule_json, update_time, event_type, flow_json, app_name, cross_region) " +
+            "VALUES (:#{#a.id}, :#{#a.project?.id}, :#{#a.description}, :#{#a.ruleJson}, :#{#a.updateTime}, :#{#a.eventType}, :#{#a.flowJson}, :#{#a.appName}, :#{#a.crossRegion})",
+            nativeQuery = true)
+    void insertWithId(@Param("a") AppRuleInfo a);
 }

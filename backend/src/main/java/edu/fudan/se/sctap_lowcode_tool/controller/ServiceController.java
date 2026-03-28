@@ -205,10 +205,16 @@ public class ServiceController {
             envService.setDependDtypes(deviceTypeArray);
             envService.setCreateTime(LocalDateTime.now());
             // 如果是边缘节点，使用云端节点的id
-            if(RoleConstant.EDGE.equals(nodeRole)) {
+            if(RoleConstant.CLOUD.equals(nodeRole)) {
+                envService = envServiceRepository.save(envService);
+            } else {
                 envService.setId(id);
+                String dependDtypesStr = null;
+                if (envService.getDependDtypes() != null) {
+                    dependDtypesStr = objectMapper.writeValueAsString(envService.getDependDtypes());
+                }
+                envServiceRepository.insertWithId(envService, dependDtypesStr);
             }
-            envServiceRepository.save(envService);
             if(!envService.getCrossRegion()) {
                 EnvServiceGrid envServiceGrid = new EnvServiceGrid();
                 envServiceGrid.setGridId(gridId);
@@ -232,35 +238,28 @@ public class ServiceController {
     /**
      * 根据 gridId 将请求下发给对应的边缘节点
      */
-    private void dispatchCompositionService(ServiceJson serviceJson, String gridId, Integer projectId, Integer cloudGeneratedId) {
+    private void dispatchCompositionService(ServiceJson serviceJson, String gridId, Integer projectId, Integer id) {
         if (!"crossRegion".equals(gridId)) {
             EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
             if (targetNode != null) {
-                sendToEdge(targetNode, serviceJson, gridId, projectId, cloudGeneratedId);
+                String ipAddress = targetNode.getIpAddress();
+                // 注意这里：URL 后面追加了 &id={id}
+                String url = ipAddress + "/api/services/uploadCompositionService?gridId={gridId}&projectId={projectId}&id={id}";
+                try {
+                    // 使用 RestTemplate 的占位符特性，安全地传入 gridId, projectId, 和 id
+                    restTemplate.postForEntity(
+                            url,
+                            serviceJson,
+                            Void.class,
+                            gridId,
+                            projectId,
+                            id // 对应 URL 中的 {id}
+                    );
+                    log.info("边缘节点 [{}] 服务组合下发成功", ipAddress);
+                } catch (Exception e) {
+                    log.error("向边缘节点 [{}] 服务组合下发失败，网络或服务异常: {}", ipAddress, e.getMessage());
+                }
             }
-        }
-    }
-
-    /**
-     * 执行 HTTP POST 请求，发送给边端（带上 id 参数）
-     */
-    private void sendToEdge(EdgeNode node, ServiceJson serviceJson, String gridId, Integer projectId, Integer id) {
-        String ipAddress = node.getIpAddress();
-        // 注意这里：URL 后面追加了 &id={id}
-        String url = ipAddress + "/api/services/uploadCompositionService?gridId={gridId}&projectId={projectId}&id={id}";
-        try {
-            // 使用 RestTemplate 的占位符特性，安全地传入 gridId, projectId, 和 id
-            restTemplate.postForEntity(
-                    url,
-                    serviceJson,
-                    Void.class,
-                    gridId,
-                    projectId,
-                    id // 对应 URL 中的 {id}
-            );
-            log.info("边缘节点 [{}] 服务组合下发成功", ipAddress);
-        } catch (Exception e) {
-            log.error("向边缘节点 [{}] 服务组合下发失败，网络或服务异常: {}", ipAddress, e.getMessage());
         }
     }
 

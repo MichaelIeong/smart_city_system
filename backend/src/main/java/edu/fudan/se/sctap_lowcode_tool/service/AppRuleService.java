@@ -12,10 +12,7 @@ import edu.fudan.se.sctap_lowcode_tool.DTO.*;
 import edu.fudan.se.sctap_lowcode_tool.DTO.APPRULE.*;
 import edu.fudan.se.sctap_lowcode_tool.constant.RoleConstant;
 import edu.fudan.se.sctap_lowcode_tool.constant.SystemPrompt;
-import edu.fudan.se.sctap_lowcode_tool.model.AppGrid;
-import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
-import edu.fudan.se.sctap_lowcode_tool.model.EdgeNode;
-import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
 import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import edu.fudan.se.sctap_lowcode_tool.utils.milvus.entity.AppRuleRecord;
@@ -180,12 +177,13 @@ public class AppRuleService {
                 appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
                 // 判断是否跨区域
                 appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
-                // 【新增】如果是边缘节点，使用云端下发的 ID
-                if (RoleConstant.EDGE.equals(nodeRole) && id != null) {
-                    appRuleInfo.setId(id);
-                }
                 // 插入数据库
-                appRuleInfo = appRuleRepository.save(appRuleInfo);
+                if(RoleConstant.CLOUD.equals(nodeRole)){
+                    appRuleInfo = appRuleRepository.save(appRuleInfo);
+                } else {
+                    appRuleInfo.setId(id);
+                    appRuleRepository.insertWithId(appRuleInfo);
+                }
                 // 插入向量数据库，只有云端插入
                 if(RoleConstant.CLOUD.equals(nodeRole)&&appRuleInfo.getDescription()!=null&&!appRuleInfo.getDescription().isBlank()) {
                     AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleSaveRequest.getDescription());
@@ -226,12 +224,13 @@ public class AppRuleService {
             appRuleInfo.setEventType(appRule.getTrigger().getEvent_type());
             // 判断是否跨区域
             appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
-            // 【新增】如果是边缘节点，使用云端下发的 ID
-            if ("edge".equalsIgnoreCase(nodeRole) && id != null) {
-                appRuleInfo.setId(id);
-            }
             // 插入数据库
-            appRuleInfo = appRuleRepository.save(appRuleInfo);
+            if(RoleConstant.CLOUD.equals(nodeRole)){
+                appRuleInfo = appRuleRepository.save(appRuleInfo);
+            } else {
+                appRuleInfo.setId(id);
+                appRuleRepository.insertWithId(appRuleInfo);
+            }
             // 插入向量数据库，只有云端插入
             if(RoleConstant.CLOUD.equals(nodeRole)&&appRuleInfo.getDescription()!=null&&!appRuleInfo.getDescription().isBlank()) {
                 AppRuleRecord record = new AppRuleRecord(appRuleInfo.getId().toString(), appRuleSaveRequest.getDescription());
@@ -663,31 +662,44 @@ public class AppRuleService {
         }
         // 下发边端服务器
         if(RoleConstant.CLOUD.equals(nodeRole)) {
-            EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
-            if (targetNode != null) {
-                try {
-                    // 构造复用已有的创建接口的请求体
-                    AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
-                    AppRuleSaveRequest syncRequest = new AppRuleSaveRequest();
-                    syncRequest.setProjectId(appRuleInfo.getProject().getProjectId());
-                    syncRequest.setDescription(appRuleInfo.getDescription());
-                    syncRequest.setRuleJson(appRuleInfo.getRuleJson());
-                    syncRequest.setFlowJson(appRuleInfo.getFlowJson());
-                    syncRequest.setAppName(appRuleInfo.getAppName());
-                    syncRequest.setGridId(gridId); // 明确指定下发给当前网格
-                    String ipAddress = targetNode.getIpAddress();
-                    // 复用之前修改过的边端应用创建接口，通过 URL 占位符传递云端 ID
-                    String url = ipAddress + "/api/taps/create?id={id}";
-                    restTemplate.postForEntity(url, syncRequest, Integer.class, appId);
-                    log.info("云端向边缘节点 [{}] (Grid: {}) 同步应用规则成功", ipAddress, gridId);
-                } catch (Exception e) {
-                    log.error("向边缘节点 [{}] 下发应用同步失败: {}", targetNode.getIpAddress(), e.getMessage());
-                    return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "下发边端网络异常：" + e.getMessage());
-                }
+            AppRuleInfo appRuleInfo = appRuleRepository.findById(appId).orElse(null);
+            boolean dispatchSuccess = dispatchAddAppToEdge(appRuleInfo, gridId);
+            if (!dispatchSuccess) {
+                // 如果下发失败，回滚本地的关联表记录，避免云边状态不一致
+                appGridRepository.delete(appGrid);
+                return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "下发边缘节点失败，网络异常或节点未响应");
             }
         }
         // 所有检查通过
         return new AppRuleSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "同步下发成功");
+    }
+
+    /**
+     * 将新增/同步请求下发至指定的边缘节点 (共用方法)
+     * 返回 boolean 用于判断是否下发成功，以便上层决定是否回滚
+     */
+    private boolean dispatchAddAppToEdge(AppRuleInfo appRuleInfo, String gridId) {
+        EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
+        if (targetNode == null) {
+            log.warn("未找到 gridId = {} 对应的边缘节点，跳过下发。", gridId);
+            return false;
+        }
+        String ipAddress = targetNode.getIpAddress();
+        // 复用带 id 参数的 /add 接口
+        String url = ipAddress + "/api/taps/add?gridId={gridId}";
+        try {
+            restTemplate.postForEntity(
+                    url,
+                    appRuleInfo,
+                    Integer.class,
+                    gridId
+            );
+            log.info("边缘节点 [{}] 应用同步下发成功", ipAddress);
+            return true;
+        } catch (Exception e) {
+            log.error("向边缘节点 [{}] 应用同步下发失败: {}", ipAddress, e.getMessage());
+            return false;
+        }
     }
 
     // 获取当前网格实际需要支持的环境级服务

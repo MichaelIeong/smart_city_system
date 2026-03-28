@@ -1,5 +1,6 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
@@ -105,7 +106,7 @@ public class FusionNodeRedService {
      * Node-RED Rule Upload
      * ===================================================== */
 
-    public void handleUploadRule(JsonNode flowJson, Integer id) {
+    public void handleUploadRule(JsonNode flowJson, Integer id) throws JsonProcessingException {
         JsonNode publishNode = null;
         JsonNode eventSourceNode = null;
 
@@ -182,12 +183,15 @@ public class FusionNodeRedService {
         envEvent.setDependDtypes(deviceIds);
         envEvent.setProjectId(projectId);
         // 如果是边端节点，需要制定为云端的id
-        if (RoleConstant.EDGE.equals(nodeRole) && id != null) {
+        if(RoleConstant.CLOUD.equals(nodeRole)) {
+            envEvent = envEventRepository.save(envEvent);
+        } else {
             envEvent.setId(id);
+            String ruleDslStr = envEvent.getRuleDsl() != null ? objectMapper.writeValueAsString(envEvent.getRuleDsl()) : null;
+            String dependDtypesStr = envEvent.getDependDtypes() != null ? objectMapper.writeValueAsString(envEvent.getDependDtypes()) : null;
+            envEventRepository.insertWithId(envEvent, ruleDslStr, dependDtypesStr);
         }
-
-        EnvEvent savedEvent = envEventRepository.save(envEvent);
-        Integer envEventId = savedEvent.getId();
+        Integer envEventId = envEvent.getId();
 
         // ---------- 若非跨网格，组装并入库 EnvEventGrid ----------
         String gridId = eventSourceNode.get("gridId").asText();

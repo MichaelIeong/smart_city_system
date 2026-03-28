@@ -1,6 +1,8 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupDeployDetail;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncRequest;
@@ -26,6 +28,9 @@ public class EnvServiceController {
 
     @Resource
     private EnvServiceGridRepository envServiceGridRepository;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 根据网格Id获取环境级服务列表
@@ -79,8 +84,16 @@ public class EnvServiceController {
      * 插入环境级事件
      * */
     @PostMapping("/add")
-    public ResponseEntity<Integer> add(@RequestBody EnvService envService, @RequestParam("gridId") String gridId) {
-        envServiceRepository.save(envService);
+    public ResponseEntity<Integer> add(@RequestBody EnvService envService, @RequestParam("gridId") String gridId) throws JsonProcessingException {
+        if(envService.getId() == null) {
+            envService = envServiceRepository.save(envService);
+        } else {
+            String dependDtypesStr = null;
+            if (envService.getDependDtypes() != null) {
+                dependDtypesStr = objectMapper.writeValueAsString(envService.getDependDtypes());
+            }
+            envServiceRepository.insertWithId(envService, dependDtypesStr);
+        }
         EnvServiceGrid envServiceGrid = new EnvServiceGrid();
         envServiceGrid.setEnvServiceId(envService.getId());
         envServiceGrid.setGridId(gridId);

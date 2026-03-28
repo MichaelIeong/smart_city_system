@@ -1,5 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionDeployDetail;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.EventFusionSyncResponse;
@@ -28,6 +30,9 @@ public class EnvEventController {
 
     @Resource
     private EnvEventGridRepository envEventGridRepository;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 根据网格Id获取环境级事件列表
@@ -89,8 +94,14 @@ public class EnvEventController {
      * 插入环境级事件
      * */
     @PostMapping("/add")
-    public ResponseEntity<Integer> add(@RequestBody EnvEvent envEvent, @RequestParam("gridId") String gridId) {
-        envEventRepository.save(envEvent);
+    public ResponseEntity<Integer> add(@RequestBody EnvEvent envEvent, @RequestParam("gridId") String gridId) throws JsonProcessingException {
+        if(envEvent.getId() == null) {
+            envEvent = envEventRepository.save(envEvent);
+        } else {
+            String ruleDslStr = envEvent.getRuleDsl() != null ? objectMapper.writeValueAsString(envEvent.getRuleDsl()) : null;
+            String dependDtypesStr = envEvent.getDependDtypes() != null ? objectMapper.writeValueAsString(envEvent.getDependDtypes()) : null;
+            envEventRepository.insertWithId(envEvent, ruleDslStr, dependDtypesStr);
+        }
         EnvEventGrid envEventGrid = new EnvEventGrid();
         envEventGrid.setEnvEventId(envEvent.getId());
         envEventGrid.setGridId(gridId);

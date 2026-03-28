@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -61,4 +62,13 @@ public interface EnvEventRepository extends JpaRepository<EnvEvent, Integer> {
     List<EnvEvent> findCrossRegionByProject(@Param("projectId") Integer projectId);
 
     List<EnvEvent> findByProjectId(Integer projectId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO env_event (id, event_type, description, event_json, rule_dsl, event_name, cross_region, create_time, project_id, depend_dtypes) " +
+            "VALUES (:#{#e.id}, :#{#e.eventType}, :#{#e.description}, :#{#e.eventJson}, :ruleDslStr, :#{#e.eventName}, :#{#e.crossRegion}, :#{#e.createTime}, :#{#e.projectId}, :dependDtypesStr)",
+            nativeQuery = true)
+    void insertWithId(@Param("e") EnvEvent e,
+                      @Param("ruleDslStr") String ruleDslStr,
+                      @Param("dependDtypesStr") String dependDtypesStr);
 }

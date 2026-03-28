@@ -1,7 +1,12 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 import edu.fudan.se.sctap_lowcode_tool.DTO.*;
+import edu.fudan.se.sctap_lowcode_tool.model.AppGrid;
 import edu.fudan.se.sctap_lowcode_tool.model.AppRuleInfo;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
+import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
+import edu.fudan.se.sctap_lowcode_tool.repository.AppGridRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.AppRuleRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.AppRuleService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +19,12 @@ import java.util.*;
 public class AppRuleController {
     @Resource
     private AppRuleService appRuleService;
+
+    @Resource
+    private AppRuleRepository appRuleRepository;
+
+    @Resource
+    private AppGridRepository appGridRepository;
 
     @GetMapping
     public PageDTO<AppRuleInfo> queryAll(
@@ -113,6 +124,24 @@ public class AppRuleController {
             @PathVariable Integer id,
             @RequestParam boolean enabled) {
         return appRuleService.updateEnabledStatus(id, enabled);
+    }
+
+    /**
+     * 插入环境级事件
+     * */
+    @PostMapping("/add")
+    public ResponseEntity<Integer> add(@RequestBody AppRuleInfo appRuleInfo, @RequestParam("gridId") String gridId) {
+        if(appRuleInfo.getId() == null) {
+            appRuleInfo = appRuleRepository.save(appRuleInfo);
+        } else {
+            appRuleRepository.insertWithId(appRuleInfo);
+        }
+        AppGrid appGrid = new AppGrid();
+        appGrid.setAppRuleId(appRuleInfo.getId());
+        appGrid.setGridId(gridId);
+        appGrid.setEnabled(true);
+        appGridRepository.save(appGrid);
+        return ResponseEntity.ok(appGrid.getId());
     }
 
     /**
