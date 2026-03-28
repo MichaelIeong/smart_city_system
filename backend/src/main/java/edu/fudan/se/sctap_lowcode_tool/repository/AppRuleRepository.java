@@ -71,7 +71,7 @@ public interface AppRuleRepository extends JpaRepository<AppRuleInfo, Integer> {
     @Modifying
     @Transactional
     @Query(value = "INSERT INTO app_rule_info (id, project_id, description, rule_json, update_time, event_type, flow_json, app_name, cross_region) " +
-            "VALUES (:#{#a.id}, :#{#a.project?.id}, :#{#a.description}, :#{#a.ruleJson}, :#{#a.updateTime}, :#{#a.eventType}, :#{#a.flowJson}, :#{#a.appName}, :#{#a.crossRegion})",
+            "VALUES (:#{#a.id}, :#{#a.project?.projectId}, :#{#a.description}, :#{#a.ruleJson}, :#{#a.updateTime}, :#{#a.eventType}, :#{#a.flowJson}, :#{#a.appName}, :#{#a.crossRegion})",
             nativeQuery = true)
     void insertWithId(@Param("a") AppRuleInfo a);
 }
