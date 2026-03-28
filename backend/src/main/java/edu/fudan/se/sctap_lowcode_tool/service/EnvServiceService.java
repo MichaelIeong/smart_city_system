@@ -179,12 +179,14 @@ public class EnvServiceService {
             envServiceGridRepository.deleteAll(envServiceGridList);
             log.info("删除了 {} 条env_service_grid关联记录", envServiceGridList.size());
             // 【特定区域】：根据关联表找到对应的特定边缘节点并下发删除请求
-            for (EnvServiceGrid grid : envServiceGridList) {
-                EdgeNode targetNode = edgeNodeRepository.findByGridId(grid.getGridId());
-                if (targetNode != null) {
-                    dispatchDeleteToEdge(targetNode.getIpAddress(), envServiceId);
-                } else {
-                    log.warn("未找到 gridId = {} 对应的边缘节点，跳过删除下发", grid.getGridId());
+            if(RoleConstant.CLOUD.equals(nodeRole)) {
+                for (EnvServiceGrid grid : envServiceGridList) {
+                    EdgeNode targetNode = edgeNodeRepository.findByGridId(grid.getGridId());
+                    if (targetNode != null) {
+                        dispatchDeleteToEdge(targetNode.getIpAddress(), envServiceId);
+                    } else {
+                        log.warn("未找到 gridId = {} 对应的边缘节点，跳过删除下发", grid.getGridId());
+                    }
                 }
             }
         }

@@ -156,7 +156,7 @@ public class AppRuleService {
             return;
         }
         String ipAddress = targetNode.getIpAddress();
-        String url = ipAddress + "/api/apps/{id}";
+        String url = ipAddress + "/api/taps/{id}";
         try {
             // 使用 restTemplate 发送 DELETE 请求，自动替换 URL 中的占位符 {id}
             restTemplate.delete(url, ruleId);
@@ -181,7 +181,7 @@ public class AppRuleService {
                 // 判断是否跨区域
                 appRuleInfo.setCrossRegion("crossRegion".equals(gridId));
                 // 【新增】如果是边缘节点，使用云端下发的 ID
-                if ("edge".equalsIgnoreCase(nodeRole) && id != null) {
+                if (RoleConstant.EDGE.equals(nodeRole) && id != null) {
                     appRuleInfo.setId(id);
                 }
                 // 插入数据库
