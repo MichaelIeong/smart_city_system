@@ -1,13 +1,15 @@
 package edu.fudan.se.sctap_lowcode_tool.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupDeployDetail;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncRequest;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncResponse;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
-import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceGridRepository;
+import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceRepository;
 import edu.fudan.se.sctap_lowcode_tool.service.EnvServiceService;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,15 @@ import java.util.List;
 public class EnvServiceController {
     @Resource
     private EnvServiceService envServiceService;
+
+    @Resource
+    private EnvServiceRepository envServiceRepository;
+
+    @Resource
+    private EnvServiceGridRepository envServiceGridRepository;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 根据网格Id获取环境级服务列表
@@ -67,6 +78,28 @@ public class EnvServiceController {
     public ResponseEntity<Void> deleteEnvService(@PathVariable Integer id) {
         envServiceService.deleteEnvService(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 插入环境级事件
+     * */
+    @PostMapping("/add")
+    public ResponseEntity<Integer> add(@RequestBody EnvService envService, @RequestParam("gridId") String gridId) throws JsonProcessingException {
+        if(envService.getId() == null) {
+            envService = envServiceRepository.save(envService);
+        } else {
+            String dependDtypesStr = null;
+            if (envService.getDependDtypes() != null) {
+                dependDtypesStr = objectMapper.writeValueAsString(envService.getDependDtypes());
+            }
+            envServiceRepository.insertWithId(envService, dependDtypesStr);
+        }
+        EnvServiceGrid envServiceGrid = new EnvServiceGrid();
+        envServiceGrid.setEnvServiceId(envService.getId());
+        envServiceGrid.setGridId(gridId);
+        envServiceGrid.setEnabled(true);
+        envServiceGridRepository.save(envServiceGrid);
+        return ResponseEntity.ok(envService.getId());
     }
 
     /**

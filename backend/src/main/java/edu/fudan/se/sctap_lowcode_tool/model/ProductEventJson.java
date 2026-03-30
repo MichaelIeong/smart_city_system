@@ -15,6 +15,10 @@ public class ProductEventJson {
     @Column(name = "product_event", length = 255)
     private String productEvent;
 
+    @Column(name = "event_format", columnDefinition = "json")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode eventFormat;
+
     // 直接映射为 Jackson 的 JsonNode，读取时自动转为 JSON 对象而不是字符串
     @Column(name = "event_json", columnDefinition = "json")
     @JdbcTypeCode(SqlTypes.JSON)

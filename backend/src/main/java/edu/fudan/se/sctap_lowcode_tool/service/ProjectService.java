@@ -1,5 +1,7 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import edu.fudan.se.sctap_lowcode_tool.constant.RoleConstant;
+import edu.fudan.se.sctap_lowcode_tool.model.EdgeNode;
 import edu.fudan.se.sctap_lowcode_tool.model.ProjectInfo;
 import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.utils.JsonUtil;
@@ -7,9 +9,11 @@ import edu.fudan.se.sctap_lowcode_tool.utils.milvus.MilvusUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -47,6 +51,15 @@ public class ProjectService {
 
     @Resource
     private MilvusUtil milvusUtil;
+
+    @Value("${app.node-role:edge}")
+    private String nodeRole;
+
+    @Resource
+    private EdgeNodeRepository edgeNodeRepository;
+
+    @Resource
+    private RestTemplate restTemplate;
 
     // 映射 projectId 到 mesh_nature
     private static final Map<Integer, String> MESH_NATURE_MAP = new HashMap<>();
@@ -165,9 +178,17 @@ public class ProjectService {
             if (!appRuleIds.isEmpty()) {
                 appGridRepository.deleteByAppRuleIdIn(appRuleIds);
                 appRuleRepository.deleteByProjectId(projectId);
+                // 如果是云端节点，删除向量数据库
+                if(RoleConstant.CLOUD.equals(nodeRole)) {
+                    for(Integer appRuleId : appRuleIds) {
+                        milvusUtil.deleteRecordById(appRuleId.toString());
+                    }
+                }
             }
-            // 5. 清空向量数据库
-            milvusUtil.clearCollection();
+            // 5. 向边端下发删除请求
+            if(RoleConstant.CLOUD.equals(nodeRole)) {
+                notifyEdgeNodesToDelete(projectId);
+            }
             return true;
         } catch (Exception e) {
             log.error("删除项目失败，触发事务回滚. projectId: {}", projectId, e);
@@ -176,6 +197,24 @@ public class ProjectService {
         }
     }
 
+    /**
+     * 向所有记录在案的边缘节点下发删除指令
+     */
+    private void notifyEdgeNodesToDelete(Integer projectId) {
+        List<EdgeNode> edgeNodes = edgeNodeRepository.findAll();
+        if (edgeNodes.isEmpty()) {
+            log.info("没有找到边缘节点，跳过下发删除指令。");
+            return;
+        }
+        for (EdgeNode node : edgeNodes) {
+            try{
+                restTemplate.getForEntity(node.getIpAddress() + "/api/projects/delete/" + projectId, Boolean.class);
+                log.info("边缘节点 [{}] 场景删除成功", node.getIpAddress());
+            } catch (Exception e) {
+                log.error("请求边缘节点 [{}] 场景删除失败，可能网络不通或服务异常: {}", node.getIpAddress(), e.getMessage());
+            }
+        }
+    }
 }
 
 

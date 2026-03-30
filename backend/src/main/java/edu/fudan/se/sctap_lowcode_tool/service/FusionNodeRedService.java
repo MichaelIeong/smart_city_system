@@ -1,26 +1,27 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.fudan.se.sctap_lowcode_tool.DTO.SensorTypeDTO;
 import edu.fudan.se.sctap_lowcode_tool.DTO.event_fusion_2026_jan.EventFusionRule;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEvent;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvEventGrid;
-import edu.fudan.se.sctap_lowcode_tool.model.TslProduct;
-import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventGridRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.EnvEventRepository;
+import edu.fudan.se.sctap_lowcode_tool.constant.RoleConstant;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.*;
 import edu.fudan.se.sctap_lowcode_tool.service.event_fusion_2026_jan.EventFusionRuleService;
 import edu.fudan.se.sctap_lowcode_tool.DTO.ProductEventDTO;
-import edu.fudan.se.sctap_lowcode_tool.model.ProductEvent;
-import edu.fudan.se.sctap_lowcode_tool.repository.TslDeviceRepository;
-import edu.fudan.se.sctap_lowcode_tool.repository.ProductEventRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class FusionNodeRedService {
 
     private final TslDeviceRepository deviceRepository;
@@ -29,6 +30,15 @@ public class FusionNodeRedService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EventFusionRuleService eventFusionRuleService;
     private final ProductEventRepository productEventRepository;
+
+    @Value("${app.node-role:edge}")
+    private String nodeRole;
+
+    @Autowired
+    private EdgeNodeRepository edgeNodeRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     public FusionNodeRedService(
         TslDeviceRepository deviceRepository,
@@ -96,7 +106,7 @@ public class FusionNodeRedService {
      * Node-RED Rule Upload
      * ===================================================== */
 
-    public void handleUploadRule(JsonNode flowJson) {
+    public void handleUploadRule(JsonNode flowJson, Integer id) throws JsonProcessingException {
         JsonNode publishNode = null;
         JsonNode eventSourceNode = null;
 
@@ -172,20 +182,64 @@ public class FusionNodeRedService {
         envEvent.setRuleDsl(ruleDsl);
         envEvent.setDependDtypes(deviceIds);
         envEvent.setProjectId(projectId);
-
-        EnvEvent savedEvent = envEventRepository.save(envEvent);
-        Integer envEventId = savedEvent.getId();
+        // 如果是边端节点，需要制定为云端的id
+        if(RoleConstant.CLOUD.equals(nodeRole)) {
+            envEvent = envEventRepository.save(envEvent);
+        } else {
+            envEvent.setId(id);
+            String ruleDslStr = envEvent.getRuleDsl() != null ? objectMapper.writeValueAsString(envEvent.getRuleDsl()) : null;
+            String dependDtypesStr = envEvent.getDependDtypes() != null ? objectMapper.writeValueAsString(envEvent.getDependDtypes()) : null;
+            envEventRepository.insertWithId(envEvent, ruleDslStr, dependDtypesStr);
+        }
+        Integer envEventId = envEvent.getId();
 
         // ---------- 若非跨网格，组装并入库 EnvEventGrid ----------
+        String gridId = eventSourceNode.get("gridId").asText();
         if (!crossRegion) {
-            String gridId = eventSourceNode.get("gridId").asText();
 
             EnvEventGrid envEventGrid = new EnvEventGrid();
-            envEventGrid.setEnvEventId(envEventId.intValue());
+            envEventGrid.setEnvEventId(envEventId);
             envEventGrid.setGridId(gridId);
             envEventGrid.setEnabled(true);
 
             envEventGridRepository.save(envEventGrid);
+        }
+
+        // ================= 新增：云端下发逻辑 =================
+        if (RoleConstant.CLOUD.equalsIgnoreCase(nodeRole)) {
+            if (crossRegion) {
+                // 根据您的需求，如果是跨区域则不需要下发
+                log.info("当前规则为 crossRegion，无需下发至边缘节点");
+            } else if (gridId != null) {
+                // 非跨区域，按 gridId 查找并下发
+                dispatchRuleToEdge(flowJson, gridId, envEventId);
+            }
+        }
+    }
+
+    /**
+     * 将规则下发至指定的边缘节点
+     */
+    private void dispatchRuleToEdge(JsonNode flowJson, String gridId, Integer cloudGeneratedId) {
+        EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
+        if (targetNode == null) {
+            log.warn("未找到 gridId = {} 对应的边缘节点，跳过规则下发。", gridId);
+            return;
+        }
+        String ipAddress = targetNode.getIpAddress();
+        // 拼接目标边端的 URL，加上可选的 id 参数
+        String url = ipAddress + "/api/node-red/fusion/uploadRule?id={id}";
+        try {
+            // 使用 postForEntity 将 flowJson 发送过去
+            restTemplate.postForEntity(
+                    url,
+                    flowJson,
+                    Map.class,
+                    cloudGeneratedId // 对应 URL 中的 {id}
+            );
+            log.info("边缘节点 [{}] 事件融合下发成功", ipAddress);
+        } catch (Exception e) {
+            log.error("向边缘节点 [{}] 事件融合下发失败: {}", ipAddress, e.getMessage());
         }
     }
 

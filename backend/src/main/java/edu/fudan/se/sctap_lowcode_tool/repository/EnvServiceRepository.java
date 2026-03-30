@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -64,4 +65,10 @@ public interface EnvServiceRepository extends JpaRepository<EnvService, Integer>
     """)
     List<EnvService> findCrossRegionByProject(@Param("projectId") Integer projectId);
 
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO env_service (id, service_name, name, description, service_json, rule_json, cross_region, create_time, project_id, depend_dtypes) " +
+            "VALUES (:#{#s.id}, :#{#s.serviceName}, :#{#s.name}, :#{#s.description}, :#{#s.serviceJson}, :#{#s.ruleJson}, :#{#s.crossRegion}, :#{#s.createTime}, :#{#s.projectId}, :dependDtypesStr)",
+            nativeQuery = true)
+    void insertWithId(@Param("s") EnvService s, @Param("dependDtypesStr") String dependDtypesStr);
 }

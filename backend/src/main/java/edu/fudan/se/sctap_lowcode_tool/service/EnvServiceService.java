@@ -1,26 +1,24 @@
 package edu.fudan.se.sctap_lowcode_tool.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.fudan.se.sctap_lowcode_tool.DTO.PageDTO;
-import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupDeployDetail;
-import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncRequest;
-import edu.fudan.se.sctap_lowcode_tool.DTO.ServiceGroupSyncResponse;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvService;
-import edu.fudan.se.sctap_lowcode_tool.model.EnvServiceGrid;
-import edu.fudan.se.sctap_lowcode_tool.model.GridMesh;
+import edu.fudan.se.sctap_lowcode_tool.DTO.*;
+import edu.fudan.se.sctap_lowcode_tool.constant.RoleConstant;
+import edu.fudan.se.sctap_lowcode_tool.model.*;
+import edu.fudan.se.sctap_lowcode_tool.repository.EdgeNodeRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceGridRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.EnvServiceRepository;
 import edu.fudan.se.sctap_lowcode_tool.repository.GridMeshRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +42,15 @@ public class EnvServiceService {
 
     @Autowired
     private ProductService productService;
+
+    @Value("${app.node-role:edge}")
+    private String nodeRole;
+
+    @Autowired
+    private EdgeNodeRepository edgeNodeRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -171,11 +178,37 @@ public class EnvServiceService {
         if (!envServiceGridList.isEmpty()) {
             envServiceGridRepository.deleteAll(envServiceGridList);
             log.info("删除了 {} 条env_service_grid关联记录", envServiceGridList.size());
+            // 【特定区域】：根据关联表找到对应的特定边缘节点并下发删除请求
+            if(RoleConstant.CLOUD.equals(nodeRole)) {
+                for (EnvServiceGrid grid : envServiceGridList) {
+                    EdgeNode targetNode = edgeNodeRepository.findByGridId(grid.getGridId());
+                    if (targetNode != null) {
+                        dispatchDeleteToEdge(targetNode.getIpAddress(), envServiceId);
+                    } else {
+                        log.warn("未找到 gridId = {} 对应的边缘节点，跳过删除下发", grid.getGridId());
+                    }
+                }
+            }
         }
-        
         // 2. 删除env_service表中的记录
         envServiceRepository.deleteById(envServiceId);
         log.info("删除了env_service记录，ID: {}", envServiceId);
+    }
+
+    /**
+     * 将删除指令下发至指定的边缘节点
+     */
+    private void dispatchDeleteToEdge(String ipAddress, Integer envServiceId) {
+        // 请确保 /api/envService/{id} 与你 EnvServiceController 中的 @RequestMapping 路径一致
+        String url = ipAddress + "/api/envService/{id}";
+        try {
+            // 使用 restTemplate 发送 DELETE 请求，自动替换 URL 中的占位符 {id}
+            restTemplate.delete(url, envServiceId);
+            log.info("边缘节点 [{}] 环境级服务 [{}] 删除下发成功", ipAddress, envServiceId);
+        } catch (Exception e) {
+            // 捕获异常，防止某一个边端断网导致云端的删除事务全部失败/回滚
+            log.error("向边缘节点 [{}] 下发环境级服务 [{}] 删除请求失败: {}", ipAddress, envServiceId, e.getMessage());
+        }
     }
 
     /**
@@ -289,8 +322,45 @@ public class EnvServiceService {
         envServiceGrid.setEnvServiceId(serviceId);
         envServiceGrid.setEnabled(true);
         envServiceGridRepository.save(envServiceGrid);
+
+        // ================= 新增：云端下发到边端服务器 =================
+        if (RoleConstant.CLOUD.equals(nodeRole)) {
+            boolean dispatchSuccess = dispatchAddServiceToEdge(envService, gridId);
+            if (!dispatchSuccess) {
+                // 如果下发失败，回滚本地的关联表记录，避免云边状态不一致
+                envServiceGridRepository.delete(envServiceGrid);
+                return new ServiceGroupSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 0, "下发边缘节点失败，网络异常或节点未响应");
+            }
+        }
         
         return new ServiceGroupSyncResponse(gridId, gridMesh.getMeshNo(), gridMesh.getMeshName(), 1, "同步成功");
     }
 
+    /**
+     * 将新增/同步请求下发至指定的边缘节点 (共用方法)
+     * 返回 boolean 用于判断是否下发成功，以便上层决定是否回滚
+     */
+    private boolean dispatchAddServiceToEdge(EnvService envService, String gridId) {
+        EdgeNode targetNode = edgeNodeRepository.findByGridId(gridId);
+        if (targetNode == null) {
+            log.warn("未找到 gridId = {} 对应的边缘节点，跳过下发。", gridId);
+            return false;
+        }
+        String ipAddress = targetNode.getIpAddress();
+        // 复用带 id 参数的 /add 接口
+        String url = ipAddress + "/api/envService/add?gridId={gridId}";
+        try {
+            restTemplate.postForEntity(
+                    url,
+                    envService,
+                    Integer.class,
+                    gridId
+            );
+            log.info("边缘节点 [{}] 事件下发成功", ipAddress);
+            return true;
+        } catch (Exception e) {
+            log.error("向边缘节点 [{}] 下发事件失败: {}", ipAddress, e.getMessage());
+            return false;
+        }
+    }
 }
