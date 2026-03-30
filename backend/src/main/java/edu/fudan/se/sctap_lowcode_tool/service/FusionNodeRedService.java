@@ -217,6 +217,11 @@ public class FusionNodeRedService {
             }
         }
 
+        // 提前提取 eventSourceType / sensingEvent
+        JsonNode eventSourceNode = eventSources.get(0);
+        String eventSourceType = eventSourceNode.get("eventSourceType").asText();
+        String sensingEvent = eventSourceNode.get("sensingEvent").asText();
+
         // ---------- 3. ruleName ----------
         String ruleName = publishNode.get("spaceEventName").asText()
                 .replace("事件", "") + "规则";
@@ -228,12 +233,12 @@ public class FusionNodeRedService {
         List<Map<String, Object>> triggers = new ArrayList<>();
         for (JsonNode es : eventSources) {
             Map<String, Object> trigger = new LinkedHashMap<>();
-            String eventSourceType = es.get("eventSourceType").asText();
-            trigger.put("eventSource", eventSourceType);
+            String est = es.get("eventSourceType").asText();
+            trigger.put("eventSource", est);
 
-            if ("sensorEvent".equals(eventSourceType)) {
+            if ("sensorEvent".equals(est)) {
                 trigger.put("eventId", es.get("sensingEvent").asText());
-            } else if ("spaceEvent".equals(eventSourceType)) {
+            } else if ("spaceEvent".equals(est)) {
                 trigger.put("eventId", es.get("spaceEventType").asText());
             }
             triggers.add(trigger);
@@ -270,7 +275,10 @@ public class FusionNodeRedService {
                         in.put("key", input.get("key").asText());
                         in.put("type", input.get("type").asText());
                         in.put("desc", input.get("desc").asText());
-                        in.put("expr", input.get("source").asText());
+
+                        String source = input.get("source").asText();
+                        in.put("expr", buildTriggerExpr(eventSourceType, sensingEvent, source));
+
                         inputList.add(in);
                     }
                     step.put("input", inputList);
@@ -294,7 +302,7 @@ public class FusionNodeRedService {
                     step.put("operatorName", operatorName);
 
                     if ("Count".equals(operatorName)) {
-                        handleCountOperator(opNode, step);
+                        handleCountOperator(opNode, step, eventSourceType, sensingEvent);
                     }
                 }
 
@@ -317,15 +325,40 @@ public class FusionNodeRedService {
         publish.put("spaceEventId", publishNode.get("spaceEventType").asText());
         publish.put("spaceEventName", publishNode.get("spaceEventName").asText());
         publish.put("spaceEventDesc", publishNode.get("spaceEventDesc").asText());
-        publish.put("condition", publishNode.get("publishCondition").asText());
 
+        JsonNode conditionNode = publishNode.get("publishCondition");
+
+        String level1 = conditionNode.get("level1").asText();
+        String level2 = conditionNode.get("level2").asText();
+        String expression = conditionNode.get("expression").asText();
+
+        String conditionExpr;
+        if ("eventsource".equalsIgnoreCase(level1)) {
+            conditionExpr = String.format(
+                    "#triggers['%s']['%s']['%s']%s",
+                    eventSourceType, sensingEvent, level2, expression == null ? "" : expression
+            );
+        } else {
+            String operatorId = findLastOperatorId(steps);
+            conditionExpr = String.format(
+                    "#stepOutputs['%s']['%s']%s",
+                    operatorId, level2, expression == null ? "" : expression
+            );
+        }
+
+        publish.put("condition", conditionExpr);
+
+        // outputsMapping
         List<Map<String, Object>> publishOutputs = new ArrayList<>();
         for (JsonNode out : publishNode.get("outputsMapping")) {
             Map<String, Object> o = new LinkedHashMap<>();
             o.put("key", out.get("key").asText());
             o.put("type", out.get("type").asText());
             o.put("desc", out.get("description").asText());
-            o.put("expr", out.get("source").asText());
+
+            String source = out.get("source").asText();
+            o.put("expr", buildTriggerExpr(eventSourceType, sensingEvent, source));
+
             publishOutputs.add(o);
         }
         publish.put("output", publishOutputs);
@@ -344,14 +377,16 @@ public class FusionNodeRedService {
     /* =====================================================
      * count 算子专用转换
      * ===================================================== */
-    private void handleCountOperator(JsonNode opNode, Map<String, Object> step) {
+    private void handleCountOperator(JsonNode opNode,
+                                     Map<String, Object> step,
+                                     String eventSourceType,
+                                     String sensingEvent) {
+
         JsonNode value = opNode.get("value");
 
         List<Map<String, Object>> input = new ArrayList<>();
 
-        // timeWindowSeconds（分钟 → 秒）
-        int timeWindowMinutes = value.get("timeWindowMinute").asInt();
-        int timeWindowSeconds = timeWindowMinutes * 60;
+        int timeWindowSeconds = value.get("timeWindowMinute").asInt() * 60;
 
         input.add(Map.of(
                 "key", "timeWindowSeconds",
@@ -360,7 +395,6 @@ public class FusionNodeRedService {
                 "expr", String.valueOf(timeWindowSeconds)
         ));
 
-        // spaceEventId
         String eventId = value.get("countingEvent").asText();
         input.add(Map.of(
                 "key", "spaceEventId",
@@ -385,24 +419,23 @@ public class FusionNodeRedService {
                 );
             };
 
+            String jsonPath = buildTriggerExpr(eventSourceType, sensingEvent, c.path("jsonPath").asText());
+            String valueExpr = buildTriggerExpr(eventSourceType, sensingEvent, c.path("value").asText());
+
             condExprs.add(String.format(
                     "{'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s}",
-                    c.path("jsonPath").asText(),
+                    jsonPath,
                     c.path("type").asText(),
                     op,
-                    c.path("value").asText()
+                    valueExpr
             ));
         }
-
-        String condExpr = condExprs.isEmpty()
-                ? "{}"
-                : "{" + String.join(", ", condExprs) + "}";
 
         input.add(Map.of(
                 "key", "countConditions",
                 "type", "Array",
-                "desc", "计数条件，指定对事件负载数据的过滤条件，条件间为AND关系，格式为 List<CountCondition>。",
-                "expr", condExpr
+                "desc", "计数条件",
+                "expr", "{" + String.join(", ", condExprs) + "}"
         ));
 
         step.put("input", input);
@@ -413,6 +446,15 @@ public class FusionNodeRedService {
                         "desc", "在指定时间窗口内，符合条件的环境事件数量。"
                 )
         ));
+    }
+
+    private String buildTriggerExpr(String eventSourceType, String sensingEvent, String field) {
+        return String.format("#triggers['%s']['%s']['%s']",
+                eventSourceType, sensingEvent, field);
+    }
+
+    private String findLastOperatorId(List<Map<String, Object>> steps) {
+        return steps.get(steps.size() - 1).get("stepId").toString();
     }
 
     /* =====================================================
