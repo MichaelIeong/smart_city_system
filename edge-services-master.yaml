@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-1
+  template:
+    metadata:
+      labels:
+        app: edge-1
+    spec:
+      # 1. 强制调度到主节点
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      # 2. 增加主节点的容忍度
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: backend-edge
+          # 3. 注意这里必须是 5001 端口！
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8081 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
+          env:
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080" # 指向同机器上的云端后端
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-2
+  template:
+    metadata:
+      labels:
+        app: edge-2
+    spec:
+      # 1. 强制调度到主节点
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      # 2. 增加主节点的容忍度
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: backend-edge
+          # 3. 注意这里必须是 5001 端口！
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8082 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
+          env:
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080" # 指向同机器上的云端后端
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-3
+  template:
+    metadata:
+      labels:
+        app: edge-3
+    spec:
+      # 1. 强制调度到主节点
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      # 2. 增加主节点的容忍度
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: backend-edge
+          # 3. 注意这里必须是 5001 端口！
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8083 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
+          env:
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080" # 指向同机器上的云端后端
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_3"

@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-backend-cloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-cloud
+  template:
+    metadata:
+      labels:
+        app: backend-cloud
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: backend
+          image: 10.176.65.202:5001/smart-city-backend:v1 # 使用私有仓库镜像
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+          env:
+            - name: APP_NODE_ROLE
+              value: "cloud"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.176.65.202:3306/smart_city"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-node-red
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-red
+  template:
+    metadata:
+      labels:
+        app: node-red
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: node-red
+          image: 10.176.65.202:5001/smart-city-node-red:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 1880
+              hostPort: 1880
+          volumeMounts:
+            - name: node-red-data
+              mountPath: /usr/src/app/storage
+      volumes:
+        - name: node-red-data
+          hostPath:
+            path: /home/yousatech/github/smart_city_system/.node-red # 确认这里的路径是你服务器上的真实路径
+            type: DirectoryOrCreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: frontend
+          image: 10.176.65.202:5001/smart-city-frontend:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              hostPort: 8000
+          env:
+            - name: NODE_ENV
+              value: "production"
