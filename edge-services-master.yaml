@@ -32,6 +32,8 @@ spec:
             - containerPort: 8080
               hostPort: 8081 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL
@@ -73,6 +75,8 @@ spec:
             - containerPort: 8080
               hostPort: 8082 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL
@@ -114,6 +118,8 @@ spec:
             - containerPort: 8080
               hostPort: 8083 # 映射到主机的 8081 端口，避免和云端的 8080 冲突
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL

@@ -22,6 +22,8 @@ spec:
             - containerPort: 8080
               hostPort: 8081
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL
@@ -53,6 +55,8 @@ spec:
             - containerPort: 8080
               hostPort: 8082
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL
@@ -84,6 +88,8 @@ spec:
             - containerPort: 8080
               hostPort: 8083
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "edge"
             - name: APP_CLOUD_URL
