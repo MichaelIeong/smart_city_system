@@ -29,6 +29,8 @@ spec:
             - containerPort: 8080
               hostPort: 8080
           env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
             - name: APP_NODE_ROLE
               value: "cloud"
             - name: SPRING_DATASOURCE_URL
