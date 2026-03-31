@@ -29,7 +29,7 @@ spec:
             - name: APP_CLOUD_URL
               value: "http://10.176.65.202:8080"
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_1"
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -62,7 +62,7 @@ spec:
             - name: APP_CLOUD_URL
               value: "http://10.176.65.202:8080"
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_2"
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_2"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -95,4 +95,4 @@ spec:
             - name: APP_CLOUD_URL
               value: "http://10.176.65.202:8080"
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://10.176.65.202:3306/smart_city_edge_3"
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_3"
