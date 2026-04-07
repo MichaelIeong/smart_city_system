@@ -305,10 +305,17 @@ public class FusionNodeRedService {
             }
         }
 
-        // 提前提取 eventSourceType / sensingEvent
         JsonNode eventSourceNode = eventSources.get(0);
         String eventSourceType = eventSourceNode.get("eventSourceType").asText();
-        String sensingEvent = eventSourceNode.get("sensingEvent").asText();
+
+        String eventId;
+        if ("sensorEvent".equals(eventSourceType)) {
+            eventId = eventSourceNode.get("sensingEvent").asText();
+        } else if ("spaceEvent".equals(eventSourceType)) {
+            eventId = eventSourceNode.get("spaceEventType").asText();
+        } else {
+            throw new IllegalArgumentException("Unsupported eventSourceType: " + eventSourceType);
+        }
 
         // ---------- 3. ruleName ----------
         String ruleName = publishNode.get("spaceEventName").asText()
@@ -365,7 +372,7 @@ public class FusionNodeRedService {
                         in.put("desc", input.get("desc").asText());
 
                         String source = input.get("source").asText();
-                        in.put("expr", buildTriggerExpr(eventSourceType, sensingEvent, source));
+                        in.put("expr", buildTriggerExpr(eventSourceType, eventId, source));
 
                         inputList.add(in);
                     }
@@ -390,7 +397,7 @@ public class FusionNodeRedService {
                     step.put("operatorName", operatorName);
 
                     if ("Count".equals(operatorName)) {
-                        handleCountOperator(opNode, step, eventSourceType, sensingEvent);
+                        handleCountOperator(opNode, step, eventSourceType, eventId);
                     }
                 }
 
@@ -424,7 +431,7 @@ public class FusionNodeRedService {
         if ("eventsource".equalsIgnoreCase(level1)) {
             conditionExpr = String.format(
                     "#triggers['%s']['%s']['%s']%s",
-                    eventSourceType, sensingEvent, level2, expression == null ? "" : expression
+                    eventSourceType, eventId, level2, expression == null ? "" : expression
             );
         } else {
             String operatorId = findLastOperatorId(steps);
@@ -445,7 +452,7 @@ public class FusionNodeRedService {
             o.put("desc", out.get("description").asText());
 
             String source = out.get("source").asText();
-            o.put("expr", buildTriggerExpr(eventSourceType, sensingEvent, source));
+            o.put("expr", buildTriggerExpr(eventSourceType, eventId, source));
 
             publishOutputs.add(o);
         }
@@ -468,7 +475,7 @@ public class FusionNodeRedService {
     private void handleCountOperator(JsonNode opNode,
                                      Map<String, Object> step,
                                      String eventSourceType,
-                                     String sensingEvent) {
+                                     String eventId) {
 
         JsonNode value = opNode.get("value");
 
@@ -483,12 +490,12 @@ public class FusionNodeRedService {
                 "expr", String.valueOf(timeWindowSeconds)
         ));
 
-        String eventId = value.get("countingEvent").asText();
+        String countingEventId = value.get("countingEvent").asText();
         input.add(Map.of(
                 "key", "spaceEventId",
                 "type", "String",
                 "desc", "环境事件ID，只统计该环境事件的数量。",
-                "expr", "'" + eventId + "'"
+                "expr", "'" + countingEventId + "'"
         ));
 
         // conditions
@@ -507,8 +514,8 @@ public class FusionNodeRedService {
                 );
             };
 
-            String jsonPath = buildTriggerExpr(eventSourceType, sensingEvent, c.path("jsonPath").asText());
-            String valueExpr = buildTriggerExpr(eventSourceType, sensingEvent, c.path("value").asText());
+            String jsonPath = buildTriggerExpr(eventSourceType, eventId, c.path("jsonPath").asText());
+            String valueExpr = buildTriggerExpr(eventSourceType, eventId, c.path("value").asText());
 
             condExprs.add(String.format(
                     "{'jsonPath': '%s', 'type': '%s', 'op': '%s', 'value': %s}",
@@ -536,9 +543,9 @@ public class FusionNodeRedService {
         ));
     }
 
-    private String buildTriggerExpr(String eventSourceType, String sensingEvent, String field) {
+    private String buildTriggerExpr(String eventSourceType, String eventId, String field) {
         return String.format("#triggers['%s']['%s']['%s']",
-                eventSourceType, sensingEvent, field);
+                eventSourceType, eventId, field);
     }
 
     private String findLastOperatorId(List<Map<String, Object>> steps) {
