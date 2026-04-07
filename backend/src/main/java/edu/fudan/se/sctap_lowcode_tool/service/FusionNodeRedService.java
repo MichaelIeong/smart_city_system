@@ -87,6 +87,40 @@ public class FusionNodeRedService {
     }
 
     /* =====================================================
+    * SpaceEvent Payload
+    * ===================================================== */
+    public List<String> getPayloadByEventType(String eventType) {
+
+        List<EnvEvent> events = envEventRepository.findByEventType(eventType);
+
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        EnvEvent event = events.get(0);
+
+        try {
+            JsonNode root = objectMapper.readTree(event.getEventJson());
+
+            JsonNode paramsNode = root.path("event_params");
+
+            if (paramsNode.isMissingNode() || !paramsNode.isObject()) {
+                return Collections.emptyList();
+            }
+
+            List<String> payload = new ArrayList<>();
+
+            paramsNode.fieldNames().forEachRemaining(payload::add);
+
+            return payload;
+
+        } catch (Exception e) {
+            log.error("解析 eventJson 失败: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /* =====================================================
     * Product Event（产品级事件）
     * ===================================================== */
 

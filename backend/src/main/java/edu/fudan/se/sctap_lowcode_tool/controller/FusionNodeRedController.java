@@ -38,6 +38,14 @@ public class FusionNodeRedController {
     }
 
     /* =====================================================
+    * SpaceEvent Payload API
+    * ===================================================== */
+    @GetMapping("/spaceEventPayload")
+    public List<String> getPayloadByEventType(@RequestParam String eventType) {
+        return fusionService.getPayloadByEventType(eventType);
+    }
+
+    /* =====================================================
     * Product Event API
     * ===================================================== */
 
