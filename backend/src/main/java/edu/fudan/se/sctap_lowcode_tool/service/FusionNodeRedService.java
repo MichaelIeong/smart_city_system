@@ -396,7 +396,7 @@ public class FusionNodeRedService {
                     String operatorName = opNode.get("operator").asText();
                     step.put("operatorName", operatorName);
 
-                    if ("Count".equals(operatorName)) {
+                    if ("count".equals(operatorName)) {
                         handleCountOperator(opNode, step, eventSourceType, eventId);
                     }
                 }
