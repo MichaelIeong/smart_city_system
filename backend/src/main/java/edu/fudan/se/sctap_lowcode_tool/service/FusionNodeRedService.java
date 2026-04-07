@@ -514,7 +514,7 @@ public class FusionNodeRedService {
                 );
             };
 
-            String jsonPath = buildTriggerExpr(eventSourceType, eventId, c.path("jsonPath").asText());
+            String jsonPath = "$." + c.path("jsonPath").asText();
             String valueExpr = buildTriggerExpr(eventSourceType, eventId, c.path("value").asText());
 
             condExprs.add(String.format(
