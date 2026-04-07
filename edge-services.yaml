@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-1
+  template:
+    metadata:
+      labels:
+        app: edge-1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: "ship-main-node-bri1"
+      containers:
+        - name: backend-edge
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8081
+          env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-2
+  template:
+    metadata:
+      labels:
+        app: edge-2
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: "ship-main-node-bri2"
+      containers:
+        - name: backend-edge
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8082
+          env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_2"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-city-edge-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-3
+  template:
+    metadata:
+      labels:
+        app: edge-3
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: "ship-main-node"
+      containers:
+        - name: backend-edge
+          image: 10.176.65.202:5001/smart-city-backend:v1 
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              hostPort: 8083
+          env:
+            - name: APP_DEPLOY_MODE
+              value: "distributed"
+            - name: APP_NODE_ROLE
+              value: "edge"
+            - name: APP_CLOUD_URL
+              value: "http://10.176.65.202:8080"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://10.192.48.143:13306/smart_city_edge_3"

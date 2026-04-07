@@ -10,6 +10,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - APP_DEPLOY_MODE=distributed
       - APP_NODE_ROLE=cloud # 明确指定为云端
       - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city
     networks:
@@ -29,9 +30,10 @@ services:
     ports:
       - "8081:8080" # 宿主机 8081 映射到容器 8080
     environment:
+      - APP_DEPLOY_MODE=distributed
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_1
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.192.48.143:13306/smart_city_edge_1
     networks:
       - app-network
     restart: always
@@ -49,9 +51,10 @@ services:
     ports:
       - "8082:8080" # 宿主机 8082 映射到容器 8080
     environment:
+      - APP_DEPLOY_MODE=distributed
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_2
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.192.48.143:13306/smart_city_edge_2
     networks:
       - app-network
     restart: always
@@ -69,9 +72,10 @@ services:
     ports:
       - "8083:8080" # 宿主机 8083 映射到容器 8080
     environment:
+      - APP_DEPLOY_MODE=distributed
       - APP_NODE_ROLE=edge
       - APP_CLOUD_URL=http://10.176.65.202:8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://10.176.65.202:3306/smart_city_edge_3
+      - SPRING_DATASOURCE_URL=jdbc:mysql://10.192.48.143:13306/smart_city_edge_3
     networks:
       - app-network
     restart: always

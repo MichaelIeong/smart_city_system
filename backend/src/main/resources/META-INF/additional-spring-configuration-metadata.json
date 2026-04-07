@@ -10,6 +10,11 @@
       "name": "fusion.listen-network",
       "type": "java.lang.String",
       "description": "事件融合监听的网格列表（逗号分隔）."
+    },
+    {
+      "name": "app.deploy-mode",
+      "type": "java.lang.String",
+      "description": "应用部署模式，支持 local、distributed."
     }
   ]
 }
