@@ -32,6 +32,10 @@ public class CommonOperatorRegistry {
     public CommonOperatorRegistry(List<CommonOperator> operators) {
         operators.forEach(operator -> {
             String operatorName = operator.getClass().getSimpleName();
+            // 将首字母变为小写
+            operatorName =
+                Character.toLowerCase(operatorName.charAt(0)) +
+                (operatorName.length() > 1 ? operatorName.substring(1) : "");
             operatorMap.put(operatorName, operator);
         });
     }
